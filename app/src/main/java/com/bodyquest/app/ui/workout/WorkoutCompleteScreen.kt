@@ -1,0 +1,273 @@
+package com.bodyquest.app.ui.workout
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.bodyquest.app.domain.model.Job
+import com.bodyquest.app.domain.model.StatType
+import com.bodyquest.app.ui.theme.DarkSurfaceVariant
+import com.bodyquest.app.ui.theme.XpGold
+import com.bodyquest.app.ui.theme.NeonBlue
+import com.bodyquest.app.ui.theme.NeonGreen
+import com.bodyquest.app.ui.theme.NeonPurple
+import com.bodyquest.app.ui.theme.NeonRed
+import com.bodyquest.app.ui.theme.TextMuted
+import com.bodyquest.app.ui.theme.TextSecondary
+
+@Composable
+fun WorkoutCompleteScreen(
+    workoutId: Long,
+    viewModel: WorkoutViewModel,
+    onGoHome: () -> Unit
+) {
+    val state by viewModel.completeState.collectAsState()
+
+    LaunchedEffect(workoutId) {
+        if (state.questName.isEmpty()) {
+            viewModel.loadCompleteData(workoutId)
+        }
+    }
+
+    if (state.questName.isEmpty()) return
+
+    val job = try { Job.valueOf(state.questCategory) } catch (_: Exception) { Job.STRENGTH }
+    val statType = try { StatType.valueOf(state.statType) } catch (_: Exception) { StatType.STRENGTH }
+
+    val minutes = state.elapsedSeconds / 60
+    val seconds = state.elapsedSeconds % 60
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(modifier = Modifier.height(40.dp))
+
+        // Trophy icon
+        Icon(
+            imageVector = Icons.Default.EmojiEvents,
+            contentDescription = null,
+            tint = XpGold,
+            modifier = Modifier.size(80.dp)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "퀘스트 완료!",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = state.questName,
+            style = MaterialTheme.typography.titleMedium,
+            color = job.color
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Stats summary
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = DarkSurfaceVariant
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = "운동 요약",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    SummaryItem(
+                        icon = Icons.Default.Timer,
+                        value = "%02d:%02d".format(minutes, seconds),
+                        label = "시간",
+                        color = NeonBlue
+                    )
+                    SummaryItem(
+                        icon = Icons.Default.Favorite,
+                        value = "${state.heartRateAvg}",
+                        label = "평균 BPM",
+                        color = NeonRed
+                    )
+                    SummaryItem(
+                        icon = Icons.Default.LocalFireDepartment,
+                        value = "${state.caloriesBurned}",
+                        label = "kcal",
+                        color = NeonGreen
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Rewards
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = DarkSurfaceVariant
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = "획득 보상",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // XP reward
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "XP",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextMuted,
+                        modifier = Modifier.width(80.dp)
+                    )
+                    Text(
+                        text = "+${state.xpEarned} XP",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = XpGold
+                    )
+                }
+
+                // Stat reward
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = statType.displayName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextMuted,
+                        modifier = Modifier.width(80.dp)
+                    )
+                    Text(
+                        text = "+${state.statReward}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = statType.color
+                    )
+                }
+
+                // Level up notification
+                if (state.leveledUp) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = NeonPurple.copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            text = "레벨 업! Lv.${state.newLevel}",
+                            modifier = Modifier
+                                .padding(vertical = 12.dp)
+                                .fillMaxWidth(),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = NeonPurple,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Button(
+            onClick = onGoHome,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = NeonPurple)
+        ) {
+            Text(
+                text = "홈으로 돌아가기",
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun SummaryItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    value: String,
+    label: String,
+    color: androidx.compose.ui.graphics.Color
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(28.dp)
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = TextMuted
+        )
+    }
+}

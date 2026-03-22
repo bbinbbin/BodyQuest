@@ -1,0 +1,216 @@
+package com.bodyquest.app.ui.quest
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.bodyquest.app.domain.model.Job
+import com.bodyquest.app.ui.theme.DarkSurfaceVariant
+import com.bodyquest.app.ui.theme.NeonPurple
+import com.bodyquest.app.ui.theme.TextMuted
+import com.bodyquest.app.ui.theme.TextSecondary
+
+@Composable
+fun QuestTreeScreen(
+    category: String,
+    viewModel: QuestViewModel,
+    onQuestSelect: (String) -> Unit,
+    onBack: () -> Unit
+) {
+    val state by viewModel.treeState.collectAsState()
+
+    LaunchedEffect(category) {
+        viewModel.loadCategory(category)
+    }
+
+    val job = try { Job.valueOf(category) } catch (_: Exception) { Job.STRENGTH }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp)
+    ) {
+        // Header with back button
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = {
+                if (state.treeLevel == TreeLevel.QUEST_LIST) {
+                    viewModel.goBackToBodyParts()
+                } else {
+                    onBack()
+                }
+            }) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "뒤로",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Column {
+                Text(
+                    text = job.displayName,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = job.color
+                )
+                if (state.selectedBodyPart != null) {
+                    Text(
+                        text = state.selectedBodyPart!!,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        when (state.treeLevel) {
+            TreeLevel.BODY_PART -> {
+                Text(
+                    text = "운동 부위를 선택하세요",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                state.bodyParts.forEach { bodyPart ->
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .clickable { viewModel.selectBodyPart(bodyPart) },
+                        shape = RoundedCornerShape(12.dp),
+                        color = DarkSurfaceVariant
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(18.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = bodyPart,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                            Text(
+                                text = "→",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = TextMuted
+                            )
+                        }
+                    }
+                }
+            }
+
+            TreeLevel.QUEST_LIST -> {
+                Text(
+                    text = "퀘스트를 선택하세요",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                state.quests.forEach { quest ->
+                    val difficultyLabel = when (quest.difficulty) {
+                        1 -> "초급"
+                        2 -> "중급"
+                        3 -> "고급"
+                        else -> ""
+                    }
+                    val difficultyColor = when (quest.difficulty) {
+                        1 -> com.bodyquest.app.ui.theme.NeonGreen
+                        2 -> com.bodyquest.app.ui.theme.NeonBlue
+                        3 -> com.bodyquest.app.ui.theme.NeonRed
+                        else -> TextMuted
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .clickable { onQuestSelect(quest.id) },
+                        shape = RoundedCornerShape(12.dp),
+                        color = DarkSurfaceVariant
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = quest.name,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = difficultyColor.copy(alpha = 0.15f)
+                                ) {
+                                    Text(
+                                        text = difficultyLabel,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = difficultyColor
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = quest.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row {
+                                Text(
+                                    text = "${quest.durationMinutes}분",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = TextMuted
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                if (quest.sets > 1) {
+                                    Text(
+                                        text = "${quest.sets}세트 x ${quest.repsPerSet}회",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = TextMuted
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                }
+                                Text(
+                                    text = "+${quest.xpReward} XP",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = NeonPurple
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
