@@ -1,6 +1,6 @@
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-03-22
+> 마지막 업데이트: 2026-03-22 (스플래시 화면 추가)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -97,10 +97,13 @@ app/src/main/java/com/bodyquest/app/
 │   ├── avatar/AvatarScreen.kt      # 플레이스홀더 (Coming Soon)
 │   ├── profile/ProfileScreen.kt    # 플레이스홀더 (Coming Soon)
 │   │
+│   ├── splash/
+│   │   └── SplashScreen.kt         # 앱 진입 화면: "시작하기" 버튼으로 온보딩/홈 분기
+│   │
 │   ├── navigation/
-│   │   ├── Screen.kt               # sealed class: 모든 라우트 정의
+│   │   ├── Screen.kt               # sealed class: 모든 라우트 정의 (Splash 포함)
 │   │   ├── BottomNavBar.kt         # 5탭: 홈/퀘스트/PvP/아바타/프로필
-│   │   └── BodyQuestNavGraph.kt    # NavHost + 모든 화면 라우팅
+│   │   └── BodyQuestNavGraph.kt    # NavHost + 모든 화면 라우팅 (startDestination = Splash)
 │   │
 │   └── theme/
 │       ├── Color.kt                # 다크 배경 + 네온 액센트 컬러
@@ -133,6 +136,7 @@ app/src/main/java/com/bodyquest/app/
 - [x] 5탭 하단 네비게이션
 - [x] 커스텀 앱 아이콘 (보라색 방패 + 덤벨)
 - [x] 홈에서 추천퀘스트 클릭 → 퀘스트 상세로 바로 이동
+- [x] 스플래시 화면 ("시작하기" 버튼으로 온보딩/홈 분기, 이중클릭 방지)
 
 ---
 
@@ -173,6 +177,8 @@ app/src/main/java/com/bodyquest/app/
 ## Git 커밋 히스토리
 
 ```
+8910714 feat: 스플래시 화면 추가 및 "시작하기" 버튼으로 전환 방식 변경
+2ef6d4e docs: HandOFF.md 작성
 07ac854 docs: README 작성
 bf950e4 feat: BodyQuest 프로토타입 구현
 69c28a1 Initial commit: BodyQuest empty Android project
