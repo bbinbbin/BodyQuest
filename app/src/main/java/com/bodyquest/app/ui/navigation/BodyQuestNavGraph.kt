@@ -3,7 +3,6 @@ package com.bodyquest.app.ui.navigation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -19,6 +18,7 @@ import com.bodyquest.app.ui.home.HomeScreen
 import com.bodyquest.app.ui.home.HomeViewModel
 import com.bodyquest.app.ui.onboarding.OnboardingScreen
 import com.bodyquest.app.ui.onboarding.OnboardingViewModel
+import com.bodyquest.app.ui.splash.SplashScreen
 import com.bodyquest.app.ui.quest.QuestDetailScreen
 import com.bodyquest.app.ui.quest.QuestScreen
 import com.bodyquest.app.ui.quest.QuestTreeScreen
@@ -49,10 +49,6 @@ fun BodyQuestNavGraph(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Check if user exists to determine start destination
-    val user by userRepository.getUser().collectAsState(initial = null)
-    val hasUser = user != null
-
     val showBottomBar = currentRoute in bottomNavRoutes
 
     Scaffold(
@@ -75,30 +71,36 @@ fun BodyQuestNavGraph(
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Onboarding.route,
+            startDestination = Screen.Splash.route,
             modifier = Modifier.padding(innerPadding)
         ) {
+            composable(Screen.Splash.route) {
+                SplashScreen(
+                    userRepository = userRepository,
+                    onNavigateToOnboarding = {
+                        navController.navigate(Screen.Onboarding.route) {
+                            popUpTo(Screen.Splash.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateToHome = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Splash.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
             composable(Screen.Onboarding.route) {
-                // If user already exists, skip to home
-                if (hasUser) {
-                    androidx.compose.runtime.LaunchedEffect(Unit) {
+                val onboardingViewModel: OnboardingViewModel = viewModel(
+                    factory = OnboardingViewModel.Factory(userRepository)
+                )
+                OnboardingScreen(
+                    viewModel = onboardingViewModel,
+                    onComplete = {
                         navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Onboarding.route) { inclusive = true }
                         }
                     }
-                } else {
-                    val onboardingViewModel: OnboardingViewModel = viewModel(
-                        factory = OnboardingViewModel.Factory(userRepository)
-                    )
-                    OnboardingScreen(
-                        viewModel = onboardingViewModel,
-                        onComplete = {
-                            navController.navigate(Screen.Home.route) {
-                                popUpTo(Screen.Onboarding.route) { inclusive = true }
-                            }
-                        }
-                    )
-                }
+                )
             }
             composable(Screen.Home.route) {
                 val homeViewModel: HomeViewModel = viewModel(
