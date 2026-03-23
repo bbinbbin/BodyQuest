@@ -18,9 +18,6 @@ data class OnboardingState(
     val selectedGoal: Goal? = null,
     val nickname: String = "",
     val avatarIndex: Int = 0,
-    val strengthStat: Int = 0,
-    val enduranceStat: Int = 0,
-    val balanceStat: Int = 0,
     val isCompleted: Boolean = false,
     val isSaving: Boolean = false,
     val error: String? = null
@@ -50,18 +47,6 @@ class OnboardingViewModel @Inject constructor(
         _state.value = _state.value.copy(avatarIndex = index)
     }
 
-    fun setStrengthStat(value: Int) {
-        _state.value = _state.value.copy(strengthStat = value)
-    }
-
-    fun setEnduranceStat(value: Int) {
-        _state.value = _state.value.copy(enduranceStat = value)
-    }
-
-    fun setBalanceStat(value: Int) {
-        _state.value = _state.value.copy(balanceStat = value)
-    }
-
     fun nextStep() {
         _state.value = _state.value.copy(currentStep = _state.value.currentStep + 1)
     }
@@ -86,9 +71,9 @@ class OnboardingViewModel @Inject constructor(
                         job = s.selectedJob.name,
                         goal = s.selectedGoal.name,
                         avatarIndex = s.avatarIndex,
-                        strengthStat = s.strengthStat,
-                        enduranceStat = s.enduranceStat,
-                        balanceStat = s.balanceStat
+                        strengthStat = 0,
+                        enduranceStat = 0,
+                        balanceStat = 0
                     )
                 )
                 _state.value = _state.value.copy(isCompleted = true, isSaving = false)
