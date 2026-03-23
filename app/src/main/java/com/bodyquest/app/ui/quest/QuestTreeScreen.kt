@@ -28,6 +28,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.bodyquest.app.domain.model.Job
+import com.bodyquest.app.ui.common.ErrorScreen
+import com.bodyquest.app.ui.common.LoadingScreen
+import com.bodyquest.app.ui.common.UiState
 import com.bodyquest.app.ui.theme.DarkSurfaceVariant
 import com.bodyquest.app.ui.theme.NeonPurple
 import com.bodyquest.app.ui.theme.TextMuted
@@ -40,12 +43,25 @@ fun QuestTreeScreen(
     onQuestSelect: (String) -> Unit,
     onBack: () -> Unit
 ) {
-    val state by viewModel.treeState.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(category) {
         viewModel.loadCategory(category)
     }
 
+    when (val current = uiState) {
+        is UiState.Loading -> {
+            LoadingScreen()
+            return
+        }
+        is UiState.Error -> {
+            ErrorScreen(message = current.message, onRetry = { viewModel.retry() })
+            return
+        }
+        is UiState.Success -> {}
+    }
+
+    val state = (uiState as UiState.Success).data
     val job = try { Job.valueOf(category) } catch (_: Exception) { Job.STRENGTH }
 
     Column(

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bodyquest.app.data.local.entity.QuestEntity
 import com.bodyquest.app.data.repository.QuestRepository
+import com.bodyquest.app.ui.common.UiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,35 +30,63 @@ class QuestViewModel @Inject constructor(
     private val questRepository: QuestRepository
 ) : ViewModel() {
 
-    private val _treeState = MutableStateFlow(QuestTreeState())
-    val treeState: StateFlow<QuestTreeState> = _treeState
+    private val _uiState = MutableStateFlow<UiState<QuestTreeState>>(UiState.Loading)
+    val uiState: StateFlow<UiState<QuestTreeState>> = _uiState
 
     fun loadCategory(category: String) {
-        _treeState.value = QuestTreeState(category = category, treeLevel = TreeLevel.BODY_PART)
+        _uiState.value = UiState.Loading
         viewModelScope.launch {
-            val parts = questRepository.getBodyParts(category)
-            _treeState.value = _treeState.value.copy(bodyParts = parts)
+            try {
+                val parts = questRepository.getBodyParts(category)
+                _uiState.value = UiState.Success(
+                    QuestTreeState(
+                        category = category,
+                        bodyParts = parts,
+                        treeLevel = TreeLevel.BODY_PART
+                    )
+                )
+            } catch (e: Exception) {
+                _uiState.value = UiState.Error(e.message ?: "퀘스트를 불러올 수 없습니다")
+            }
         }
     }
 
     fun selectBodyPart(bodyPart: String) {
-        _treeState.value = _treeState.value.copy(
-            selectedBodyPart = bodyPart,
-            treeLevel = TreeLevel.QUEST_LIST
+        val current = (_uiState.value as? UiState.Success)?.data ?: return
+        _uiState.value = UiState.Success(
+            current.copy(
+                selectedBodyPart = bodyPart,
+                treeLevel = TreeLevel.QUEST_LIST
+            )
         )
         viewModelScope.launch {
-            questRepository.getQuestsByBodyPart(_treeState.value.category, bodyPart)
-                .collectLatest { quests ->
-                    _treeState.value = _treeState.value.copy(quests = quests)
-                }
+            try {
+                questRepository.getQuestsByBodyPart(current.category, bodyPart)
+                    .collectLatest { quests ->
+                        val state = (_uiState.value as? UiState.Success)?.data ?: return@collectLatest
+                        _uiState.value = UiState.Success(state.copy(quests = quests))
+                    }
+            } catch (e: Exception) {
+                _uiState.value = UiState.Error(e.message ?: "퀘스트를 불러올 수 없습니다")
+            }
         }
     }
 
     fun goBackToBodyParts() {
-        _treeState.value = _treeState.value.copy(
-            selectedBodyPart = null,
-            quests = emptyList(),
-            treeLevel = TreeLevel.BODY_PART
+        val current = (_uiState.value as? UiState.Success)?.data ?: return
+        _uiState.value = UiState.Success(
+            current.copy(
+                selectedBodyPart = null,
+                quests = emptyList(),
+                treeLevel = TreeLevel.BODY_PART
+            )
         )
+    }
+
+    fun retry() {
+        val current = (_uiState.value as? UiState.Success)?.data
+        if (current != null) {
+            loadCategory(current.category)
+        }
     }
 }

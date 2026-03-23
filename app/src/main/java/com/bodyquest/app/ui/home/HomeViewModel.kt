@@ -7,10 +7,13 @@ import com.bodyquest.app.data.local.entity.UserEntity
 import com.bodyquest.app.data.repository.QuestRepository
 import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.data.repository.WorkoutRepository
+import com.bodyquest.app.ui.common.UiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
@@ -24,7 +27,7 @@ data class HomeState(
     val user: UserEntity? = null,
     val todaysQuests: List<CompletedQuestInfo> = emptyList(),
     val recommendedQuests: List<QuestEntity> = emptyList(),
-    val weekWorkoutDays: Set<Int> = emptySet() // 0=Sun, 1=Mon, ... 6=Sat
+    val weekWorkoutDays: Set<Int> = emptySet()
 )
 
 @HiltViewModel
@@ -34,22 +37,34 @@ class HomeViewModel @Inject constructor(
     private val workoutRepository: WorkoutRepository
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(HomeState())
-    val state: StateFlow<HomeState> = _state
+    private val _uiState = MutableStateFlow<UiState<HomeState>>(UiState.Loading)
+    val uiState: StateFlow<UiState<HomeState>> = _uiState
 
     init {
-        loadUser()
+        loadData()
     }
 
-    private fun loadUser() {
+    fun retry() {
+        _uiState.value = UiState.Loading
+        loadData()
+    }
+
+    private fun loadData() {
         viewModelScope.launch {
-            userRepository.getUser().collectLatest { user ->
-                _state.value = _state.value.copy(user = user)
-                if (user != null) {
-                    loadTodaysQuests(user.id)
-                    loadWeekWorkouts(user.id)
-                    loadRecommendedQuests(user.job)
+            try {
+                userRepository.getUser().collectLatest { user ->
+                    if (user != null) {
+                        val currentData = (_uiState.value as? UiState.Success)?.data ?: HomeState()
+                        _uiState.value = UiState.Success(currentData.copy(user = user))
+                        loadTodaysQuests(user.id)
+                        loadWeekWorkouts(user.id)
+                        loadRecommendedQuests(user.job)
+                    } else {
+                        _uiState.value = UiState.Success(HomeState())
+                    }
                 }
+            } catch (e: Exception) {
+                _uiState.value = UiState.Error(e.message ?: "데이터를 불러올 수 없습니다")
             }
         }
     }
@@ -63,41 +78,43 @@ class HomeViewModel @Inject constructor(
         }.timeInMillis
 
         viewModelScope.launch {
-            workoutRepository.getTodaysCompletedWorkouts(userId, startOfDay).collectLatest { workouts ->
-                val questInfos = workouts.map { workout ->
-                    val quest = questRepository.getQuestById(workout.questId)
-                    CompletedQuestInfo(
-                        questName = quest?.name ?: "알 수 없는 퀘스트",
-                        xpEarned = workout.xpEarned
-                    )
+            try {
+                workoutRepository.getTodaysCompletedWorkouts(userId, startOfDay).collectLatest { workouts ->
+                    val questInfos = workouts.map { workout ->
+                        val quest = questRepository.getQuestById(workout.questId)
+                        CompletedQuestInfo(
+                            questName = quest?.name ?: "알 수 없는 퀘스트",
+                            xpEarned = workout.xpEarned
+                        )
+                    }
+                    updateSuccessState { it.copy(todaysQuests = questInfos) }
                 }
-                _state.value = _state.value.copy(todaysQuests = questInfos)
-            }
+            } catch (_: Exception) { }
         }
     }
 
     private fun loadRecommendedQuests(userJob: String) {
         viewModelScope.launch {
-            questRepository.getQuestsByCategory(userJob).collectLatest { jobQuests ->
-                // Pick 2 from user's main job + 1 from another category
+            try {
                 val allCategories = listOf("STRENGTH", "ENDURANCE", "BALANCE")
                 val otherCategory = allCategories.filter { it != userJob }.random()
 
-                val mainPicks = jobQuests.shuffled().take(2)
-
-                questRepository.getQuestsByCategory(otherCategory).collectLatest { otherQuests ->
+                combine(
+                    questRepository.getQuestsByCategory(userJob),
+                    questRepository.getQuestsByCategory(otherCategory)
+                ) { jobQuests, otherQuests ->
+                    val mainPicks = jobQuests.shuffled().take(2)
                     val otherPick = otherQuests.shuffled().take(1)
-                    _state.value = _state.value.copy(
-                        recommendedQuests = (mainPicks + otherPick)
-                    )
+                    mainPicks + otherPick
+                }.collectLatest { recommended ->
+                    updateSuccessState { it.copy(recommendedQuests = recommended) }
                 }
-            }
+            } catch (_: Exception) { }
         }
     }
 
     private fun loadWeekWorkouts(userId: Long) {
         val weekStart = Calendar.getInstance().apply {
-            // Go back to most recent Monday (locale-independent)
             while (get(Calendar.DAY_OF_WEEK) != Calendar.MONDAY) {
                 add(Calendar.DAY_OF_YEAR, -1)
             }
@@ -108,14 +125,23 @@ class HomeViewModel @Inject constructor(
         }.timeInMillis
 
         viewModelScope.launch {
-            workoutRepository.getWeekWorkouts(userId, weekStart).collectLatest { workouts ->
-                val days = workouts.map { workout ->
-                    Calendar.getInstance().apply {
-                        timeInMillis = workout.startTime
-                    }.get(Calendar.DAY_OF_WEEK)
-                }.toSet()
-                _state.value = _state.value.copy(weekWorkoutDays = days)
-            }
+            try {
+                workoutRepository.getWeekWorkouts(userId, weekStart).collectLatest { workouts ->
+                    val days = workouts.map { workout ->
+                        Calendar.getInstance().apply {
+                            timeInMillis = workout.startTime
+                        }.get(Calendar.DAY_OF_WEEK)
+                    }.toSet()
+                    updateSuccessState { it.copy(weekWorkoutDays = days) }
+                }
+            } catch (_: Exception) { }
+        }
+    }
+
+    private fun updateSuccessState(update: (HomeState) -> HomeState) {
+        val current = _uiState.value
+        if (current is UiState.Success) {
+            _uiState.value = UiState.Success(update(current.data))
         }
     }
 }

@@ -21,7 +21,9 @@ data class OnboardingState(
     val strengthStat: Int = 0,
     val enduranceStat: Int = 0,
     val balanceStat: Int = 0,
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
+    val isSaving: Boolean = false,
+    val error: String? = null
 )
 
 @HiltViewModel
@@ -74,19 +76,32 @@ class OnboardingViewModel @Inject constructor(
         val s = _state.value
         if (s.selectedJob == null || s.selectedGoal == null || s.nickname.isBlank()) return
 
+        _state.value = s.copy(isSaving = true, error = null)
+
         viewModelScope.launch {
-            userRepository.createUser(
-                UserEntity(
-                    nickname = s.nickname,
-                    job = s.selectedJob.name,
-                    goal = s.selectedGoal.name,
-                    avatarIndex = s.avatarIndex,
-                    strengthStat = s.strengthStat,
-                    enduranceStat = s.enduranceStat,
-                    balanceStat = s.balanceStat
+            try {
+                userRepository.createUser(
+                    UserEntity(
+                        nickname = s.nickname,
+                        job = s.selectedJob.name,
+                        goal = s.selectedGoal.name,
+                        avatarIndex = s.avatarIndex,
+                        strengthStat = s.strengthStat,
+                        enduranceStat = s.enduranceStat,
+                        balanceStat = s.balanceStat
+                    )
                 )
-            )
-            _state.value = _state.value.copy(isCompleted = true)
+                _state.value = _state.value.copy(isCompleted = true, isSaving = false)
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(
+                    isSaving = false,
+                    error = e.message ?: "프로필 생성에 실패했습니다"
+                )
+            }
         }
+    }
+
+    fun clearError() {
+        _state.value = _state.value.copy(error = null)
     }
 }

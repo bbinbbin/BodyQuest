@@ -30,6 +30,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bodyquest.app.domain.model.Job
 import com.bodyquest.app.domain.model.StatType
+import com.bodyquest.app.ui.common.ErrorScreen
+import com.bodyquest.app.ui.common.LoadingScreen
+import com.bodyquest.app.ui.common.UiState
 import com.bodyquest.app.ui.home.components.StatBar
 import com.bodyquest.app.ui.home.components.TodayQuestCard
 import com.bodyquest.app.ui.home.components.XpProgressBar
@@ -55,7 +58,33 @@ fun HomeScreen(
     onNavigateToQuest: () -> Unit = {},
     onQuestClick: (String) -> Unit = {}
 ) {
-    val state by viewModel.state.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+
+    when (val current = uiState) {
+        is UiState.Loading -> {
+            LoadingScreen()
+            return
+        }
+        is UiState.Error -> {
+            ErrorScreen(message = current.message, onRetry = { viewModel.retry() })
+            return
+        }
+        is UiState.Success -> {
+            HomeContent(
+                state = current.data,
+                onNavigateToQuest = onNavigateToQuest,
+                onQuestClick = onQuestClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeContent(
+    state: HomeState,
+    onNavigateToQuest: () -> Unit,
+    onQuestClick: (String) -> Unit
+) {
     val user = state.user ?: return
 
     val job = try { Job.valueOf(user.job) } catch (_: Exception) { Job.STRENGTH }

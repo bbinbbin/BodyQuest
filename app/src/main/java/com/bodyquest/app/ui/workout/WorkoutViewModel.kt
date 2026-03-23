@@ -130,71 +130,80 @@ class WorkoutViewModel @Inject constructor(
         val quest = s.quest ?: return
 
         viewModelScope.launch {
-            val endTime = System.currentTimeMillis()
-            val caloriesBurned = estimateCalories(s.elapsedSeconds, quest.difficulty)
-            val heartRateAvg = if (s.heartRate > 0) s.heartRate else simulateAvgHeartRate(quest.difficulty)
+            try {
+                val endTime = System.currentTimeMillis()
+                val caloriesBurned = estimateCalories(s.elapsedSeconds, quest.difficulty)
+                val heartRateAvg = if (s.heartRate > 0) s.heartRate else simulateAvgHeartRate(quest.difficulty)
 
-            val user = userRepository.getUserOnce()
-            if (user != null) {
-                // Update workout with correct userId
-                val completedWorkout = WorkoutEntity(
-                    id = s.workoutId,
-                    questId = quest.id,
-                    userId = user.id,
-                    startTime = endTime - (s.elapsedSeconds * 1000L),
-                    endTime = endTime,
-                    elapsedSeconds = s.elapsedSeconds,
-                    caloriesBurned = caloriesBurned,
-                    heartRateAvg = heartRateAvg,
-                    completed = true,
-                    xpEarned = quest.xpReward
-                )
-                workoutRepository.updateWorkout(completedWorkout)
+                val user = userRepository.getUserOnce()
+                if (user != null) {
+                    // Update workout with correct userId
+                    val completedWorkout = WorkoutEntity(
+                        id = s.workoutId,
+                        questId = quest.id,
+                        userId = user.id,
+                        startTime = endTime - (s.elapsedSeconds * 1000L),
+                        endTime = endTime,
+                        elapsedSeconds = s.elapsedSeconds,
+                        caloriesBurned = caloriesBurned,
+                        heartRateAvg = heartRateAvg,
+                        completed = true,
+                        xpEarned = quest.xpReward
+                    )
+                    workoutRepository.updateWorkout(completedWorkout)
 
-                // Calculate new XP and level
-                val (newLevel, remainingXp) = XpCalculator.calculateNewLevel(
-                    user.level, user.xp, quest.xpReward
-                )
-                val leveledUp = newLevel > user.level
+                    // Calculate new XP and level
+                    val (newLevel, remainingXp) = XpCalculator.calculateNewLevel(
+                        user.level, user.xp, quest.xpReward
+                    )
+                    val leveledUp = newLevel > user.level
 
-                // Calculate new stat value
-                val newStatValue = when (quest.statType) {
-                    "STRENGTH" -> user.strengthStat + quest.statReward
-                    "ENDURANCE" -> user.enduranceStat + quest.statReward
-                    "BALANCE" -> user.balanceStat + quest.statReward
-                    else -> 0
+                    // Calculate new stat value
+                    val newStatValue = when (quest.statType) {
+                        "STRENGTH" -> user.strengthStat + quest.statReward
+                        "ENDURANCE" -> user.enduranceStat + quest.statReward
+                        "BALANCE" -> user.balanceStat + quest.statReward
+                        else -> 0
+                    }
+
+                    // Apply all rewards atomically in a single transaction
+                    userRepository.applyWorkoutRewards(
+                        userId = user.id,
+                        newXp = remainingXp,
+                        newLevel = newLevel,
+                        statType = quest.statType,
+                        newStatValue = newStatValue
+                    )
+
+                    _completeState.value = WorkoutCompleteState(
+                        questName = quest.name,
+                        questCategory = quest.category,
+                        elapsedSeconds = s.elapsedSeconds,
+                        totalSets = quest.sets,
+                        heartRateAvg = heartRateAvg,
+                        caloriesBurned = caloriesBurned,
+                        xpEarned = quest.xpReward,
+                        statType = quest.statType,
+                        statReward = quest.statReward,
+                        leveledUp = leveledUp,
+                        newLevel = newLevel
+                    )
                 }
 
-                // Apply all rewards atomically in a single transaction
-                userRepository.applyWorkoutRewards(
-                    userId = user.id,
-                    newXp = remainingXp,
-                    newLevel = newLevel,
-                    statType = quest.statType,
-                    newStatValue = newStatValue
+                _state.value = s.copy(
+                    isRunning = false,
+                    isCompleted = true,
+                    completedSets = quest.sets,
+                    caloriesBurned = caloriesBurned
                 )
-
-                _completeState.value = WorkoutCompleteState(
-                    questName = quest.name,
-                    questCategory = quest.category,
-                    elapsedSeconds = s.elapsedSeconds,
-                    totalSets = quest.sets,
-                    heartRateAvg = heartRateAvg,
-                    caloriesBurned = caloriesBurned,
-                    xpEarned = quest.xpReward,
-                    statType = quest.statType,
-                    statReward = quest.statReward,
-                    leveledUp = leveledUp,
-                    newLevel = newLevel
+            } catch (_: Exception) {
+                // Still mark as completed even if reward saving fails
+                _state.value = s.copy(
+                    isRunning = false,
+                    isCompleted = true,
+                    completedSets = quest.sets
                 )
             }
-
-            _state.value = s.copy(
-                isRunning = false,
-                isCompleted = true,
-                completedSets = quest.sets,
-                caloriesBurned = caloriesBurned
-            )
         }
     }
 
