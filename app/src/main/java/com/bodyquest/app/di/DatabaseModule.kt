@@ -5,6 +5,9 @@ import com.bodyquest.app.data.local.BodyQuestDatabase
 import com.bodyquest.app.data.local.dao.QuestDao
 import com.bodyquest.app.data.local.dao.UserDao
 import com.bodyquest.app.data.local.dao.WorkoutDao
+import com.bodyquest.app.data.repository.LocalQuestRepository
+import com.bodyquest.app.data.repository.LocalUserRepository
+import com.bodyquest.app.data.repository.LocalWorkoutRepository
 import com.bodyquest.app.data.repository.QuestRepository
 import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.data.repository.WorkoutRepository
@@ -43,18 +46,18 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideUserRepository(userDao: UserDao): UserRepository {
-        return UserRepository(userDao)
+        return LocalUserRepository(userDao)
     }
 
     @Provides
     @Singleton
     fun provideQuestRepository(questDao: QuestDao): QuestRepository {
-        return QuestRepository(questDao)
+        return LocalQuestRepository(questDao)
     }
 
     @Provides
     @Singleton
     fun provideWorkoutRepository(workoutDao: WorkoutDao): WorkoutRepository {
-        return WorkoutRepository(workoutDao)
+        return LocalWorkoutRepository(workoutDao)
     }
 }
