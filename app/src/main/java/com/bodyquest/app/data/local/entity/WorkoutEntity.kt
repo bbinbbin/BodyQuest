@@ -1,9 +1,30 @@
 package com.bodyquest.app.data.local.entity
 
 import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "workouts")
+@Entity(
+    tableName = "workouts",
+    indices = [
+        Index(value = ["userId", "completed", "startTime"])
+    ],
+    foreignKeys = [
+        ForeignKey(
+            entity = UserEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["userId"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = QuestEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["questId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
+)
 data class WorkoutEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val questId: String,
