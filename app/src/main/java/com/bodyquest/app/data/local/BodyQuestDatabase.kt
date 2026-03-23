@@ -74,7 +74,6 @@ abstract class BodyQuestDatabase : RoomDatabase() {
                     "bodyquest_db"
                 )
                     .addMigrations(MIGRATION_1_2)
-                    .fallbackToDestructiveMigration(true)
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
