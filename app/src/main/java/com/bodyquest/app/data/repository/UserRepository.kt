@@ -13,13 +13,11 @@ class UserRepository(private val userDao: UserDao) {
 
     suspend fun updateUser(user: UserEntity) = userDao.updateUser(user)
 
-    suspend fun addXp(userId: Long, xpAmount: Int) = userDao.addXp(userId, xpAmount)
-
-    suspend fun updateLevel(userId: Long, level: Int) = userDao.updateLevel(userId, level)
-
-    suspend fun updateStrength(userId: Long, value: Int) = userDao.updateStrength(userId, value)
-
-    suspend fun updateEndurance(userId: Long, value: Int) = userDao.updateEndurance(userId, value)
-
-    suspend fun updateBalance(userId: Long, value: Int) = userDao.updateBalance(userId, value)
+    suspend fun applyWorkoutRewards(
+        userId: Long,
+        newXp: Int,
+        newLevel: Int,
+        statType: String,
+        newStatValue: Int
+    ) = userDao.applyWorkoutRewards(userId, newXp, newLevel, statType, newStatValue)
 }

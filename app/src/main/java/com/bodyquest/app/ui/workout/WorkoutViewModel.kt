@@ -134,45 +134,45 @@ class WorkoutViewModel @Inject constructor(
             val caloriesBurned = estimateCalories(s.elapsedSeconds, quest.difficulty)
             val heartRateAvg = if (s.heartRate > 0) s.heartRate else simulateAvgHeartRate(quest.difficulty)
 
-            val updatedWorkout = WorkoutEntity(
-                id = s.workoutId,
-                questId = quest.id,
-                userId = 0, // will be set properly
-                startTime = endTime - (s.elapsedSeconds * 1000L),
-                endTime = endTime,
-                elapsedSeconds = s.elapsedSeconds,
-                caloriesBurned = caloriesBurned,
-                heartRateAvg = heartRateAvg,
-                completed = true,
-                xpEarned = quest.xpReward
-            )
-
-            // Get user to update workout with correct userId
             val user = userRepository.getUserOnce()
             if (user != null) {
-                val workout = updatedWorkout.copy(userId = user.id)
-                workoutRepository.updateWorkout(workout)
+                // Update workout with correct userId
+                val completedWorkout = WorkoutEntity(
+                    id = s.workoutId,
+                    questId = quest.id,
+                    userId = user.id,
+                    startTime = endTime - (s.elapsedSeconds * 1000L),
+                    endTime = endTime,
+                    elapsedSeconds = s.elapsedSeconds,
+                    caloriesBurned = caloriesBurned,
+                    heartRateAvg = heartRateAvg,
+                    completed = true,
+                    xpEarned = quest.xpReward
+                )
+                workoutRepository.updateWorkout(completedWorkout)
 
-                // Apply XP
+                // Calculate new XP and level
                 val (newLevel, remainingXp) = XpCalculator.calculateNewLevel(
                     user.level, user.xp, quest.xpReward
                 )
                 val leveledUp = newLevel > user.level
 
-                userRepository.addXp(user.id, quest.xpReward)
-                if (leveledUp) {
-                    userRepository.updateLevel(user.id, newLevel)
+                // Calculate new stat value
+                val newStatValue = when (quest.statType) {
+                    "STRENGTH" -> user.strengthStat + quest.statReward
+                    "ENDURANCE" -> user.enduranceStat + quest.statReward
+                    "BALANCE" -> user.balanceStat + quest.statReward
+                    else -> 0
                 }
-                // Update the xp to remaining after level up
-                val updatedUser = user.copy(xp = remainingXp, level = newLevel)
-                userRepository.updateUser(updatedUser)
 
-                // Apply stat reward
-                when (quest.statType) {
-                    "STRENGTH" -> userRepository.updateStrength(user.id, user.strengthStat + quest.statReward)
-                    "ENDURANCE" -> userRepository.updateEndurance(user.id, user.enduranceStat + quest.statReward)
-                    "BALANCE" -> userRepository.updateBalance(user.id, user.balanceStat + quest.statReward)
-                }
+                // Apply all rewards atomically in a single transaction
+                userRepository.applyWorkoutRewards(
+                    userId = user.id,
+                    newXp = remainingXp,
+                    newLevel = newLevel,
+                    statType = quest.statType,
+                    newStatValue = newStatValue
+                )
 
                 _completeState.value = WorkoutCompleteState(
                     questName = quest.name,
