@@ -21,15 +21,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.bodyquest.app.data.local.entity.QuestEntity
-import com.bodyquest.app.data.repository.QuestRepository
 import com.bodyquest.app.domain.model.Job
 import com.bodyquest.app.ui.theme.DarkSurfaceVariant
 import com.bodyquest.app.ui.theme.NeonPurple
@@ -39,14 +35,14 @@ import com.bodyquest.app.ui.theme.TextSecondary
 @Composable
 fun QuestDetailScreen(
     questId: String,
-    questRepository: QuestRepository,
+    viewModel: QuestDetailViewModel,
     onStartWorkout: (String) -> Unit,
     onBack: () -> Unit
 ) {
-    var quest by remember { mutableStateOf<QuestEntity?>(null) }
+    val quest by viewModel.quest.collectAsState()
 
     LaunchedEffect(questId) {
-        quest = questRepository.getQuestById(questId)
+        viewModel.loadQuest(questId)
     }
 
     val q = quest ?: return

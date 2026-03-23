@@ -1,7 +1,6 @@
 package com.bodyquest.app.ui.workout
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.bodyquest.app.data.local.entity.QuestEntity
 import com.bodyquest.app.data.local.entity.WorkoutEntity
@@ -10,11 +9,13 @@ import com.bodyquest.app.data.repository.QuestRepository
 import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.data.repository.WorkoutRepository
 import com.bodyquest.app.util.XpCalculator
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class WorkoutState(
     val quest: QuestEntity? = null,
@@ -42,7 +43,8 @@ data class WorkoutCompleteState(
     val newLevel: Int = 1
 )
 
-class WorkoutViewModel(
+@HiltViewModel
+class WorkoutViewModel @Inject constructor(
     private val questRepository: QuestRepository,
     private val workoutRepository: WorkoutRepository,
     private val userRepository: UserRepository
@@ -278,16 +280,5 @@ class WorkoutViewModel(
         super.onCleared()
         timerJob?.cancel()
         heartRateSimJob?.cancel()
-    }
-
-    class Factory(
-        private val questRepository: QuestRepository,
-        private val workoutRepository: WorkoutRepository,
-        private val userRepository: UserRepository
-    ) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return WorkoutViewModel(questRepository, workoutRepository, userRepository) as T
-        }
     }
 }

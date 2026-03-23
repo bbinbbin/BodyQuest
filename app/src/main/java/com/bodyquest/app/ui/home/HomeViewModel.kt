@@ -1,19 +1,19 @@
 package com.bodyquest.app.ui.home
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.bodyquest.app.data.local.entity.QuestEntity
 import com.bodyquest.app.data.local.entity.UserEntity
-import com.bodyquest.app.data.local.entity.WorkoutEntity
 import com.bodyquest.app.data.repository.QuestRepository
 import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.data.repository.WorkoutRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import javax.inject.Inject
 
 data class CompletedQuestInfo(
     val questName: String,
@@ -27,7 +27,8 @@ data class HomeState(
     val weekWorkoutDays: Set<Int> = emptySet() // 0=Sun, 1=Mon, ... 6=Sat
 )
 
-class HomeViewModel(
+@HiltViewModel
+class HomeViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val questRepository: QuestRepository,
     private val workoutRepository: WorkoutRepository
@@ -115,17 +116,6 @@ class HomeViewModel(
                 }.toSet()
                 _state.value = _state.value.copy(weekWorkoutDays = days)
             }
-        }
-    }
-
-    class Factory(
-        private val userRepository: UserRepository,
-        private val questRepository: QuestRepository,
-        private val workoutRepository: WorkoutRepository
-    ) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return HomeViewModel(userRepository, questRepository, workoutRepository) as T
         }
     }
 }

@@ -5,21 +5,20 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.bodyquest.app.data.repository.QuestRepository
-import com.bodyquest.app.data.repository.UserRepository
-import com.bodyquest.app.data.repository.WorkoutRepository
 import com.bodyquest.app.ui.home.HomeScreen
 import com.bodyquest.app.ui.home.HomeViewModel
 import com.bodyquest.app.ui.onboarding.OnboardingScreen
 import com.bodyquest.app.ui.onboarding.OnboardingViewModel
 import com.bodyquest.app.ui.splash.SplashScreen
+import com.bodyquest.app.ui.splash.SplashViewModel
 import com.bodyquest.app.ui.quest.QuestDetailScreen
+import com.bodyquest.app.ui.quest.QuestDetailViewModel
 import com.bodyquest.app.ui.quest.QuestScreen
 import com.bodyquest.app.ui.quest.QuestTreeScreen
 import com.bodyquest.app.ui.quest.QuestViewModel
@@ -40,11 +39,7 @@ private val bottomNavRoutes = setOf(
 )
 
 @Composable
-fun BodyQuestNavGraph(
-    userRepository: UserRepository,
-    questRepository: QuestRepository,
-    workoutRepository: WorkoutRepository
-) {
+fun BodyQuestNavGraph() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -75,8 +70,9 @@ fun BodyQuestNavGraph(
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Splash.route) {
+                val splashViewModel: SplashViewModel = hiltViewModel()
                 SplashScreen(
-                    userRepository = userRepository,
+                    viewModel = splashViewModel,
                     onNavigateToOnboarding = {
                         navController.navigate(Screen.Onboarding.route) {
                             popUpTo(Screen.Splash.route) { inclusive = true }
@@ -90,9 +86,7 @@ fun BodyQuestNavGraph(
                 )
             }
             composable(Screen.Onboarding.route) {
-                val onboardingViewModel: OnboardingViewModel = viewModel(
-                    factory = OnboardingViewModel.Factory(userRepository)
-                )
+                val onboardingViewModel: OnboardingViewModel = hiltViewModel()
                 OnboardingScreen(
                     viewModel = onboardingViewModel,
                     onComplete = {
@@ -103,9 +97,7 @@ fun BodyQuestNavGraph(
                 )
             }
             composable(Screen.Home.route) {
-                val homeViewModel: HomeViewModel = viewModel(
-                    factory = HomeViewModel.Factory(userRepository, questRepository, workoutRepository)
-                )
+                val homeViewModel: HomeViewModel = hiltViewModel()
                 HomeScreen(
                     viewModel = homeViewModel,
                     onNavigateToQuest = {
@@ -131,9 +123,7 @@ fun BodyQuestNavGraph(
             }
             composable(Screen.QuestTree.route) { backStackEntry ->
                 val category = backStackEntry.arguments?.getString("category") ?: return@composable
-                val questViewModel: QuestViewModel = viewModel(
-                    factory = QuestViewModel.Factory(questRepository)
-                )
+                val questViewModel: QuestViewModel = hiltViewModel()
                 QuestTreeScreen(
                     category = category,
                     viewModel = questViewModel,
@@ -145,9 +135,10 @@ fun BodyQuestNavGraph(
             }
             composable(Screen.QuestDetail.route) { backStackEntry ->
                 val questId = backStackEntry.arguments?.getString("questId") ?: return@composable
+                val questDetailViewModel: QuestDetailViewModel = hiltViewModel()
                 QuestDetailScreen(
                     questId = questId,
-                    questRepository = questRepository,
+                    viewModel = questDetailViewModel,
                     onStartWorkout = { id ->
                         navController.navigate(Screen.Workout.createRoute(id))
                     },
@@ -156,9 +147,7 @@ fun BodyQuestNavGraph(
             }
             composable(Screen.Workout.route) { backStackEntry ->
                 val questId = backStackEntry.arguments?.getString("questId") ?: return@composable
-                val workoutViewModel: WorkoutViewModel = viewModel(
-                    factory = WorkoutViewModel.Factory(questRepository, workoutRepository, userRepository)
-                )
+                val workoutViewModel: WorkoutViewModel = hiltViewModel()
                 WorkoutScreen(
                     questId = questId,
                     viewModel = workoutViewModel,
@@ -172,9 +161,7 @@ fun BodyQuestNavGraph(
             }
             composable(Screen.WorkoutComplete.route) { backStackEntry ->
                 val workoutId = backStackEntry.arguments?.getString("workoutId")?.toLongOrNull() ?: return@composable
-                val workoutViewModel: WorkoutViewModel = viewModel(
-                    factory = WorkoutViewModel.Factory(questRepository, workoutRepository, userRepository)
-                )
+                val workoutViewModel: WorkoutViewModel = hiltViewModel()
                 WorkoutCompleteScreen(
                     workoutId = workoutId,
                     viewModel = workoutViewModel,

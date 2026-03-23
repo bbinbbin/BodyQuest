@@ -14,38 +14,32 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.ui.theme.DarkBackground
 import com.bodyquest.app.ui.theme.NeonPurple
 import com.bodyquest.app.ui.theme.TextMuted
 import com.bodyquest.app.ui.theme.TextSecondary
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 
 @Composable
 fun SplashScreen(
-    userRepository: UserRepository,
+    viewModel: SplashViewModel,
     onNavigateToOnboarding: () -> Unit,
     onNavigateToHome: () -> Unit
 ) {
-    var navigated by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
+    val destination by viewModel.destination.collectAsState()
 
-    suspend fun navigateAfterCheck() {
-        if (!navigated) {
-            navigated = true
-            val user = userRepository.getUser().first()
-            if (user != null) onNavigateToHome() else onNavigateToOnboarding()
+    LaunchedEffect(destination) {
+        when (destination) {
+            SplashDestination.Onboarding -> onNavigateToOnboarding()
+            SplashDestination.Home -> onNavigateToHome()
+            SplashDestination.None -> {}
         }
     }
 
@@ -85,7 +79,7 @@ fun SplashScreen(
         )
         Spacer(modifier = Modifier.height(40.dp))
         Button(
-            onClick = { scope.launch { navigateAfterCheck() } },
+            onClick = { viewModel.checkUser() },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),

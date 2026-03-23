@@ -1,15 +1,16 @@
 package com.bodyquest.app.ui.onboarding
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.bodyquest.app.data.local.entity.UserEntity
 import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.domain.model.Goal
 import com.bodyquest.app.domain.model.Job
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class OnboardingState(
     val currentStep: Int = 0,
@@ -23,7 +24,8 @@ data class OnboardingState(
     val isCompleted: Boolean = false
 )
 
-class OnboardingViewModel(
+@HiltViewModel
+class OnboardingViewModel @Inject constructor(
     private val userRepository: UserRepository
 ) : ViewModel() {
 
@@ -85,13 +87,6 @@ class OnboardingViewModel(
                 )
             )
             _state.value = _state.value.copy(isCompleted = true)
-        }
-    }
-
-    class Factory(private val userRepository: UserRepository) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return OnboardingViewModel(userRepository) as T
         }
     }
 }

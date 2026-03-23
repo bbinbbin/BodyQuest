@@ -1,14 +1,15 @@
 package com.bodyquest.app.ui.quest
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.bodyquest.app.data.local.entity.QuestEntity
 import com.bodyquest.app.data.repository.QuestRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class QuestTreeState(
     val category: String = "",
@@ -23,7 +24,8 @@ enum class TreeLevel {
     QUEST_LIST
 }
 
-class QuestViewModel(
+@HiltViewModel
+class QuestViewModel @Inject constructor(
     private val questRepository: QuestRepository
 ) : ViewModel() {
 
@@ -57,12 +59,5 @@ class QuestViewModel(
             quests = emptyList(),
             treeLevel = TreeLevel.BODY_PART
         )
-    }
-
-    class Factory(private val questRepository: QuestRepository) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return QuestViewModel(questRepository) as T
-        }
     }
 }
