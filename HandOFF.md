@@ -1,6 +1,6 @@
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-03-23 (아키텍처 리팩토링 Phase 1~7 완료)
+> 마지막 업데이트: 2026-03-24 (Firebase Auth 도입 완료)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -30,10 +30,14 @@
 | Hilt | 2.56.2 |
 | Hilt Navigation Compose | 1.2.0 |
 | Security Crypto | 1.1.0-alpha06 |
+| Firebase BOM | 33.9.0 |
+| Credential Manager | 1.5.0 |
+| Google Identity | 1.1.1 |
 | Gradle | 9.3.1 |
 
 - **DI**: Hilt (`@HiltAndroidApp`, `@AndroidEntryPoint`, `@HiltViewModel`)
-- **서버**: 없음 (Room 로컬 DB만 사용, 향후 클라우드 연동 대비 Repository 추상화 완료)
+- **인증**: Firebase Auth (이메일/비밀번호 + Google Sign-In)
+- **서버**: Firebase Auth만 사용 (Room 로컬 DB + 향후 클라우드 연동 대비 Repository 추상화 완료)
 - **테마**: 항상 다크 모드 (다이나믹 컬러 없음)
 - **보안**: network_security_config (HTTPS 강제), EncryptedSharedPreferences 준비 완료
 
@@ -48,22 +52,25 @@ app/src/main/java/com/bodyquest/app/
 │
 ├── di/
 │   ├── DatabaseModule.kt        # @Module: DB, DAO, Repository 제공 (interface → Local 구현체)
+│   ├── AuthModule.kt            # @Module: FirebaseAuth, AuthRepository 제공
 │   └── SecurityModule.kt        # @Module: EncryptedSharedPreferences 제공
 │
 ├── data/
 │   ├── local/
-│   │   ├── BodyQuestDatabase.kt # Room DB (v2), exportSchema=true, Migration(1,2)
+│   │   ├── BodyQuestDatabase.kt # Room DB (v3), exportSchema=true, Migration(1,2), Migration(2,3)
 │   │   ├── SeedData.kt          # ~20개 하드코딩 퀘스트 (근력/지구력/밸런스)
 │   │   ├── dao/
-│   │   │   ├── UserDao.kt       # abstract class, @Transaction applyWorkoutRewards()
+│   │   │   ├── UserDao.kt       # abstract class, @Transaction applyWorkoutRewards(), getUserByFirebaseUid()
 │   │   │   ├── QuestDao.kt      # 카테고리/부위/난이도 필터링
 │   │   │   └── WorkoutDao.kt    # 운동 기록 CRUD, 시간 기반 쿼리
 │   │   └── entity/
-│   │       ├── UserEntity.kt    # id, nickname, job, goal, avatarIndex, stats, xp, level
+│   │       ├── UserEntity.kt    # id, nickname, job, goal, avatarIndex, stats, xp, level, firebaseUid, email, authProvider
 │   │       ├── QuestEntity.kt   # id, category, bodyPart, name, difficulty, rewards
 │   │       ├── WorkoutEntity.kt # FK(userId→users, questId→quests), 복합인덱스, CASCADE
 │   │       └── WorkoutSetEntity.kt # FK(workoutId→workouts), CASCADE
 │   └── repository/
+│       ├── AuthRepository.kt        # interface: 인증 추상화
+│       ├── FirebaseAuthRepository.kt # Firebase Auth 구현체, 한국어 에러 매핑
 │       ├── UserRepository.kt        # interface
 │       ├── LocalUserRepository.kt   # 로컬 구현체
 │       ├── QuestRepository.kt       # interface
@@ -72,9 +79,10 @@ app/src/main/java/com/bodyquest/app/
 │       └── LocalWorkoutRepository.kt # 로컬 구현체
 │
 ├── domain/model/
-│   ├── Job.kt                   # enum: STRENGTH/ENDURANCE/BALANCE
-│   ├── Goal.kt                  # enum: DIET/BULK_UP/MAINTAIN
-│   └── StatType.kt              # enum: STRENGTH/ENDURANCE/BALANCE
+│   ├── AuthResult.kt              # sealed class: Success/Error
+│   ├── Job.kt                     # enum: STRENGTH/ENDURANCE/BALANCE
+│   ├── Goal.kt                    # enum: DIET/BULK_UP/MAINTAIN
+│   └── StatType.kt                # enum: STRENGTH/ENDURANCE/BALANCE
 │
 ├── ui/
 │   ├── common/
@@ -82,12 +90,16 @@ app/src/main/java/com/bodyquest/app/
 │   │   └── CommonUi.kt          # LoadingScreen, ErrorScreen 공통 컴포넌트
 │   │
 │   ├── splash/
-│   │   ├── SplashScreen.kt      # "시작하기" 버튼, SplashViewModel 사용
-│   │   └── SplashViewModel.kt   # @HiltViewModel, user 확인 → 온보딩/홈 분기
+│   │   ├── SplashScreen.kt      # "시작하기" 버튼 → Login/Onboarding/Home 3분기
+│   │   └── SplashViewModel.kt   # @HiltViewModel, 매 실행 시 signOut → Login으로
+│   │
+│   ├── login/
+│   │   ├── LoginScreen.kt       # 이메일/비밀번호 입력, Google 버튼, 모드 전환(로그인↔회원가입)
+│   │   └── LoginViewModel.kt    # @HiltViewModel, 이메일 로그인/가입, Google Sign-In, 비밀번호 찾기
 │   │
 │   ├── onboarding/
 │   │   ├── OnboardingScreen.kt      # 3스텝 (직업→목표→아바타)
-│   │   ├── OnboardingViewModel.kt   # @HiltViewModel, isSaving/error 상태, try-catch
+│   │   ├── OnboardingViewModel.kt   # @HiltViewModel, Firebase 계정 정보 연동하여 UserEntity 생성
 │   │   ├── JobSelectionPage.kt
 │   │   ├── GoalSelectionPage.kt
 │   │   └── AvatarCreationPage.kt
@@ -114,12 +126,14 @@ app/src/main/java/com/bodyquest/app/
 │   │
 │   ├── pvp/PvpScreen.kt            # Coming Soon
 │   ├── avatar/AvatarScreen.kt      # Coming Soon
-│   ├── profile/ProfileScreen.kt    # Coming Soon
+│   ├── profile/
+│   │   ├── ProfileScreen.kt        # Coming Soon + 로그아웃 버튼
+│   │   └── ProfileViewModel.kt     # @HiltViewModel, signOut()
 │   │
 │   ├── navigation/
-│   │   ├── Screen.kt               # sealed class: 모든 라우트
+│   │   ├── Screen.kt               # sealed class: 모든 라우트 (Splash, Login, Onboarding, Home, ...)
 │   │   ├── BottomNavBar.kt         # 5탭
-│   │   └── BodyQuestNavGraph.kt    # hiltViewModel() 사용, repository 파라미터 없음
+│   │   └── BodyQuestNavGraph.kt    # hiltViewModel() 사용, Login 라우트 포함
 │   │
 │   └── theme/
 │       ├── Color.kt
@@ -137,8 +151,40 @@ app/src/main/java/com/bodyquest/app/
 1. **레벨/XP ≠ 스탯**: XP는 운동 수행으로 쌓이고, 스탯은 실측 데이터(InBody 등)로만 변경
 2. **자기 입력 스탯 금지**: 온보딩에서 스탯 입력 단계 제거 (초기값 0)
 3. **3탭 규칙**: 퀘스트 접근은 카테고리 → 부위 → 퀘스트 최대 3탭
-4. **오프라인 퍼스트**: 서버 없이 Room DB만으로 동작
+4. **매번 로그인**: 자동 로그인 없음, 앱 실행 시마다 로그인 필수
 5. **심박수/칼로리는 시뮬레이션**: 현재 실제 센서 연동 없음
+
+---
+
+## 인증 시스템 (Firebase Auth)
+
+### 앱 플로우
+```
+Splash ("시작하기") → Login → [신규] Onboarding → Home
+                            → [기존] Home
+Profile → 로그아웃 → Login
+```
+
+### 지원 로그인 방식
+- **이메일/비밀번호**: 가입, 로그인, 비밀번호 찾기
+- **Google Sign-In**: Credential Manager API 사용 (기기에 Google 계정 필요)
+
+### 주요 동작
+- 회원가입 완료 → "회원가입이 완료되었습니다!" 메시지 → 로그인 화면으로 전환 (자동 로그인 안됨)
+- 로그인 ↔ 회원가입 전환 시 입력 필드 전체 초기화 + 포커스 이메일로 이동
+- Firebase 에러 메시지 전부 한국어로 매핑
+- 로그아웃: Profile 탭에서 가능, 전체 백스택 클리어 후 Login으로
+
+### Firebase 설정
+- **프로젝트**: bodyquest-ce5ab
+- **google-services.json**: `app/` 폴더에 위치
+- **Web Client ID**: `strings.xml`의 `default_web_client_id`에 저장
+- **활성화된 제공자**: Email/Password, Google
+
+### DB 연동
+- `UserEntity`에 `firebaseUid`, `email`, `authProvider` 필드 추가
+- `firebaseUid`에 UNIQUE 인덱스
+- 로그인 성공 → `getUserByFirebaseUid(uid)`로 기존 유저 확인 → 없으면 Onboarding
 
 ---
 
@@ -185,6 +231,16 @@ app/src/main/java/com/bodyquest/app/
 - `fallbackToDestructiveMigration` 제거
 - APK 크기: 18.5MB → 6.7MB (64% 감소)
 
+### Phase 8: Firebase Auth 도입 ✅
+- Firebase Auth (이메일/비밀번호 + Google Sign-In) 도입
+- AuthRepository 인터페이스 + FirebaseAuthRepository 구현체
+- AuthModule (Hilt DI) 추가
+- UserEntity에 firebaseUid, email, authProvider 필드 추가 (DB v2→v3)
+- LoginScreen + LoginViewModel 신규 생성
+- SplashViewModel: 매 실행 시 로그인 필수
+- ProfileScreen: 로그아웃 버튼 추가
+- ProGuard 규칙: Firebase, Credential Manager 보존
+
 ---
 
 ## 현재 구현 완료
@@ -204,6 +260,9 @@ app/src/main/java/com/bodyquest/app/
 - [x] Repository 추상화 (interface + Local)
 - [x] EncryptedSharedPreferences
 - [x] R8 난독화 + ProGuard
+- [x] Firebase Auth (이메일/비밀번호 + Google 로그인)
+- [x] 로그인/회원가입 UI (한국어 에러 메시지)
+- [x] 로그아웃
 
 ---
 
@@ -220,7 +279,7 @@ app/src/main/java/com/bodyquest/app/
 - [ ] **PvP 대전** — 스탯 기반 1:1 비교 대결
 - [ ] **알림/리마인더** — 운동 시간 알림
 - [ ] **운동 중 실제 센서 연동** — Google Fit / Health Connect API
-- [ ] **클라우드 DB 연동** — Firebase/Supabase + Repository 원격 구현체
+- [ ] **클라우드 DB 연동** — Firebase Firestore + Repository 원격 구현체
 
 ### 낮은 우선순위
 - [ ] **소셜 기능** — 친구, 길드
@@ -236,12 +295,16 @@ app/src/main/java/com/bodyquest/app/
 3. **estimateCalories** — 70kg 고정 가정, 향후 사용자 체중 반영 필요
 4. **mipmap webp 아이콘** — hdpi~xxxhdpi에 기본 Android webp 아이콘 남아있음 (adaptive-icon 우선 적용)
 5. **릴리즈 서명** — signing config 미설정, Play Store 배포 전 keystore 생성 필요
+6. **DB 마이그레이션 주의** — ALTER TABLE에 `DEFAULT NULL` 쓰면 Room 스키마 검증 실패. `DEFAULT` 절 없이 컬럼 추가해야 함
 
 ---
 
 ## Git 커밋 히스토리
 
 ```
+f3ff743 fix: DB 마이그레이션 v2→v3 DEFAULT NULL 제거 — Room 스키마 검증 통과
+e969e27 feat: Firebase Auth 도입 — 이메일/비밀번호 + Google 로그인
+39550af docs: HandOFF.md 업데이트 — 아키텍처 리팩토링 Phase 1~7 반영
 560461b build: 프로덕션 빌드 설정 — R8 난독화, ProGuard 규칙 (Phase 7)
 925a2c0 chore: Dead Code 제거 + 코드 정리 (Phase 6)
 b744fc4 refactor: 보안 기반 구축 — 네트워크 보안, Repository 추상화, 암호화 (Phase 5)
@@ -272,3 +335,10 @@ bf950e4 feat: BodyQuest 프로토타입 구현
 ```
 
 디바이스 테스트: Android Studio에서 USB 디버깅으로 실행 또는 APK 직접 설치.
+
+### Firebase 설정 (신규 환경)
+1. `app/google-services.json`이 이미 포함되어 있음
+2. Firebase Console: https://console.firebase.google.com (프로젝트: bodyquest-ce5ab)
+3. 새 디버그 키로 빌드 시 SHA-1 지문을 Firebase Console에 추가해야 Google 로그인 동작
+   - `./gradlew signingReport`로 SHA-1 확인
+   - Firebase Console > 프로젝트 설정 > Android 앱 > 디지털 지문 추가
