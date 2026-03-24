@@ -68,9 +68,9 @@ abstract class BodyQuestDatabase : RoomDatabase() {
 
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE users ADD COLUMN firebaseUid TEXT DEFAULT NULL")
-                db.execSQL("ALTER TABLE users ADD COLUMN email TEXT DEFAULT NULL")
-                db.execSQL("ALTER TABLE users ADD COLUMN authProvider TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE users ADD COLUMN firebaseUid TEXT")
+                db.execSQL("ALTER TABLE users ADD COLUMN email TEXT")
+                db.execSQL("ALTER TABLE users ADD COLUMN authProvider TEXT")
                 db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_users_firebaseUid ON users (firebaseUid)")
             }
         }
