@@ -13,6 +13,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.bodyquest.app.ui.home.HomeScreen
 import com.bodyquest.app.ui.home.HomeViewModel
+import com.bodyquest.app.ui.login.LoginScreen
+import com.bodyquest.app.ui.login.LoginViewModel
 import com.bodyquest.app.ui.onboarding.OnboardingScreen
 import com.bodyquest.app.ui.onboarding.OnboardingViewModel
 import com.bodyquest.app.ui.splash.SplashScreen
@@ -73,6 +75,11 @@ fun BodyQuestNavGraph() {
                 val splashViewModel: SplashViewModel = hiltViewModel()
                 SplashScreen(
                     viewModel = splashViewModel,
+                    onNavigateToLogin = {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(Screen.Splash.route) { inclusive = true }
+                        }
+                    },
                     onNavigateToOnboarding = {
                         navController.navigate(Screen.Onboarding.route) {
                             popUpTo(Screen.Splash.route) { inclusive = true }
@@ -81,6 +88,23 @@ fun BodyQuestNavGraph() {
                     onNavigateToHome = {
                         navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Splash.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+            composable(Screen.Login.route) {
+                val loginViewModel: LoginViewModel = hiltViewModel()
+                LoginScreen(
+                    viewModel = loginViewModel,
+                    onLoginSuccess = { isNewUser ->
+                        if (isNewUser) {
+                            navController.navigate(Screen.Onboarding.route) {
+                                popUpTo(Screen.Login.route) { inclusive = true }
+                            }
+                        } else {
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(Screen.Login.route) { inclusive = true }
+                            }
                         }
                     }
                 )
@@ -181,7 +205,13 @@ fun BodyQuestNavGraph() {
                 AvatarScreen()
             }
             composable(Screen.Profile.route) {
-                ProfileScreen()
+                ProfileScreen(
+                    onSignOut = {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
             }
         }
     }

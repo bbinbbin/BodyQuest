@@ -3,9 +3,11 @@ package com.bodyquest.app.ui.onboarding
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bodyquest.app.data.local.entity.UserEntity
+import com.bodyquest.app.data.repository.AuthRepository
 import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.domain.model.Goal
 import com.bodyquest.app.domain.model.Job
+import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,7 +27,8 @@ data class OnboardingState(
 
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(OnboardingState())
@@ -65,6 +68,13 @@ class OnboardingViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
+                val firebaseUser = FirebaseAuth.getInstance().currentUser
+                val provider = firebaseUser?.providerData
+                    ?.firstOrNull { it.providerId != "firebase" }
+                    ?.providerId
+                    ?.let { if (it == "google.com") "GOOGLE" else "EMAIL" }
+                    ?: "EMAIL"
+
                 userRepository.createUser(
                     UserEntity(
                         nickname = s.nickname,
@@ -73,7 +83,10 @@ class OnboardingViewModel @Inject constructor(
                         avatarIndex = s.avatarIndex,
                         strengthStat = 0,
                         enduranceStat = 0,
-                        balanceStat = 0
+                        balanceStat = 0,
+                        firebaseUid = authRepository.currentUserId,
+                        email = firebaseUser?.email,
+                        authProvider = provider
                     )
                 )
                 _state.value = _state.value.copy(isCompleted = true, isSaving = false)

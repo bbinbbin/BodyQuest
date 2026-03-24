@@ -15,4 +15,5 @@ interface UserRepository {
         statType: String,
         newStatValue: Int
     )
+    suspend fun getUserByFirebaseUid(uid: String): UserEntity?
 }

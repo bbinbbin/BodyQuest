@@ -32,3 +32,11 @@
 -dontwarn com.google.errorprone.annotations.**
 -dontwarn javax.annotation.**
 -dontwarn com.google.crypto.tink.**
+
+# Firebase Auth
+-keep class com.google.firebase.auth.** { *; }
+-dontwarn com.google.firebase.**
+
+# Credential Manager
+-keep class androidx.credentials.** { *; }
+-dontwarn androidx.credentials.**
