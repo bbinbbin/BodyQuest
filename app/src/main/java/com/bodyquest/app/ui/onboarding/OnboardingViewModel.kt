@@ -3,6 +3,7 @@ package com.bodyquest.app.ui.onboarding
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bodyquest.app.data.local.entity.UserEntity
+import com.bodyquest.app.data.remote.SyncManager
 import com.bodyquest.app.data.repository.AuthRepository
 import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.domain.model.Goal
@@ -28,7 +29,8 @@ data class OnboardingState(
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
     private val userRepository: UserRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val syncManager: SyncManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(OnboardingState())
@@ -75,20 +77,22 @@ class OnboardingViewModel @Inject constructor(
                     ?.let { if (it == "google.com") "GOOGLE" else "EMAIL" }
                     ?: "EMAIL"
 
-                userRepository.createUser(
-                    UserEntity(
-                        nickname = s.nickname,
-                        job = s.selectedJob.name,
-                        goal = s.selectedGoal.name,
-                        avatarIndex = s.avatarIndex,
-                        strengthStat = 0,
-                        enduranceStat = 0,
-                        balanceStat = 0,
-                        firebaseUid = authRepository.currentUserId,
-                        email = firebaseUser?.email,
-                        authProvider = provider
-                    )
+                val newUser = UserEntity(
+                    nickname = s.nickname,
+                    job = s.selectedJob.name,
+                    goal = s.selectedGoal.name,
+                    avatarIndex = s.avatarIndex,
+                    strengthStat = 0,
+                    enduranceStat = 0,
+                    balanceStat = 0,
+                    firebaseUid = authRepository.currentUserId,
+                    email = firebaseUser?.email,
+                    authProvider = provider
                 )
+                val userId = userRepository.createUser(newUser)
+                try {
+                    syncManager.pushUserToCloud(newUser.copy(id = userId))
+                } catch (_: Exception) { }
                 _state.value = _state.value.copy(isCompleted = true, isSaving = false)
             } catch (e: Exception) {
                 _state.value = _state.value.copy(

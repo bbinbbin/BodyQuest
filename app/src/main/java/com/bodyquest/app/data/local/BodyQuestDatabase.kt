@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
         WorkoutEntity::class,
         WorkoutSetEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 abstract class BodyQuestDatabase : RoomDatabase() {
@@ -75,6 +75,13 @@ abstract class BodyQuestDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE users ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE workouts ADD COLUMN firestoreId TEXT")
+            }
+        }
+
         fun getDatabase(context: Context): BodyQuestDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -82,7 +89,7 @@ abstract class BodyQuestDatabase : RoomDatabase() {
                     BodyQuestDatabase::class.java,
                     "bodyquest_db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_4_5)
                     .fallbackToDestructiveMigration()
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {

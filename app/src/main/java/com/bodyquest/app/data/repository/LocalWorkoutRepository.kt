@@ -32,4 +32,7 @@ class LocalWorkoutRepository(private val workoutDao: WorkoutDao) : WorkoutReposi
 
     override fun getSetsForWorkout(workoutId: Long): Flow<List<WorkoutSetEntity>> =
         workoutDao.getSetsForWorkout(workoutId)
+
+    override suspend fun getSetsForWorkoutOnce(workoutId: Long): List<WorkoutSetEntity> =
+        workoutDao.getSetsForWorkoutOnce(workoutId)
 }

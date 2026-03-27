@@ -14,4 +14,5 @@ interface WorkoutRepository {
     suspend fun insertWorkoutSet(set: WorkoutSetEntity)
     suspend fun updateWorkoutSet(set: WorkoutSetEntity)
     fun getSetsForWorkout(workoutId: Long): Flow<List<WorkoutSetEntity>>
+    suspend fun getSetsForWorkoutOnce(workoutId: Long): List<WorkoutSetEntity>
 }

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.bodyquest.app.data.local.entity.QuestEntity
 import com.bodyquest.app.data.local.entity.WorkoutEntity
 import com.bodyquest.app.data.local.entity.WorkoutSetEntity
+import com.bodyquest.app.data.remote.SyncManager
 import com.bodyquest.app.data.repository.AuthRepository
 import com.bodyquest.app.data.repository.QuestRepository
 import com.bodyquest.app.data.repository.UserRepository
@@ -49,7 +50,8 @@ class WorkoutViewModel @Inject constructor(
     private val questRepository: QuestRepository,
     private val workoutRepository: WorkoutRepository,
     private val userRepository: UserRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val syncManager: SyncManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(WorkoutState())
@@ -192,6 +194,16 @@ class WorkoutViewModel @Inject constructor(
                         leveledUp = leveledUp,
                         newLevel = newLevel
                     )
+
+                    // Push to cloud
+                    if (uid != null) {
+                        val sets = workoutRepository.getSetsForWorkoutOnce(s.workoutId)
+                        syncManager.pushCompletedWorkout(uid, completedWorkout, sets)
+                        val updatedUser = userRepository.getUserOnce(uid)
+                        if (updatedUser != null) {
+                            syncManager.pushUserToCloud(updatedUser)
+                        }
+                    }
                 }
 
                 _state.value = s.copy(

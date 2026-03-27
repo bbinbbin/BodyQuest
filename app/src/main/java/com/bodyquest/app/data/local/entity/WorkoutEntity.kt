@@ -35,5 +35,6 @@ data class WorkoutEntity(
     val caloriesBurned: Int = 0,
     val heartRateAvg: Int = 0,
     val completed: Boolean = false,
-    val xpEarned: Int = 0
+    val xpEarned: Int = 0,
+    val firestoreId: String? = null
 )

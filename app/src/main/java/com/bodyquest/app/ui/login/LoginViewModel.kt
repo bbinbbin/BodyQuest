@@ -2,6 +2,7 @@ package com.bodyquest.app.ui.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bodyquest.app.data.remote.SyncManager
 import com.bodyquest.app.data.repository.AuthRepository
 import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.domain.model.AuthResult
@@ -32,7 +33,8 @@ data class AuthSuccessResult(
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val syncManager: SyncManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LoginState())
@@ -166,6 +168,7 @@ class LoginViewModel @Inject constructor(
     }
 
     private suspend fun handleAuthSuccess(result: AuthResult.Success) {
+        syncManager.syncOnLogin(result.uid)
         val existingUser = userRepository.getUserByFirebaseUid(result.uid)
         val isNewUser = existingUser == null
         _state.value = _state.value.copy(

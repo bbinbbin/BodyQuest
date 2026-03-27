@@ -18,5 +18,6 @@ data class UserEntity(
     val createdAt: Long = System.currentTimeMillis(),
     val firebaseUid: String? = null,
     val email: String? = null,
-    val authProvider: String? = null  // "EMAIL" | "GOOGLE"
+    val authProvider: String? = null,  // "EMAIL" | "GOOGLE"
+    val updatedAt: Long = System.currentTimeMillis()
 )

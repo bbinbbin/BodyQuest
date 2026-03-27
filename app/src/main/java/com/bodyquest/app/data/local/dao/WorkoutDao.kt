@@ -28,6 +28,9 @@ interface WorkoutDao {
     @Query("SELECT * FROM workouts WHERE id = :workoutId")
     suspend fun getWorkoutById(workoutId: Long): WorkoutEntity?
 
+    @Query("SELECT * FROM workouts WHERE firestoreId = :firestoreId LIMIT 1")
+    suspend fun getWorkoutByFirestoreId(firestoreId: String): WorkoutEntity?
+
     @Insert
     suspend fun insertWorkoutSet(set: WorkoutSetEntity)
 
@@ -36,4 +39,7 @@ interface WorkoutDao {
 
     @Query("SELECT * FROM workout_sets WHERE workoutId = :workoutId ORDER BY setNumber")
     fun getSetsForWorkout(workoutId: Long): Flow<List<WorkoutSetEntity>>
+
+    @Query("SELECT * FROM workout_sets WHERE workoutId = :workoutId ORDER BY setNumber")
+    suspend fun getSetsForWorkoutOnce(workoutId: Long): List<WorkoutSetEntity>
 }
