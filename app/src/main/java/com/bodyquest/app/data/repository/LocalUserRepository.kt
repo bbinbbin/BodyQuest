@@ -5,9 +5,9 @@ import com.bodyquest.app.data.local.entity.UserEntity
 import kotlinx.coroutines.flow.Flow
 
 class LocalUserRepository(private val userDao: UserDao) : UserRepository {
-    override fun getUser(): Flow<UserEntity?> = userDao.getUser()
+    override fun getUser(firebaseUid: String): Flow<UserEntity?> = userDao.getUser(firebaseUid)
 
-    override suspend fun getUserOnce(): UserEntity? = userDao.getUserOnce()
+    override suspend fun getUserOnce(firebaseUid: String): UserEntity? = userDao.getUserOnce(firebaseUid)
 
     override suspend fun createUser(user: UserEntity): Long = userDao.insertUser(user)
 

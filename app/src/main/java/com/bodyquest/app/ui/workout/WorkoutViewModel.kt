@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.bodyquest.app.data.local.entity.QuestEntity
 import com.bodyquest.app.data.local.entity.WorkoutEntity
 import com.bodyquest.app.data.local.entity.WorkoutSetEntity
+import com.bodyquest.app.data.repository.AuthRepository
 import com.bodyquest.app.data.repository.QuestRepository
 import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.data.repository.WorkoutRepository
@@ -47,7 +48,8 @@ data class WorkoutCompleteState(
 class WorkoutViewModel @Inject constructor(
     private val questRepository: QuestRepository,
     private val workoutRepository: WorkoutRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(WorkoutState())
@@ -62,7 +64,8 @@ class WorkoutViewModel @Inject constructor(
     fun loadQuest(questId: String) {
         viewModelScope.launch {
             val quest = questRepository.getQuestById(questId) ?: return@launch
-            val user = userRepository.getUserOnce() ?: return@launch
+            val uid = authRepository.currentUserId ?: return@launch
+            val user = userRepository.getUserOnce(uid) ?: return@launch
 
             val workout = WorkoutEntity(
                 questId = questId,
@@ -135,7 +138,8 @@ class WorkoutViewModel @Inject constructor(
                 val caloriesBurned = estimateCalories(s.elapsedSeconds, quest.difficulty)
                 val heartRateAvg = if (s.heartRate > 0) s.heartRate else simulateAvgHeartRate(quest.difficulty)
 
-                val user = userRepository.getUserOnce()
+                val uid = authRepository.currentUserId
+                val user = if (uid != null) userRepository.getUserOnce(uid) else null
                 if (user != null) {
                     // Update workout with correct userId
                     val completedWorkout = WorkoutEntity(
@@ -211,7 +215,8 @@ class WorkoutViewModel @Inject constructor(
         viewModelScope.launch {
             val workout = workoutRepository.getWorkoutById(workoutId) ?: return@launch
             val quest = questRepository.getQuestById(workout.questId) ?: return@launch
-            val user = userRepository.getUserOnce()
+            val uid = authRepository.currentUserId
+            val user = if (uid != null) userRepository.getUserOnce(uid) else null
 
             _completeState.value = WorkoutCompleteState(
                 questName = quest.name,

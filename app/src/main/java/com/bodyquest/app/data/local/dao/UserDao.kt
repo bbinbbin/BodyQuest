@@ -10,11 +10,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 abstract class UserDao {
-    @Query("SELECT * FROM users LIMIT 1")
-    abstract fun getUser(): Flow<UserEntity?>
+    @Query("SELECT * FROM users WHERE firebaseUid = :uid LIMIT 1")
+    abstract fun getUser(uid: String): Flow<UserEntity?>
 
-    @Query("SELECT * FROM users LIMIT 1")
-    abstract suspend fun getUserOnce(): UserEntity?
+    @Query("SELECT * FROM users WHERE firebaseUid = :uid LIMIT 1")
+    abstract suspend fun getUserOnce(uid: String): UserEntity?
 
     @Query("SELECT * FROM users WHERE firebaseUid = :uid LIMIT 1")
     abstract suspend fun getUserByFirebaseUid(uid: String): UserEntity?

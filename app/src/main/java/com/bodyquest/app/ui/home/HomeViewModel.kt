@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bodyquest.app.data.local.entity.QuestEntity
 import com.bodyquest.app.data.local.entity.UserEntity
+import com.bodyquest.app.data.repository.AuthRepository
 import com.bodyquest.app.data.repository.QuestRepository
 import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.data.repository.WorkoutRepository
@@ -34,7 +35,8 @@ data class HomeState(
 class HomeViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val questRepository: QuestRepository,
-    private val workoutRepository: WorkoutRepository
+    private val workoutRepository: WorkoutRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<UiState<HomeState>>(UiState.Loading)
@@ -52,7 +54,12 @@ class HomeViewModel @Inject constructor(
     private fun loadData() {
         viewModelScope.launch {
             try {
-                userRepository.getUser().collectLatest { user ->
+                val uid = authRepository.currentUserId
+                if (uid == null) {
+                    _uiState.value = UiState.Error("로그인이 필요합니다")
+                    return@launch
+                }
+                userRepository.getUser(uid).collectLatest { user ->
                     if (user != null) {
                         val currentData = (_uiState.value as? UiState.Success)?.data ?: HomeState()
                         _uiState.value = UiState.Success(currentData.copy(user = user))

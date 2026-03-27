@@ -4,8 +4,8 @@ import com.bodyquest.app.data.local.entity.UserEntity
 import kotlinx.coroutines.flow.Flow
 
 interface UserRepository {
-    fun getUser(): Flow<UserEntity?>
-    suspend fun getUserOnce(): UserEntity?
+    fun getUser(firebaseUid: String): Flow<UserEntity?>
+    suspend fun getUserOnce(firebaseUid: String): UserEntity?
     suspend fun createUser(user: UserEntity): Long
     suspend fun updateUser(user: UserEntity)
     suspend fun applyWorkoutRewards(
