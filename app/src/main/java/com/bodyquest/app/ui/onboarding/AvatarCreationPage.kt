@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bodyquest.app.ui.theme.DarkSurfaceVariant
 import com.bodyquest.app.ui.theme.NeonPurple
+import com.bodyquest.app.ui.theme.NeonRed
 import com.bodyquest.app.ui.theme.TextMuted
 import com.bodyquest.app.ui.theme.TextSecondary
 
@@ -37,6 +38,7 @@ private val avatarEmojis = listOf("🦸", "🧙", "🥷", "🧑‍🚀", "🦹",
 fun AvatarCreationPage(
     nickname: String,
     avatarIndex: Int,
+    nicknameError: String? = null,
     onNicknameChange: (String) -> Unit,
     onAvatarSelect: (Int) -> Unit
 ) {
@@ -64,11 +66,18 @@ fun AvatarCreationPage(
             onValueChange = onNicknameChange,
             label = { Text("닉네임") },
             singleLine = true,
+            isError = nicknameError != null,
+            supportingText = if (nicknameError != null) {
+                { Text(nicknameError, color = NeonRed) }
+            } else null,
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = NeonPurple,
                 focusedLabelColor = NeonPurple,
-                cursorColor = NeonPurple
+                cursorColor = NeonPurple,
+                errorBorderColor = NeonRed,
+                errorLabelColor = NeonRed,
+                errorCursorColor = NeonRed
             )
         )
 

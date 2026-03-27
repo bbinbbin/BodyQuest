@@ -11,6 +11,26 @@ class FirestoreUserService @Inject constructor(
     private val firestore: FirebaseFirestore
 ) {
 
+    suspend fun isNicknameTaken(nickname: String): Boolean {
+        val snapshot = firestore.collection("users")
+            .whereEqualTo("nickname", nickname)
+            .limit(1)
+            .get()
+            .await()
+        return !snapshot.isEmpty
+    }
+
+    suspend fun deleteUser(firebaseUid: String) {
+        val userRef = firestore.collection("users").document(firebaseUid)
+        // Delete workouts subcollection first
+        val workouts = userRef.collection("workouts").get().await()
+        for (doc in workouts.documents) {
+            doc.reference.delete().await()
+        }
+        // Delete user document
+        userRef.delete().await()
+    }
+
     suspend fun pushUser(user: UserEntity) {
         val uid = user.firebaseUid ?: return
         val data = mapOf(

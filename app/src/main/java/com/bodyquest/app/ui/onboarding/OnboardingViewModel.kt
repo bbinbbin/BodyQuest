@@ -3,6 +3,7 @@ package com.bodyquest.app.ui.onboarding
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bodyquest.app.data.local.entity.UserEntity
+import com.bodyquest.app.data.remote.FirestoreUserService
 import com.bodyquest.app.data.remote.SyncManager
 import com.bodyquest.app.data.repository.AuthRepository
 import com.bodyquest.app.data.repository.UserRepository
@@ -23,14 +24,16 @@ data class OnboardingState(
     val avatarIndex: Int = 0,
     val isCompleted: Boolean = false,
     val isSaving: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val nicknameError: String? = null
 )
 
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val authRepository: AuthRepository,
-    private val syncManager: SyncManager
+    private val syncManager: SyncManager,
+    private val firestoreService: FirestoreUserService
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(OnboardingState())
@@ -45,7 +48,7 @@ class OnboardingViewModel @Inject constructor(
     }
 
     fun setNickname(nickname: String) {
-        _state.value = _state.value.copy(nickname = nickname)
+        _state.value = _state.value.copy(nickname = nickname, nicknameError = null)
     }
 
     fun setAvatarIndex(index: Int) {
@@ -66,10 +69,23 @@ class OnboardingViewModel @Inject constructor(
         val s = _state.value
         if (s.selectedJob == null || s.selectedGoal == null || s.nickname.isBlank()) return
 
-        _state.value = s.copy(isSaving = true, error = null)
+        _state.value = s.copy(isSaving = true, error = null, nicknameError = null)
 
         viewModelScope.launch {
             try {
+                val taken = try {
+                    firestoreService.isNicknameTaken(s.nickname.trim())
+                } catch (_: Exception) {
+                    false // 네트워크/권한 오류 시 중복 체크 건너뜀
+                }
+                if (taken) {
+                    _state.value = _state.value.copy(
+                        isSaving = false,
+                        nicknameError = "이미 사용 중인 닉네임입니다"
+                    )
+                    return@launch
+                }
+
                 val firebaseUser = FirebaseAuth.getInstance().currentUser
                 val provider = firebaseUser?.providerData
                     ?.firstOrNull { it.providerId != "firebase" }

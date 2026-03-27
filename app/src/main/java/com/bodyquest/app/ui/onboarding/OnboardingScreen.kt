@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.bodyquest.app.ui.theme.DarkSurfaceVariant
 import com.bodyquest.app.ui.theme.NeonPurple
+import com.bodyquest.app.ui.theme.NeonRed
 import com.bodyquest.app.ui.theme.TextMuted
 
 private const val TOTAL_STEPS = 3
@@ -95,10 +96,21 @@ fun OnboardingScreen(
                 2 -> AvatarCreationPage(
                     nickname = state.nickname,
                     avatarIndex = state.avatarIndex,
+                    nicknameError = state.nicknameError,
                     onNicknameChange = { viewModel.setNickname(it) },
                     onAvatarSelect = { viewModel.setAvatarIndex(it) }
                 )
             }
+        }
+
+        // Error message
+        if (state.error != null) {
+            Text(
+                text = state.error!!,
+                color = NeonRed,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = 24.dp)
+            )
         }
 
         // Navigation buttons
@@ -132,7 +144,7 @@ fun OnboardingScreen(
                 },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp),
-                enabled = when (state.currentStep) {
+                enabled = !state.isSaving && when (state.currentStep) {
                     0 -> state.selectedJob != null
                     1 -> state.selectedGoal != null
                     2 -> state.nickname.isNotBlank()
