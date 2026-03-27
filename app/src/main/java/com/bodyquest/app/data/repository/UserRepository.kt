@@ -16,4 +16,5 @@ interface UserRepository {
         newStatValue: Int
     )
     suspend fun getUserByFirebaseUid(uid: String): UserEntity?
+    suspend fun deleteUserByFirebaseUid(uid: String)
 }

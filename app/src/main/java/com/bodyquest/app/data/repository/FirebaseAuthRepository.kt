@@ -61,6 +61,15 @@ class FirebaseAuthRepository @Inject constructor(
         firebaseAuth.signOut()
     }
 
+    override suspend fun deleteAccount(): Result<Unit> {
+        return try {
+            firebaseAuth.currentUser?.delete()?.await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     private fun mapFirebaseError(e: Exception): String {
         val msg = e.message ?: ""
         return when {

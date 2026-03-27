@@ -23,4 +23,7 @@ class LocalUserRepository(private val userDao: UserDao) : UserRepository {
 
     override suspend fun getUserByFirebaseUid(uid: String): UserEntity? =
         userDao.getUserByFirebaseUid(uid)
+
+    override suspend fun deleteUserByFirebaseUid(uid: String) =
+        userDao.deleteUserByFirebaseUid(uid)
 }

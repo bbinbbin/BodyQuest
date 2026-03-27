@@ -12,12 +12,22 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -32,6 +42,38 @@ fun ProfileScreen(
     onSignOut: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
+    val deleteState by viewModel.deleteState.collectAsState()
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(deleteState) {
+        if (deleteState is DeleteState.Success) {
+            onSignOut()
+        }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("계정 삭제") },
+            text = { Text("정말 계정을 삭제하시겠습니까?\n모든 운동 기록과 캐릭터 데이터가 삭제되며 복구할 수 없습니다.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        viewModel.deleteAccount()
+                    }
+                ) {
+                    Text("삭제", color = NeonRed)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("취소")
+                }
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -65,6 +107,21 @@ fun ProfileScreen(
             color = TextMuted
         )
         Spacer(modifier = Modifier.height(48.dp))
+
+        if (deleteState is DeleteState.Loading) {
+            CircularProgressIndicator(color = NeonCyan)
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        if (deleteState is DeleteState.Error) {
+            Text(
+                text = (deleteState as DeleteState.Error).message,
+                color = NeonRed,
+                style = MaterialTheme.typography.bodySmall
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         Button(
             onClick = {
                 viewModel.signOut()
@@ -77,6 +134,17 @@ fun ProfileScreen(
             colors = ButtonDefaults.buttonColors(containerColor = NeonRed)
         ) {
             Text("로그아웃", style = MaterialTheme.typography.titleSmall)
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        OutlinedButton(
+            onClick = { showDeleteDialog = true },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = RoundedCornerShape(12.dp),
+            enabled = deleteState !is DeleteState.Loading
+        ) {
+            Text("계정 삭제", color = NeonRed, style = MaterialTheme.typography.titleSmall)
         }
     }
 }

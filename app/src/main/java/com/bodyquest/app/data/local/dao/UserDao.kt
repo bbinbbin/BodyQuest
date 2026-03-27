@@ -19,6 +19,9 @@ abstract class UserDao {
     @Query("SELECT * FROM users WHERE firebaseUid = :uid LIMIT 1")
     abstract suspend fun getUserByFirebaseUid(uid: String): UserEntity?
 
+    @Query("DELETE FROM users WHERE firebaseUid = :uid")
+    abstract suspend fun deleteUserByFirebaseUid(uid: String)
+
     @Insert
     abstract suspend fun insertUser(user: UserEntity): Long
 

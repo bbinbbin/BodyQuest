@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
         WorkoutEntity::class,
         WorkoutSetEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 abstract class BodyQuestDatabase : RoomDatabase() {
@@ -83,6 +83,7 @@ abstract class BodyQuestDatabase : RoomDatabase() {
                     "bodyquest_db"
                 )
                     .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .fallbackToDestructiveMigration()
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
