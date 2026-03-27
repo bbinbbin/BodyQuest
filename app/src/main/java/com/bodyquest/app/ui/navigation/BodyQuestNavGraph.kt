@@ -13,6 +13,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.bodyquest.app.ui.home.HomeScreen
 import com.bodyquest.app.ui.home.HomeViewModel
+import com.bodyquest.app.ui.intro.IntroScreen
 import com.bodyquest.app.ui.login.LoginScreen
 import com.bodyquest.app.ui.login.LoginViewModel
 import com.bodyquest.app.ui.onboarding.OnboardingScreen
@@ -30,6 +31,7 @@ import com.bodyquest.app.ui.pvp.PvpScreen
 import com.bodyquest.app.ui.workout.WorkoutCompleteScreen
 import com.bodyquest.app.ui.workout.WorkoutScreen
 import com.bodyquest.app.ui.workout.WorkoutViewModel
+
 
 // Routes where bottom nav is visible
 private val bottomNavRoutes = setOf(
@@ -80,6 +82,11 @@ fun BodyQuestNavGraph() {
                             popUpTo(Screen.Splash.route) { inclusive = true }
                         }
                     },
+                    onNavigateToIntro = {
+                        navController.navigate(Screen.Intro.route) {
+                            popUpTo(Screen.Splash.route) { inclusive = true }
+                        }
+                    },
                     onNavigateToOnboarding = {
                         navController.navigate(Screen.Onboarding.route) {
                             popUpTo(Screen.Splash.route) { inclusive = true }
@@ -88,6 +95,15 @@ fun BodyQuestNavGraph() {
                     onNavigateToHome = {
                         navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Splash.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+            composable(Screen.Intro.route) {
+                IntroScreen(
+                    onNavigateToLogin = {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(Screen.Intro.route) { inclusive = true }
                         }
                     }
                 )

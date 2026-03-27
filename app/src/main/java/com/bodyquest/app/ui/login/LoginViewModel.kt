@@ -1,5 +1,6 @@
 package com.bodyquest.app.ui.login
 
+import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bodyquest.app.data.remote.SyncManager
@@ -34,7 +35,8 @@ data class AuthSuccessResult(
 class LoginViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
-    private val syncManager: SyncManager
+    private val syncManager: SyncManager,
+    private val sharedPreferences: SharedPreferences
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LoginState())
@@ -168,6 +170,7 @@ class LoginViewModel @Inject constructor(
     }
 
     private suspend fun handleAuthSuccess(result: AuthResult.Success) {
+        sharedPreferences.edit().putBoolean("has_logged_in", true).apply()
         syncManager.syncOnLogin(result.uid)
         val existingUser = userRepository.getUserByFirebaseUid(result.uid)
         val isNewUser = existingUser == null

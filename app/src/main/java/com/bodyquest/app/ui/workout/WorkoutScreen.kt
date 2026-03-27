@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bodyquest.app.domain.model.Job
+import com.bodyquest.app.ui.common.LoadingScreen
 import com.bodyquest.app.ui.theme.DarkSurfaceVariant
 import com.bodyquest.app.ui.theme.NeonGreen
 import com.bodyquest.app.ui.theme.NeonPurple
@@ -68,7 +69,11 @@ fun WorkoutScreen(
         }
     }
 
-    val quest = state.quest ?: return
+    val quest = state.quest
+    if (quest == null) {
+        LoadingScreen()
+        return
+    }
 
     val job = try { Job.valueOf(quest.category) } catch (_: Exception) { Job.STRENGTH }
 

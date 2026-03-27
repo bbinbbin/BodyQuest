@@ -1,6 +1,6 @@
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-03-27 (Firestore 동기화 + 계정 관리 완료)
+> 마지막 업데이트: 2026-03-28 (인트로 슬라이드 화면 추가 + 버그 수정)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -96,12 +96,15 @@ app/src/main/java/com/bodyquest/app/
 │   │   └── CommonUi.kt          # LoadingScreen, ErrorScreen 공통 컴포넌트
 │   │
 │   ├── splash/
-│   │   ├── SplashScreen.kt      # "시작하기" 버튼 → Login/Onboarding/Home 3분기
-│   │   └── SplashViewModel.kt   # @HiltViewModel, 매 실행 시 signOut → Login으로
+│   │   ├── SplashScreen.kt      # "시작하기" 버튼 → Intro/Login/Onboarding/Home 4분기
+│   │   └── SplashViewModel.kt   # @HiltViewModel, has_logged_in 체크 → 미로그인 기기면 Intro로
+│   │
+│   ├── intro/
+│   │   └── IntroScreen.kt       # HorizontalPager 5장 슬라이드, dot 인디케이터, 다음/시작하기/건너뛰기
 │   │
 │   ├── login/
 │   │   ├── LoginScreen.kt       # 이메일/비밀번호 입력, Google 버튼, 모드 전환(로그인↔회원가입)
-│   │   └── LoginViewModel.kt    # @HiltViewModel, 로그인 시 syncManager.syncOnLogin() 호출
+│   │   └── LoginViewModel.kt    # @HiltViewModel, 로그인 시 syncOnLogin() + has_logged_in=true 저장
 │   │
 │   ├── onboarding/
 │   │   ├── OnboardingScreen.kt      # 3스텝 (직업→목표→아바타), 에러 메시지 표시
@@ -137,9 +140,9 @@ app/src/main/java/com/bodyquest/app/
 │   │   └── ProfileViewModel.kt     # @HiltViewModel, signOut(), deleteAccount() (Firestore→Room→Auth 순서)
 │   │
 │   ├── navigation/
-│   │   ├── Screen.kt               # sealed class: 모든 라우트 (Splash, Login, Onboarding, Home, ...)
+│   │   ├── Screen.kt               # sealed class: 모든 라우트 (Splash, Intro, Login, Onboarding, Home, ...)
 │   │   ├── BottomNavBar.kt         # 5탭
-│   │   └── BodyQuestNavGraph.kt    # hiltViewModel() 사용, Login 라우트 포함
+│   │   └── BodyQuestNavGraph.kt    # hiltViewModel() 사용, Intro/Login 라우트 포함
 │   │
 │   └── theme/
 │       ├── Color.kt
@@ -167,11 +170,20 @@ app/src/main/java/com/bodyquest/app/
 
 ### 앱 플로우
 ```
-Splash ("시작하기") → Login → [신규] Onboarding → Home
-                            → [기존/클라우드 복원] Home
+Splash ("시작하기")
+  → [한 번도 로그인 안 한 기기] Intro (5장 슬라이드) → Login
+  → [로그인 이력 있는 기기] Login
+Login → [신규] Onboarding → Home
+      → [기존/클라우드 복원] Home
 Profile → 로그아웃 → Login
 Profile → 계정 삭제 → Login (Firestore + Room + Auth 모두 삭제)
 ```
+
+### 인트로 화면 조건
+- `EncryptedSharedPreferences`의 `has_logged_in` 키로 판단
+- 로그인 성공 시(`handleAuthSuccess`) `has_logged_in = true` 저장
+- 인트로 중 앱 종료 후 재실행 → 인트로 다시 표시 (로그인 전까지 반복)
+- 이미지: `res/drawable/intro_1.png` ~ `intro_5.png`
 
 ### 지원 로그인 방식
 - **이메일/비밀번호**: 가입, 로그인, 비밀번호 찾기
@@ -308,6 +320,16 @@ users/{firebaseUid}
 - 삭제 순서: Firestore → Room → Firebase Auth (권한 문제 방지)
 - DB v3→v4 + fallbackToDestructiveMigration (기존 데이터 초기화)
 
+### Phase 11: 인트로 슬라이드 화면 + 버그 수정 ✅ (2026-03-28)
+- `ui/intro/IntroScreen.kt` 신규 생성 (HorizontalPager 5장, dot 인디케이터, 다음/시작하기/건너뛰기)
+- `Screen.kt`에 `Intro` 라우트 추가
+- `SplashViewModel`: `has_logged_in` 키(EncryptedSharedPreferences) 기반 인트로 분기
+- `LoginViewModel`: 로그인 성공 시 `has_logged_in = true` 저장 (인트로 재표시 방지)
+- 인트로 표시 조건: 한 번도 로그인 안 한 기기, 로그인 성공 전까지 반복 표시
+- drawable 파일명 수정: `1.png`~`5.png` → `intro_1.png`~`intro_5.png` (Android 리소스 규칙)
+- **버그 수정** WorkoutScreen: `val quest = state.quest ?: return` → 로컬 변수 + null 체크로 변경 (빈 화면 → LoadingScreen)
+- **버그 수정** BodyQuestDatabase: 퀘스트 씨드 삽입을 코루틴 비동기 → `db.execSQL` 동기 방식으로 변경, `onOpen`에서도 퀘스트 수 확인 후 없으면 재삽입 (레이스 컨디션 + 기존 기기 대응)
+
 ### Phase 10: Firestore 클라우드 동기화 ✅
 - Firebase Firestore 의존성 추가
 - FirestoreUserService: Firestore CRUD (push/pull user, push/pull workouts, delete, isNicknameTaken)
@@ -346,6 +368,7 @@ users/{firebaseUid}
 - [x] Firebase Firestore 클라우드 동기화 (다기기 데이터 공유)
 - [x] 닉네임 중복 체크 (Firestore 기반)
 - [x] Firebase UID 기반 유저 데이터 조회 (계정별 데이터 분리)
+- [x] 인트로 슬라이드 화면 (첫 로그인 전 기기에만 표시, HorizontalPager 5장)
 
 ---
 

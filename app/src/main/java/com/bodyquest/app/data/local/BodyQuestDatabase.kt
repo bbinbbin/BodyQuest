@@ -13,10 +13,6 @@ import com.bodyquest.app.data.local.entity.QuestEntity
 import com.bodyquest.app.data.local.entity.UserEntity
 import com.bodyquest.app.data.local.entity.WorkoutEntity
 import com.bodyquest.app.data.local.entity.WorkoutSetEntity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 @Database(
     entities = [
@@ -82,6 +78,15 @@ abstract class BodyQuestDatabase : RoomDatabase() {
             }
         }
 
+        private fun insertSeedQuests(db: SupportSQLiteDatabase) {
+            seedQuests.forEach { q ->
+                db.execSQL(
+                    "INSERT OR IGNORE INTO quests (id, category, bodyPart, specificArea, name, description, difficulty, durationMinutes, sets, repsPerSet, xpReward, statType, statReward) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    arrayOf(q.id, q.category, q.bodyPart, q.specificArea, q.name, q.description, q.difficulty, q.durationMinutes, q.sets, q.repsPerSet, q.xpReward, q.statType, q.statReward)
+                )
+            }
+        }
+
         fun getDatabase(context: Context): BodyQuestDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -94,9 +99,15 @@ abstract class BodyQuestDatabase : RoomDatabase() {
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
-                            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-                                INSTANCE?.questDao()?.insertQuests(seedQuests)
-                            }
+                            insertSeedQuests(db)
+                        }
+                        override fun onOpen(db: SupportSQLiteDatabase) {
+                            super.onOpen(db)
+                            // 기존 DB에 퀘스트가 없을 경우 보장
+                            val cursor = db.query("SELECT COUNT(*) FROM quests")
+                            val count = if (cursor.moveToFirst()) cursor.getInt(0) else 0
+                            cursor.close()
+                            if (count == 0) insertSeedQuests(db)
                         }
                     })
                     .build()

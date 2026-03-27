@@ -31,6 +31,7 @@ import com.bodyquest.app.ui.theme.TextSecondary
 fun SplashScreen(
     viewModel: SplashViewModel,
     onNavigateToLogin: () -> Unit,
+    onNavigateToIntro: () -> Unit,
     onNavigateToOnboarding: () -> Unit,
     onNavigateToHome: () -> Unit
 ) {
@@ -38,6 +39,7 @@ fun SplashScreen(
 
     LaunchedEffect(destination) {
         when (destination) {
+            SplashDestination.Intro -> onNavigateToIntro()
             SplashDestination.Login -> onNavigateToLogin()
             SplashDestination.Onboarding -> onNavigateToOnboarding()
             SplashDestination.Home -> onNavigateToHome()
