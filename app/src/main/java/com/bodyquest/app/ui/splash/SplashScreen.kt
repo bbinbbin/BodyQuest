@@ -67,14 +67,14 @@ fun SplashScreen(
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            text = "\uc6b4\ub3d9\uc744 \ud038\uc2a4\ud2b8\ub85c, \ubab8\uc744 \ub808\uc804\ub4dc\ub85c",
+            text = "운동을 퀘스트로, 몸을 레전드로",
             style = MaterialTheme.typography.titleMedium,
             color = TextSecondary,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "\ub9e4\uc77c\uc758 \uc6b4\ub3d9\uc774 \ub2f9\uc2e0\uc744 \uc804\uc124\ub85c \ub9cc\ub4ed\ub2c8\ub2e4.\n\uc624\ub298\uc758 \ud038\uc2a4\ud2b8\ub97c \uc644\ub8cc\ud558\uace0 \ub808\ubca8\uc5c5\ud558\uc138\uc694.",
+            text = "매일의 운동이 당신을 전설로 만듭니다.\n오늘의 퀘스트를 완료하고 레벨업하세요.",
             style = MaterialTheme.typography.bodyMedium,
             color = TextMuted,
             textAlign = TextAlign.Center
@@ -88,7 +88,7 @@ fun SplashScreen(
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(containerColor = NeonPurple)
         ) {
-            Text("\uc2dc\uc791\ud558\uae30", style = MaterialTheme.typography.titleMedium)
+            Text("시작하기", style = MaterialTheme.typography.titleMedium)
         }
     }
 }
