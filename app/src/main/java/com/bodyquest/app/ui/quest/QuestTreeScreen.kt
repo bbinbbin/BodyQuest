@@ -27,12 +27,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.bodyquest.app.domain.model.Job
 import com.bodyquest.app.ui.common.ErrorScreen
 import com.bodyquest.app.ui.common.LoadingScreen
 import com.bodyquest.app.ui.common.UiState
 import com.bodyquest.app.ui.theme.DarkSurfaceVariant
+import com.bodyquest.app.ui.theme.NeonBlue
 import com.bodyquest.app.ui.theme.NeonPurple
+import com.bodyquest.app.ui.theme.NeonRed
 import com.bodyquest.app.ui.theme.TextMuted
 import com.bodyquest.app.ui.theme.TextSecondary
 
@@ -62,7 +63,10 @@ fun QuestTreeScreen(
     }
 
     val state = (uiState as UiState.Success).data
-    val job = try { Job.valueOf(category) } catch (_: Exception) { Job.STRENGTH }
+    val (categoryDisplayName, categoryColor) = when (category) {
+        "ENDURANCE" -> "유산소운동" to NeonBlue
+        else -> "근력운동" to NeonRed
+    }
 
     Column(
         modifier = Modifier
@@ -91,9 +95,9 @@ fun QuestTreeScreen(
             Spacer(modifier = Modifier.width(8.dp))
             Column {
                 Text(
-                    text = job.displayName,
+                    text = categoryDisplayName,
                     style = MaterialTheme.typography.titleLarge,
-                    color = job.color
+                    color = categoryColor
                 )
                 if (state.selectedBodyPart != null) {
                     Text(
