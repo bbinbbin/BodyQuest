@@ -6,9 +6,11 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.bodyquest.app.data.local.dao.BossDao
 import com.bodyquest.app.data.local.dao.QuestDao
 import com.bodyquest.app.data.local.dao.UserDao
 import com.bodyquest.app.data.local.dao.WorkoutDao
+import com.bodyquest.app.data.local.entity.BossEntity
 import com.bodyquest.app.data.local.entity.QuestEntity
 import com.bodyquest.app.data.local.entity.UserEntity
 import com.bodyquest.app.data.local.entity.WorkoutEntity
@@ -19,15 +21,17 @@ import com.bodyquest.app.data.local.entity.WorkoutSetEntity
         UserEntity::class,
         QuestEntity::class,
         WorkoutEntity::class,
-        WorkoutSetEntity::class
+        WorkoutSetEntity::class,
+        BossEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 abstract class BodyQuestDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun questDao(): QuestDao
     abstract fun workoutDao(): WorkoutDao
+    abstract fun bossDao(): BossDao
 
     companion object {
         @Volatile
@@ -78,11 +82,64 @@ abstract class BodyQuestDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // FK 제약조건 임시 해제 (workouts → users FK로 인해 DROP TABLE 불가)
+                db.execSQL("PRAGMA foreign_keys = OFF")
+
+                // users 테이블 재생성 (balanceStat 제거, SQLite는 DROP COLUMN 미지원)
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `users_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `nickname` TEXT NOT NULL,
+                        `job` TEXT NOT NULL,
+                        `goal` TEXT NOT NULL,
+                        `avatarIndex` INTEGER NOT NULL,
+                        `strengthStat` INTEGER NOT NULL,
+                        `enduranceStat` INTEGER NOT NULL,
+                        `xp` INTEGER NOT NULL,
+                        `level` INTEGER NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        `firebaseUid` TEXT,
+                        `email` TEXT,
+                        `authProvider` TEXT,
+                        `updatedAt` INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    INSERT INTO `users_new`
+                        (id, nickname, job, goal, avatarIndex, strengthStat, enduranceStat,
+                         xp, level, createdAt, firebaseUid, email, authProvider, updatedAt)
+                    SELECT
+                        id, nickname, job, goal, avatarIndex, strengthStat, enduranceStat,
+                        xp, level, createdAt, firebaseUid, email, authProvider, updatedAt
+                    FROM `users`
+                """.trimIndent())
+                db.execSQL("DROP TABLE `users`")
+                db.execSQL("ALTER TABLE `users_new` RENAME TO `users`")
+
+                // bosses 테이블 신규 생성 (Room이 기대하는 PRIMARY KEY 제약조건 형식)
+                db.execSQL("CREATE TABLE IF NOT EXISTS `bosses` (`id` INTEGER NOT NULL, `name` TEXT NOT NULL, `requiredStrength` INTEGER NOT NULL, `requiredEndurance` INTEGER NOT NULL, `requiredLevel` INTEGER NOT NULL, `type` TEXT NOT NULL, PRIMARY KEY(`id`))")
+
+                // FK 제약조건 복원
+                db.execSQL("PRAGMA foreign_keys = ON")
+            }
+        }
+
         private fun insertSeedQuests(db: SupportSQLiteDatabase) {
             seedQuests.forEach { q ->
                 db.execSQL(
                     "INSERT OR IGNORE INTO quests (id, category, bodyPart, specificArea, name, description, difficulty, durationMinutes, sets, repsPerSet, xpReward, statType, statReward) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     arrayOf(q.id, q.category, q.bodyPart, q.specificArea, q.name, q.description, q.difficulty, q.durationMinutes, q.sets, q.repsPerSet, q.xpReward, q.statType, q.statReward)
+                )
+            }
+        }
+
+        private fun insertSeedBosses(db: SupportSQLiteDatabase) {
+            seedBosses.forEach { b ->
+                db.execSQL(
+                    "INSERT OR IGNORE INTO bosses (id, name, requiredStrength, requiredEndurance, requiredLevel, type) VALUES (?,?,?,?,?,?)",
+                    arrayOf(b.id, b.name, b.requiredStrength, b.requiredEndurance, b.requiredLevel, b.type)
                 )
             }
         }
@@ -94,20 +151,25 @@ abstract class BodyQuestDatabase : RoomDatabase() {
                     BodyQuestDatabase::class.java,
                     "bodyquest_db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_4_5)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_4_5, MIGRATION_5_6)
                     .fallbackToDestructiveMigration()
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
                             insertSeedQuests(db)
+                            insertSeedBosses(db)
                         }
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)
-                            // 기존 DB에 퀘스트가 없을 경우 보장
-                            val cursor = db.query("SELECT COUNT(*) FROM quests")
-                            val count = if (cursor.moveToFirst()) cursor.getInt(0) else 0
-                            cursor.close()
-                            if (count == 0) insertSeedQuests(db)
+                            val questCursor = db.query("SELECT COUNT(*) FROM quests")
+                            val questCount = if (questCursor.moveToFirst()) questCursor.getInt(0) else 0
+                            questCursor.close()
+                            if (questCount == 0) insertSeedQuests(db)
+
+                            val bossCursor = db.query("SELECT COUNT(*) FROM bosses")
+                            val bossCount = if (bossCursor.moveToFirst()) bossCursor.getInt(0) else 0
+                            bossCursor.close()
+                            if (bossCount == 0) insertSeedBosses(db)
                         }
                     })
                     .build()

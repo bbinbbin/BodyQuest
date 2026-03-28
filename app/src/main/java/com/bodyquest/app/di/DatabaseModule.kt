@@ -2,9 +2,12 @@ package com.bodyquest.app.di
 
 import android.content.Context
 import com.bodyquest.app.data.local.BodyQuestDatabase
+import com.bodyquest.app.data.local.dao.BossDao
 import com.bodyquest.app.data.local.dao.QuestDao
 import com.bodyquest.app.data.local.dao.UserDao
 import com.bodyquest.app.data.local.dao.WorkoutDao
+import com.bodyquest.app.data.repository.BossRepository
+import com.bodyquest.app.data.repository.LocalBossRepository
 import com.bodyquest.app.data.repository.LocalQuestRepository
 import com.bodyquest.app.data.repository.LocalUserRepository
 import com.bodyquest.app.data.repository.LocalWorkoutRepository
@@ -59,5 +62,16 @@ object DatabaseModule {
     @Singleton
     fun provideWorkoutRepository(workoutDao: WorkoutDao): WorkoutRepository {
         return LocalWorkoutRepository(workoutDao)
+    }
+
+    @Provides
+    fun provideBossDao(database: BodyQuestDatabase): BossDao {
+        return database.bossDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideBossRepository(bossDao: BossDao): BossRepository {
+        return LocalBossRepository(bossDao)
     }
 }

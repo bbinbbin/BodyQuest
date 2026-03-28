@@ -168,7 +168,6 @@ class WorkoutViewModel @Inject constructor(
                     val newStatValue = when (quest.statType) {
                         "STRENGTH" -> user.strengthStat + quest.statReward
                         "ENDURANCE" -> user.enduranceStat + quest.statReward
-                        "BALANCE" -> user.balanceStat + quest.statReward
                         else -> 0
                     }
 

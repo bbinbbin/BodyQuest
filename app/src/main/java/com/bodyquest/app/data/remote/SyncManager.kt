@@ -31,7 +31,6 @@ class SyncManager @Inject constructor(
                     avatarIndex = cloudUser.avatarIndex,
                     strengthStat = cloudUser.strengthStat,
                     enduranceStat = cloudUser.enduranceStat,
-                    balanceStat = cloudUser.balanceStat,
                     xp = cloudUser.xp,
                     level = cloudUser.level,
                     updatedAt = cloudUser.updatedAt

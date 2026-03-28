@@ -100,7 +100,6 @@ class OnboardingViewModel @Inject constructor(
                     avatarIndex = s.avatarIndex,
                     strengthStat = 0,
                     enduranceStat = 0,
-                    balanceStat = 0,
                     firebaseUid = authRepository.currentUserId,
                     email = firebaseUser?.email,
                     authProvider = provider

@@ -5,7 +5,7 @@ import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.SportsKabaddi
+import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -27,7 +27,7 @@ data class BottomNavItem(
 val bottomNavItems = listOf(
     BottomNavItem("홈", Icons.Default.Home, Screen.Home.route),
     BottomNavItem("퀘스트", Icons.Default.FitnessCenter, Screen.Quest.route),
-    BottomNavItem("PvP", Icons.Default.SportsKabaddi, Screen.Pvp.route),
+    BottomNavItem("보스", Icons.Default.Whatshot, Screen.Boss.route),
     BottomNavItem("아바타", Icons.Default.Shield, Screen.Avatar.route),
     BottomNavItem("프로필", Icons.Default.Person, Screen.Profile.route)
 )

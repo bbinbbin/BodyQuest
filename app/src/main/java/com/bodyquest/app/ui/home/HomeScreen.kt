@@ -221,12 +221,6 @@ private fun HomeContent(
                     value = user.enduranceStat,
                     color = StatType.ENDURANCE.color
                 )
-                Spacer(modifier = Modifier.height(10.dp))
-                StatBar(
-                    label = StatType.BALANCE.displayName,
-                    value = user.balanceStat,
-                    color = StatType.BALANCE.color
-                )
             }
         }
 

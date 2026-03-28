@@ -12,7 +12,6 @@ data class UserEntity(
     val avatarIndex: Int,
     val strengthStat: Int,
     val enduranceStat: Int,
-    val balanceStat: Int,
     val xp: Int = 0,
     val level: Int = 1,
     val createdAt: Long = System.currentTimeMillis(),

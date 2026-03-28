@@ -19,7 +19,7 @@ sealed class Screen(val route: String) {
     object WorkoutComplete : Screen("workout_complete/{workoutId}") {
         fun createRoute(workoutId: Long) = "workout_complete/$workoutId"
     }
-    object Pvp : Screen("pvp")
+    object Boss : Screen("boss")
     object Avatar : Screen("avatar")
     object Profile : Screen("profile")
 }

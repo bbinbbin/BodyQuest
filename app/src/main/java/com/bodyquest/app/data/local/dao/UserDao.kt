@@ -34,9 +34,6 @@ abstract class UserDao {
     @Query("UPDATE users SET xp = :xp, level = :level, enduranceStat = :statValue WHERE id = :userId")
     abstract suspend fun updateRewardsEndurance(userId: Long, xp: Int, level: Int, statValue: Int)
 
-    @Query("UPDATE users SET xp = :xp, level = :level, balanceStat = :statValue WHERE id = :userId")
-    abstract suspend fun updateRewardsBalance(userId: Long, xp: Int, level: Int, statValue: Int)
-
     @Transaction
     open suspend fun applyWorkoutRewards(
         userId: Long,
@@ -48,7 +45,6 @@ abstract class UserDao {
         when (statType) {
             "STRENGTH" -> updateRewardsStrength(userId, newXp, newLevel, newStatValue)
             "ENDURANCE" -> updateRewardsEndurance(userId, newXp, newLevel, newStatValue)
-            "BALANCE" -> updateRewardsBalance(userId, newXp, newLevel, newStatValue)
         }
     }
 }

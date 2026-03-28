@@ -103,7 +103,7 @@ class HomeViewModel @Inject constructor(
     private fun loadRecommendedQuests(userJob: String) {
         viewModelScope.launch {
             try {
-                val allCategories = listOf("STRENGTH", "ENDURANCE", "BALANCE")
+                val allCategories = listOf("STRENGTH", "ENDURANCE")
                 val otherCategory = allCategories.filter { it != userJob }.random()
 
                 combine(

@@ -27,7 +27,8 @@ import com.bodyquest.app.ui.quest.QuestTreeScreen
 import com.bodyquest.app.ui.quest.QuestViewModel
 import com.bodyquest.app.ui.avatar.AvatarScreen
 import com.bodyquest.app.ui.profile.ProfileScreen
-import com.bodyquest.app.ui.pvp.PvpScreen
+import com.bodyquest.app.ui.boss.BossScreen
+import com.bodyquest.app.ui.boss.BossViewModel
 import com.bodyquest.app.ui.workout.WorkoutCompleteScreen
 import com.bodyquest.app.ui.workout.WorkoutScreen
 import com.bodyquest.app.ui.workout.WorkoutViewModel
@@ -37,7 +38,7 @@ import com.bodyquest.app.ui.workout.WorkoutViewModel
 private val bottomNavRoutes = setOf(
     Screen.Home.route,
     Screen.Quest.route,
-    Screen.Pvp.route,
+    Screen.Boss.route,
     Screen.Avatar.route,
     Screen.Profile.route
 )
@@ -214,8 +215,9 @@ fun BodyQuestNavGraph() {
                     }
                 )
             }
-            composable(Screen.Pvp.route) {
-                PvpScreen()
+            composable(Screen.Boss.route) {
+                val bossViewModel: BossViewModel = hiltViewModel()
+                BossScreen(viewModel = bossViewModel)
             }
             composable(Screen.Avatar.route) {
                 AvatarScreen()

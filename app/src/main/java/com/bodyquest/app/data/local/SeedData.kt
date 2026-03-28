@@ -1,5 +1,6 @@
 package com.bodyquest.app.data.local
 
+import com.bodyquest.app.data.local.entity.BossEntity
 import com.bodyquest.app.data.local.entity.QuestEntity
 
 val seedQuests = listOf(
@@ -113,40 +114,24 @@ val seedQuests = listOf(
         xpReward = 50, statType = "ENDURANCE", statReward = 3
     ),
 
-    // ── BALANCE ──
-    QuestEntity(
-        id = "bal_light_workout",
-        category = "BALANCE", bodyPart = "전신", specificArea = null,
-        name = "가벼운 전신 운동", description = "전신 스트레칭 + 가벼운 운동",
-        difficulty = 1, durationMinutes = 20, sets = 1, repsPerSet = 0,
-        xpReward = 25, statType = "BALANCE", statReward = 2
-    ),
-    QuestEntity(
-        id = "bal_stretching",
-        category = "BALANCE", bodyPart = "스트레칭", specificArea = null,
-        name = "스트레칭 루틴", description = "전신 유연성 향상 스트레칭",
-        difficulty = 1, durationMinutes = 15, sets = 1, repsPerSet = 0,
-        xpReward = 20, statType = "BALANCE", statReward = 2
-    ),
-    QuestEntity(
-        id = "bal_recovery",
-        category = "BALANCE", bodyPart = "회복", specificArea = null,
-        name = "회복 루틴", description = "폼롤러 + 가벼운 스트레칭",
-        difficulty = 1, durationMinutes = 15, sets = 1, repsPerSet = 0,
-        xpReward = 15, statType = "BALANCE", statReward = 1
-    ),
-    QuestEntity(
-        id = "bal_walking",
-        category = "BALANCE", bodyPart = "산책", specificArea = null,
-        name = "산책", description = "30분 이상 걷기",
-        difficulty = 1, durationMinutes = 30, sets = 1, repsPerSet = 0,
-        xpReward = 20, statType = "BALANCE", statReward = 1
-    ),
-    QuestEntity(
-        id = "bal_yoga",
-        category = "BALANCE", bodyPart = "전신", specificArea = null,
-        name = "요가", description = "기초 요가 루틴으로 심신 안정",
-        difficulty = 2, durationMinutes = 30, sets = 1, repsPerSet = 0,
-        xpReward = 40, statType = "BALANCE", statReward = 3
-    )
+)
+
+val seedBosses = listOf(
+    // ── STRENGTH 보스 ──
+    BossEntity(id = 1, name = "철권의 야수", requiredStrength = 10, requiredEndurance = 0, requiredLevel = 3, type = "STRENGTH"),
+    BossEntity(id = 2, name = "화강암 거인", requiredStrength = 25, requiredEndurance = 0, requiredLevel = 6, type = "STRENGTH"),
+    BossEntity(id = 3, name = "분노한 타이탄", requiredStrength = 50, requiredEndurance = 0, requiredLevel = 10, type = "STRENGTH"),
+    BossEntity(id = 4, name = "강철 군주", requiredStrength = 80, requiredEndurance = 0, requiredLevel = 15, type = "STRENGTH"),
+
+    // ── ENDURANCE 보스 ──
+    BossEntity(id = 5, name = "바람의 사자", requiredStrength = 0, requiredEndurance = 10, requiredLevel = 3, type = "ENDURANCE"),
+    BossEntity(id = 6, name = "폭풍의 용사", requiredStrength = 0, requiredEndurance = 25, requiredLevel = 6, type = "ENDURANCE"),
+    BossEntity(id = 7, name = "번개 달인", requiredStrength = 0, requiredEndurance = 50, requiredLevel = 10, type = "ENDURANCE"),
+    BossEntity(id = 8, name = "질풍 지배자", requiredStrength = 0, requiredEndurance = 80, requiredLevel = 15, type = "ENDURANCE"),
+
+    // ── HYBRID 보스 ──
+    BossEntity(id = 9, name = "균형의 수호자", requiredStrength = 15, requiredEndurance = 15, requiredLevel = 5, type = "HYBRID"),
+    BossEntity(id = 10, name = "이중 전사", requiredStrength = 35, requiredEndurance = 35, requiredLevel = 9, type = "HYBRID"),
+    BossEntity(id = 11, name = "혼돈의 현자", requiredStrength = 60, requiredEndurance = 60, requiredLevel = 14, type = "HYBRID"),
+    BossEntity(id = 12, name = "전설의 챔피언", requiredStrength = 90, requiredEndurance = 90, requiredLevel = 20, type = "HYBRID")
 )
