@@ -43,11 +43,11 @@ class LoginViewModel @Inject constructor(
     val state: StateFlow<LoginState> = _state
 
     fun setEmail(email: String) {
-        _state.value = _state.value.copy(email = email, error = null)
+        _state.value = _state.value.copy(email = email, error = null, signUpCompleted = false)
     }
 
     fun setPassword(password: String) {
-        _state.value = _state.value.copy(password = password, error = null)
+        _state.value = _state.value.copy(password = password, error = null, signUpCompleted = false)
     }
 
     fun setConfirmPassword(confirmPassword: String) {
@@ -70,7 +70,7 @@ class LoginViewModel @Inject constructor(
     fun signInWithEmail() {
         val s = _state.value
         if (s.email.isBlank() || s.password.isBlank()) {
-            _state.value = s.copy(error = "이메일과 비밀번호를 입력해주세요")
+            _state.value = s.copy(error = "이메일과 비밀번호를 입력해주세요.")
             return
         }
 
@@ -89,15 +89,15 @@ class LoginViewModel @Inject constructor(
     fun signUpWithEmail() {
         val s = _state.value
         if (s.email.isBlank() || s.password.isBlank()) {
-            _state.value = s.copy(error = "이메일과 비밀번호를 입력해주세요")
+            _state.value = s.copy(error = "이메일과 비밀번호를 입력해주세요.")
             return
         }
         if (s.password.length < 6) {
-            _state.value = s.copy(error = "비밀번호는 6자 이상이어야 합니다")
+            _state.value = s.copy(error = "비밀번호는 6자 이상이어야 합니다.")
             return
         }
         if (s.password != s.confirmPassword) {
-            _state.value = s.copy(error = "비밀번호가 일치하지 않습니다")
+            _state.value = s.copy(error = "비밀번호가 일치하지 않습니다.")
             return
         }
 
@@ -139,7 +139,7 @@ class LoginViewModel @Inject constructor(
     fun sendPasswordReset() {
         val s = _state.value
         if (s.email.isBlank()) {
-            _state.value = s.copy(error = "비밀번호를 재설정할 이메일을 입력해주세요")
+            _state.value = s.copy(error = "비밀번호를 재설정할 이메일을 입력해주세요.")
             return
         }
 
@@ -155,7 +155,7 @@ class LoginViewModel @Inject constructor(
                 .onFailure {
                     _state.value = _state.value.copy(
                         isLoading = false,
-                        error = "비밀번호 재설정 메일 전송에 실패했습니다"
+                        error = "비밀번호 재설정 메일 전송에 실패했습니다."
                     )
                 }
         }
