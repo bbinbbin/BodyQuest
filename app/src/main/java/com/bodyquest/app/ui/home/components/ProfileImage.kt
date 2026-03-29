@@ -39,9 +39,10 @@ fun ProfileImage(
 ) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .clip(CircleShape)
-            .clickable { onClick() }
+        modifier = Modifier.clickable(
+            indication = null,
+            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+        ) { onClick() }
     ) {
         val bitmap = remember(profileImageUrl) {
             profileImageUrl?.let {
