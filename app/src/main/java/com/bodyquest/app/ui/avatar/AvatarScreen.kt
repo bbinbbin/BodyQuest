@@ -1,7 +1,7 @@
 package com.bodyquest.app.ui.avatar
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.spring
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -19,13 +19,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.bodyquest.app.R
@@ -37,7 +40,14 @@ import com.bodyquest.app.ui.home.HomeViewModel
 import com.bodyquest.app.ui.theme.DarkSurfaceVariant
 import com.bodyquest.app.ui.theme.TextMuted
 import com.bodyquest.app.ui.theme.TextSecondary
-import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
+
+// 스프라이트 시트: 6열 × 4행, 15도 간격 24프레임
+private const val SPRITE_COLS = 6
+private const val SPRITE_ROWS = 4
+private const val FRAME_COUNT = SPRITE_COLS * SPRITE_ROWS  // 24
+private const val DEGREES_PER_FRAME = 360f / FRAME_COUNT   // 15도
+private const val DRAG_SENSITIVITY = 0.5f  // px당 회전 각도
 
 @Composable
 fun AvatarScreen(viewModel: HomeViewModel) {
@@ -49,7 +59,6 @@ fun AvatarScreen(viewModel: HomeViewModel) {
         is UiState.Success -> {
             val user = current.data.user ?: return
             val job = try { Job.valueOf(user.job) } catch (_: Exception) { Job.STRENGTH }
-            val avatarRes = if (user.avatarIndex == 0) R.drawable.avatar_male else R.drawable.avatar_female
             val goalName = when (user.goal) {
                 "DIET" -> "다이어트"
                 "BULK_UP" -> "벌크업"
@@ -57,57 +66,24 @@ fun AvatarScreen(viewModel: HomeViewModel) {
                 else -> user.goal
             }
 
-            val rotationY = remember { Animatable(0f) }
-            val scope = rememberCoroutineScope()
-
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // 아바타 이미지 영역 — 드래그로 좌우 회전
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
                         .background(DarkSurfaceVariant)
-                        .pointerInput(Unit) {
-                            detectDragGestures(
-                                onDragEnd = {
-                                    // 손 떼면 스프링으로 0도로 복귀
-                                    scope.launch {
-                                        rotationY.animateTo(
-                                            targetValue = 0f,
-                                            animationSpec = spring(dampingRatio = 0.6f, stiffness = 200f)
-                                        )
-                                    }
-                                }
-                            ) { change, dragAmount ->
-                                change.consume()
-                                scope.launch {
-                                    // 드래그 민감도: 0.25f (px → 회전각도)
-                                    val newRotation = (rotationY.value + dragAmount.x * 0.25f)
-                                        .coerceIn(-75f, 75f)
-                                    rotationY.snapTo(newRotation)
-                                }
-                            }
-                        },
-                    contentAlignment = Alignment.Center
                 ) {
-                    Image(
-                        painter = painterResource(avatarRes),
-                        contentDescription = user.nickname,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer {
-                                this.rotationY = rotationY.value
-                                cameraDistance = 10f * density
-                            }
-                    )
+                    if (user.avatarIndex == 0) {
+                        MaleAvatarView()
+                    } else {
+                        FemaleAvatarView()
+                    }
 
-                    // 드래그 힌트
                     Text(
                         text = "← 좌우로 드래그 →",
                         style = MaterialTheme.typography.labelSmall,
@@ -156,4 +132,60 @@ fun AvatarScreen(viewModel: HomeViewModel) {
             }
         }
     }
+}
+
+// 남성 아바타 — 스프라이트 시트 기반 360도 회전
+@Composable
+private fun MaleAvatarView() {
+    val context = LocalContext.current
+
+    // 스프라이트 시트 비트맵 (한 번만 로드)
+    val bitmap = remember {
+        BitmapFactory.decodeResource(context.resources, R.drawable.avatar_male_360)
+    }
+    val frameW = bitmap.width / SPRITE_COLS
+    val frameH = bitmap.height / SPRITE_ROWS
+
+    var totalDragX by remember { mutableFloatStateOf(0f) }
+
+    // 누적 드래그 → 프레임 인덱스 (0~23)
+    val frameIndex = remember(totalDragX) {
+        val degrees = totalDragX * DRAG_SENSITIVITY
+        val raw = (degrees / DEGREES_PER_FRAME).roundToInt()
+        ((raw % FRAME_COUNT) + FRAME_COUNT) % FRAME_COUNT
+    }
+
+    Canvas(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectDragGestures { change, dragAmount ->
+                    change.consume()
+                    totalDragX += dragAmount.x
+                }
+            }
+    ) {
+        val row = frameIndex / SPRITE_COLS
+        val col = frameIndex % SPRITE_COLS
+
+        val srcLeft = col * frameW
+        val srcTop = row * frameH
+        val srcRect = android.graphics.Rect(srcLeft, srcTop, srcLeft + frameW, srcTop + frameH)
+        val dstRect = android.graphics.RectF(0f, 0f, size.width, size.height)
+
+        drawIntoCanvas { canvas ->
+            canvas.nativeCanvas.drawBitmap(bitmap, srcRect, dstRect, null)
+        }
+    }
+}
+
+// 여성 아바타 — 단일 이미지 (기존 rotationY 방식 유지)
+@Composable
+private fun FemaleAvatarView() {
+    Image(
+        painter = painterResource(R.drawable.avatar_female),
+        contentDescription = null,
+        contentScale = ContentScale.Fit,
+        modifier = Modifier.fillMaxSize()
+    )
 }

@@ -192,12 +192,50 @@ fun WorkoutCompleteScreen(
                         color = TextMuted,
                         modifier = Modifier.width(80.dp)
                     )
-                    Text(
-                        text = "+${state.statReward}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = statType.color
-                    )
+                    if (state.statReward != state.baseStatReward) {
+                        // 직업 효과 적용됨 — 기본 → 최종 표시
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "+${state.baseStatReward}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "  →  ",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "+${state.statReward}",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = statType.color
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = statType.color.copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    text = "직업 효과",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = statType.color,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+                    } else {
+                        // 직업 효과 없음 — 최종값만 표시
+                        Text(
+                            text = "+${state.statReward}",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = statType.color
+                        )
+                    }
                 }
 
                 // Level up notification

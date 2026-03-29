@@ -7,10 +7,12 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.bodyquest.app.data.local.dao.BossDao
+import com.bodyquest.app.data.local.dao.BossProgressDao
 import com.bodyquest.app.data.local.dao.QuestDao
 import com.bodyquest.app.data.local.dao.UserDao
 import com.bodyquest.app.data.local.dao.WorkoutDao
 import com.bodyquest.app.data.local.entity.BossEntity
+import com.bodyquest.app.data.local.entity.BossProgressEntity
 import com.bodyquest.app.data.local.entity.QuestEntity
 import com.bodyquest.app.data.local.entity.UserEntity
 import com.bodyquest.app.data.local.entity.WorkoutEntity
@@ -22,9 +24,10 @@ import com.bodyquest.app.data.local.entity.WorkoutSetEntity
         QuestEntity::class,
         WorkoutEntity::class,
         WorkoutSetEntity::class,
-        BossEntity::class
+        BossEntity::class,
+        BossProgressEntity::class
     ],
-    version = 7,
+    version = 10,
     exportSchema = true
 )
 abstract class BodyQuestDatabase : RoomDatabase() {
@@ -32,6 +35,7 @@ abstract class BodyQuestDatabase : RoomDatabase() {
     abstract fun questDao(): QuestDao
     abstract fun workoutDao(): WorkoutDao
     abstract fun bossDao(): BossDao
+    abstract fun bossProgressDao(): BossProgressDao
 
     companion object {
         @Volatile
@@ -132,6 +136,38 @@ abstract class BodyQuestDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `boss_progress` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `bossId` INTEGER NOT NULL,
+                        `userId` TEXT NOT NULL,
+                        `lastDefeatedAt` INTEGER NOT NULL DEFAULT 0
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_boss_progress_userId_bossId` ON `boss_progress` (`userId`, `bossId`)")
+            }
+        }
+
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // bosses: 재생성 (bossOrder 컬럼 추가, 기존 데이터 삭제 후 seed로 재삽입)
+                db.execSQL("DROP TABLE IF EXISTS `bosses`")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `bosses` (`id` INTEGER NOT NULL, `name` TEXT NOT NULL, `requiredStrength` INTEGER NOT NULL, `requiredEndurance` INTEGER NOT NULL, `requiredLevel` INTEGER NOT NULL, `type` TEXT NOT NULL, `bossOrder` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))")
+
+                // boss_progress: 재생성 (composite PK, isCleared 컬럼으로 교체)
+                db.execSQL("DROP TABLE IF EXISTS `boss_progress`")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `boss_progress` (`bossId` INTEGER NOT NULL, `userId` TEXT NOT NULL, `isCleared` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`userId`, `bossId`))")
+            }
+        }
+
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `boss_progress` ADD COLUMN `performance` TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         private fun insertSeedQuests(db: SupportSQLiteDatabase) {
             seedQuests.forEach { q ->
                 db.execSQL(
@@ -144,8 +180,8 @@ abstract class BodyQuestDatabase : RoomDatabase() {
         private fun insertSeedBosses(db: SupportSQLiteDatabase) {
             seedBosses.forEach { b ->
                 db.execSQL(
-                    "INSERT OR IGNORE INTO bosses (id, name, requiredStrength, requiredEndurance, requiredLevel, type) VALUES (?,?,?,?,?,?)",
-                    arrayOf(b.id, b.name, b.requiredStrength, b.requiredEndurance, b.requiredLevel, b.type)
+                    "INSERT OR IGNORE INTO bosses (id, name, requiredStrength, requiredEndurance, requiredLevel, type, bossOrder) VALUES (?,?,?,?,?,?,?)",
+                    arrayOf(b.id, b.name, b.requiredStrength, b.requiredEndurance, b.requiredLevel, b.type, b.order)
                 )
             }
         }
@@ -157,7 +193,7 @@ abstract class BodyQuestDatabase : RoomDatabase() {
                     BodyQuestDatabase::class.java,
                     "bodyquest_db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                     .fallbackToDestructiveMigration()
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {

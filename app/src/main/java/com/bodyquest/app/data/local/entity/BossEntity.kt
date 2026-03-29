@@ -1,5 +1,6 @@
 package com.bodyquest.app.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -10,5 +11,6 @@ data class BossEntity(
     val requiredStrength: Int,
     val requiredEndurance: Int,
     val requiredLevel: Int,
-    val type: String  // "STRENGTH" | "ENDURANCE" | "HYBRID"
+    val type: String,           // "STRENGTH" | "ENDURANCE" | "HYBRID"
+    @ColumnInfo(name = "bossOrder") val order: Int = 0
 )

@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.math.roundToInt
 
 data class WorkoutState(
     val quest: QuestEntity? = null,
@@ -40,7 +41,8 @@ data class WorkoutCompleteState(
     val caloriesBurned: Int = 0,
     val xpEarned: Int = 0,
     val statType: String = "",
-    val statReward: Int = 0,
+    val baseStatReward: Int = 0,   // 직업 효과 적용 전 기본값
+    val statReward: Int = 0,       // 직업 효과 적용 후 최종값
     val leveledUp: Boolean = false,
     val newLevel: Int = 1
 )
@@ -164,10 +166,19 @@ class WorkoutViewModel @Inject constructor(
                     )
                     val leveledUp = newLevel > user.level
 
+                    // 직업별 스탯 배율
+                    val statMultiplier = when (user.job) {
+                        "STRENGTH"  -> if (quest.statType == "STRENGTH") 2.0f else 1.0f
+                        "ENDURANCE" -> if (quest.statType == "ENDURANCE") 2.0f else 1.0f
+                        "BALANCE"   -> 1.5f
+                        else        -> 1.0f
+                    }
+                    val actualStatReward = (quest.statReward * statMultiplier).roundToInt()
+
                     // Calculate new stat value
                     val newStatValue = when (quest.statType) {
-                        "STRENGTH" -> user.strengthStat + quest.statReward
-                        "ENDURANCE" -> user.enduranceStat + quest.statReward
+                        "STRENGTH" -> user.strengthStat + actualStatReward
+                        "ENDURANCE" -> user.enduranceStat + actualStatReward
                         else -> 0
                     }
 
@@ -189,7 +200,8 @@ class WorkoutViewModel @Inject constructor(
                         caloriesBurned = caloriesBurned,
                         xpEarned = quest.xpReward,
                         statType = quest.statType,
-                        statReward = quest.statReward,
+                        baseStatReward = quest.statReward,
+                        statReward = actualStatReward,
                         leveledUp = leveledUp,
                         newLevel = newLevel
                     )
@@ -229,6 +241,15 @@ class WorkoutViewModel @Inject constructor(
             val uid = authRepository.currentUserId
             val user = if (uid != null) userRepository.getUserOnce(uid) else null
 
+            // 직업별 배율 재계산
+            val statMultiplier = when (user?.job) {
+                "STRENGTH"  -> if (quest.statType == "STRENGTH") 2.0f else 1.0f
+                "ENDURANCE" -> if (quest.statType == "ENDURANCE") 2.0f else 1.0f
+                "BALANCE"   -> 1.5f
+                else        -> 1.0f
+            }
+            val actualStatReward = (quest.statReward * statMultiplier).roundToInt()
+
             _completeState.value = WorkoutCompleteState(
                 questName = quest.name,
                 questCategory = quest.category,
@@ -238,7 +259,8 @@ class WorkoutViewModel @Inject constructor(
                 caloriesBurned = workout.caloriesBurned,
                 xpEarned = workout.xpEarned,
                 statType = quest.statType,
-                statReward = quest.statReward,
+                baseStatReward = quest.statReward,
+                statReward = actualStatReward,
                 newLevel = user?.level ?: 1
             )
         }

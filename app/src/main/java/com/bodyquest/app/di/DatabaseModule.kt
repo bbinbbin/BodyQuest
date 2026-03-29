@@ -3,6 +3,7 @@ package com.bodyquest.app.di
 import android.content.Context
 import com.bodyquest.app.data.local.BodyQuestDatabase
 import com.bodyquest.app.data.local.dao.BossDao
+import com.bodyquest.app.data.local.dao.BossProgressDao
 import com.bodyquest.app.data.local.dao.QuestDao
 import com.bodyquest.app.data.local.dao.UserDao
 import com.bodyquest.app.data.local.dao.WorkoutDao
@@ -70,8 +71,13 @@ object DatabaseModule {
     }
 
     @Provides
+    fun provideBossProgressDao(database: BodyQuestDatabase): BossProgressDao {
+        return database.bossProgressDao()
+    }
+
+    @Provides
     @Singleton
-    fun provideBossRepository(bossDao: BossDao): BossRepository {
-        return LocalBossRepository(bossDao)
+    fun provideBossRepository(bossDao: BossDao, bossProgressDao: BossProgressDao): BossRepository {
+        return LocalBossRepository(bossDao, bossProgressDao)
     }
 }

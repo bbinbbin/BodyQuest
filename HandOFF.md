@@ -1,7 +1,7 @@
 
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-03-29 (프로필 사진 기능 + UI 개선 + 로그인 에러 메시지 개선)
+> 마지막 업데이트: 2026-03-29 (Phase 23: 보스 시스템 전면 재설계 — 150보스, 영구 클리어, S/A/B 등급, DB v10)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -62,17 +62,19 @@ app/src/main/java/com/bodyquest/app/
 │
 ├── data/
 │   ├── local/
-│   │   ├── BodyQuestDatabase.kt # Room DB (v7), exportSchema=true, Migration(1,2)~Migration(6,7)
-│   │   ├── SeedData.kt          # ~20개 하드코딩 퀘스트 (근력/지구력/밸런스)
+│   │   ├── BodyQuestDatabase.kt # Room DB (v10), exportSchema=true, Migration(1,2)~Migration(9,10)
+│   │   ├── SeedData.kt          # 퀘스트 ~20개 + 보스 150개(3타입×50) 프로그래매틱 생성
 │   │   ├── dao/
 │   │   │   ├── UserDao.kt       # abstract class, getUser(uid), @Transaction applyWorkoutRewards(), updateProfileImageUrl()
 │   │   │   ├── QuestDao.kt      # 카테고리/부위/난이도 필터링
-│   │   │   └── WorkoutDao.kt    # 운동 기록 CRUD, 시간 기반 쿼리, getWorkoutByFirestoreId()
+│   │   │   ├── WorkoutDao.kt    # 운동 기록 CRUD, 시간 기반 쿼리, getWorkoutByFirestoreId()
+│   │   │   └── BossProgressDao.kt # getProgressForUser(Flow), @Upsert (composite PK)
 │   │   └── entity/
 │   │       ├── UserEntity.kt    # id, nickname, job, goal, avatarIndex, stats, xp, level, firebaseUid, email, authProvider, profileImageUrl, updatedAt
 │   │       ├── QuestEntity.kt   # id, category, bodyPart, name, difficulty, rewards
 │   │       ├── WorkoutEntity.kt # FK(userId→users, questId→quests), 복합인덱스, CASCADE, firestoreId
-│   │       └── WorkoutSetEntity.kt # FK(workoutId→workouts), CASCADE
+│   │       ├── WorkoutSetEntity.kt # FK(workoutId→workouts), CASCADE
+│   │       └── BossProgressEntity.kt # boss_progress 테이블: bossId, userId (composite PK), isCleared, performance
 │   ├── remote/
 │   │   ├── FirestoreUserService.kt # Firestore CRUD: pushUser, pullUser, pushWorkout, pullAllWorkouts, deleteUser, isNicknameTaken
 │   │   └── SyncManager.kt         # 동기화 오케스트레이션: syncOnLogin, pushUserToCloud, pushCompletedWorkout
@@ -138,7 +140,11 @@ app/src/main/java/com/bodyquest/app/
 │   │   └── WorkoutViewModel.kt     # @HiltViewModel, 운동 완료 시 Firestore push (workout + user)
 │   │
 │   ├── pvp/PvpScreen.kt            # Coming Soon
-│   ├── avatar/AvatarScreen.kt      # 아바타 이미지 전신 표시 + 드래그 좌우 회전 (rotationY, ±75도, 스프링 복귀)
+│   ├── boss/
+│   │   ├── BossScreen.kt           # 그룹별 LazyRow, BattleOverlay(performance 뱃지), RequirementGauge, 등급카드(S/A/B)
+│   │   ├── BossViewModel.kt        # BossWithProgress(isCleared, clearedGrade), calcPerformance(), confirmBattle()
+│   │   └── BattleLogGenerator.kt   # generateBattleLogs(performance) — 랜덤 로그 + 등급별 결과 메시지
+│   ├── avatar/AvatarScreen.kt      # 남성: 스프라이트 24프레임 회전, 여성: 단일 이미지
 │   ├── profile/
 │   │   ├── ProfileScreen.kt        # 로그아웃 + 계정 삭제 (확인 다이얼로그, 로딩/에러 상태)
 │   │   └── ProfileViewModel.kt     # @HiltViewModel, signOut(), deleteAccount() (Firestore→Room→Auth 순서)
@@ -358,6 +364,162 @@ users/{firebaseUid}
 - XP/스탯 프로그레스 바에 `DarkBorder` 테두리 추가 (0일 때도 바 윤곽 표시)
 - 온보딩 마지막 버튼 "시작하기!" → "시작하기" (느낌표 제거)
 
+### Phase 15: 남성 아바타 360도 스프라이트 시트 회전 ✅ (2026-03-29)
+- `drawable/avatar_male_360.png` 추가: 15도 간격 24프레임 스프라이트 시트 (1536×2754px, 6열×4행, 프레임당 256×688px)
+- `AvatarScreen.kt` 전면 교체: `MaleAvatarView()` (스프라이트 렌더링) + `FemaleAvatarView()` (단일 이미지)
+- `MaleAvatarView` 핵심 구현:
+  - `detectDragGestures` → 누적 드래그량 `totalDragX` 추적
+  - 프레임 인덱스: `((totalDragX * 0.5f / 15f).roundToInt() % 24 + 24) % 24`
+  - `Canvas` + `drawIntoCanvas` + `nativeCanvas.drawBitmap(srcRect, dstRect, null)`: `android.graphics.Rect`(srcRect) + `android.graphics.RectF`(dstRect)
+  - 손을 떼도 프레임 유지 (스프링 복귀 없음, 원하는 각도 고정)
+- 드래그 민감도: `DRAG_SENSITIVITY = 0.5f`, 프레임 당 15도
+- NavGraph: `AvatarScreen(viewModel = hiltViewModel<HomeViewModel>())` 유지
+- 이전 `rotationY` 3D 회전 방식 폐기 → 프레임 기반 스프라이트 방식으로 전환
+
+### Phase 16: 직업 선택 화면 전면 개편 ✅ (2026-03-29)
+- `JobSelectionPage.kt` 전면 재작성 (이전: 직업명+설명만 / 이후: 캐치프레이즈 + 특성 2개 항목)
+- 카드 데이터 구조 `JobCardInfo(catchphrase, features: List<String>)`:
+  - STRENGTH: "몸으로 증명하는 힘" / ["힘 성장 속도 증가", "고강도 운동에 유리"]
+  - ENDURANCE: "멈추지 않는 지속력" / ["지구력 성장 속도 증가", "장시간 운동에 유리"]
+  - BALANCE: "지속 가능한 성장" / ["힘과 지구력 균형 성장", "혼합 콘텐츠에 유리"]
+- 선택 애니메이션: `animateFloatAsState(tween 200ms)` — 선택 카드 scale 1.05, 미선택 alpha 0.5
+- 레이아웃: 좌측 56dp 원형 아이콘, 우측 직업명 + 캐치프레이즈 + 특성 불릿(5dp 원 + 텍스트)
+- 선택 상태: border 2dp + color, background color 15% alpha
+- **shadow 완전 제거**: Material3 다크 모드에서 `Modifier.shadow(elevation)` → Surface 내부 검정 오버레이 버그 발생 → border + background tint만 사용
+- `OnboardingScreen`: step 0 버튼 텍스트 "다음" → "이 직업으로 시작하기"
+- 하단 안내 문구: "직업은 이후에도 변경할 수 있습니다"
+
+### Phase 17: 직업별 스탯 배율 시스템 ✅ (2026-03-29)
+- `WorkoutViewModel.finishWorkout()` + `loadCompleteData()` 양쪽에 배율 로직 추가:
+  ```kotlin
+  val statMultiplier = when (user.job) {
+      "STRENGTH"  -> if (quest.statType == "STRENGTH") 2.0f else 1.0f
+      "ENDURANCE" -> if (quest.statType == "ENDURANCE") 2.0f else 1.0f
+      "BALANCE"   -> 1.5f
+      else        -> 1.0f
+  }
+  val actualStatReward = (quest.statReward * statMultiplier).roundToInt()
+  ```
+- `import kotlin.math.roundToInt` 추가 (`.toInt()` 대신 반올림으로 소수점 손실 방지)
+- `WorkoutCompleteState`에 `baseStatReward: Int` 필드 추가 (직업 효과 적용 전 기본값)
+- `SeedData.kt`: 모든 statReward를 짝수로 통일 (BALANCE ×1.5 시 소수점 방지)
+  - 회복 조깅: `statReward = 1` → `2`
+  - 사이클링: `statReward = 3` → `4`
+- **ViewModel 인스턴스 이슈**: `WorkoutCompleteScreen`은 NavGraph 다른 백스택 항목이라 `hiltViewModel()`이 별도 인스턴스 생성 → `finishWorkout()` state를 볼 수 없음 → `loadCompleteData()` 항상 호출됨. 양쪽에 배율 로직 중복 필수.
+
+### Phase 18: 운동 완료 화면 직업 효과 표시 ✅ (2026-03-29)
+- `WorkoutCompleteScreen`: `statReward != baseStatReward`일 때 기본→최종 분기 표시:
+  - 직업 효과 있음: `+{base}` (onSurface, SemiBold) → `+{final}` (statType.color, Bold, titleLarge) [직업 효과 배지]
+  - 직업 효과 없음: `+{final}` (statType.color, Bold, titleLarge) 단독 표시
+- "직업 효과" 배지: `Surface(RoundedCornerShape(6dp), color = statType.color.copy(0.15f))` + Text
+- `loadCompleteData()`에서 `leveledUp` 제거 (재로그인 후 히스토리 조회 시 레벨업 여부 알 수 없음 — 재표시 안 함)
+
+### Phase 19: 보스 전투 애니메이션 시스템 ✅ (2026-03-29)
+- **신규 파일**: `domain/model/BattleLog.kt` — `LogType` enum (START/ATTACK/REACTION/CRISIS/FINISH/RESULT) + `BattleLog(message, type)` data class
+- **신규 파일**: `ui/boss/BattleLogGenerator.kt` — 공격/반응/위기/마무리 로그 풀 + `generateBattleLogs()` 랜덤 3~5개 중간 로그 생성
+- **`BossViewModel`**: `challengeBoss()` 내부에서 `delay(700L)` 기반 순차 로그 추가 코루틴 실행
+  - `BossState`에 `battleLogs`, `isBattleActive`, `isBattleComplete`, `battleResult` 필드 추가
+  - `confirmBattle()`: 성공 시 그냥 닫기, 실패 시 상세 다이얼로그(`challengeResult`) 표시
+- **`BossScreen`**: `BattleOverlay` 풀스크린 컴포넌트 추가
+  - `AnimatedVisibility(fadeIn + slideInVertically)` 로 등장
+  - `LazyColumn` + `LaunchedEffect(logs.size)` → 새 로그마다 자동 스크롤
+  - 로그 스타일: START(기본) / ATTACK(💥NeonOrange) / REACTION(✨NeonGreen) / CRISIS(⚠NeonRed) / FINISH(🔥NeonPurple) / RESULT(★XpGold)
+  - `isBattleComplete` 시 확인 버튼 `fadeIn(500ms)` 등장
+  - 기존 `ChallengeResultDialog` (텍스트 결과) 폐기 → 전투 오버레이로 대체
+
+### Phase 20: 보스 그룹별 가로 스크롤 UI ✅ (2026-03-29)
+- 단일 `LazyColumn` 보스 목록 → 그룹별 섹션 + `LazyRow` 구조로 변경
+- 그룹 순서: 💪 근력 보스(NeonRed) → 🏃 지구력 보스(NeonBlue) → ⚡ 하이브리드 보스(NeonPurple)
+- 보스 카드: `fillMaxWidth` → **220dp 고정 너비** (수평 스크롤용), 타입 배지 카드 내부에서 제거
+- `RequirementChip`: 가로 정렬 `SpaceBetween`, `fillMaxWidth` 적용
+
+### Phase 21: 보스 진행 시스템 — 순서 잠금 + 하루 1회 제한 ✅ (2026-03-29)
+- **신규 Entity**: `BossProgressEntity` — `boss_progress` 테이블 (`bossId`, `userId`, `lastDefeatedAt: Long`)
+  - 유저별 보스별 UNIQUE 인덱스 (`userId`, `bossId`)
+- **신규 DAO**: `BossProgressDao` — `getProgressForUser(userId)` Flow, `getProgress()`, `@Upsert`
+- **DB v7 → v8**: `MIGRATION_7_8` — `boss_progress` 테이블 + UNIQUE 인덱스 생성
+- **`BossRepository`** 인터페이스 + `LocalBossRepository` 구현체에 `getProgressForUser()`, `recordDefeat()` 추가
+- **`DatabaseModule`**: `BossProgressDao` 제공, `LocalBossRepository` 생성자 업데이트
+- **`BossViewModel`** 전면 재작성:
+  - `BossState.bosses: List<BossEntity>` → `bossGroups: Map<String, List<BossWithProgress>>`
+  - `BossWithProgress(boss, isLocked, isCompletedToday)` data class 추가
+  - `buildBossGroups()`: 타입별 `requiredLevel` 오름차순 정렬 → 이전 보스 클리어 여부로 `isLocked` 결정
+  - `isToday()`: `Calendar` 기반 당일 판정
+  - `combine(getAllBosses(), getProgressForUser())` 로 실시간 Flow 결합
+  - `confirmBattle()`: 성공 시 `recordDefeat()` 호출 → Flow 자동 갱신
+- **보스 카드 상태 3단계**:
+  - 🔒 잠금: 이전 보스 미클리어 → Lock 아이콘 + "잠금" (수치 dimmed)
+  - ✅ 오늘 완료: 당일 클리어 → CheckCircle + "오늘 완료" (NeonGreen)
+  - 도전하기: 잠금 해제 + 미완료 → 타입 색상 버튼
+
+### Phase 23: 보스 시스템 전면 재설계 ✅ (2026-03-29)
+
+#### 보스 구성 (150개)
+- **3타입 × 50보스**: STRENGTH(id 1~50) / ENDURANCE(id 51~100) / HYBRID(id 101~150)
+- **이름 생성**: 10 접두어 × 5 접미어 (타입별 테마)
+  - STRENGTH 접두어: 잠든/눈뜬/성난/무쇠/화강암의/불굴의/분노한/용암의/화염의/전설의
+  - ENDURANCE 접두어: 미풍의/산들의/거센/폭풍의/번개의/질풍의/회오리의/태풍의/폭풍우의/전설의
+  - HYBRID 접두어: 고요한/균형의/이중의/혼돈의/융합의/조화의/복합의/이원의/초월의/전설의
+- **난이도 공식** `computeBaseStat(index)`: 기초값 10, index 1~15 구간 +3.0, 16~30 구간 +2.5, 31~49 구간 +2.0
+- **타입별 스탯 비율**: STRENGTH(reqStr=base, reqEnd=base×0.3) / ENDURANCE(reqStr=base×0.3, reqEnd=base) / HYBRID(reqStr=base×0.8, reqEnd=base×0.8)
+- `BossEntity.order = index` (0~49), `requiredLevel = index`
+- `@ColumnInfo(name = "bossOrder")` — SQL 예약어 `order` 충돌 회피
+
+#### 진행 시스템 변경
+- **하루 1회 제한 제거**: 언제든 재도전 가능 (횟수 제한 없음)
+- **영구 클리어** (`isCleared = true`): 한번 클리어하면 영구 기록, 이전 보스 클리어 시 다음 보스 잠금 해제
+- **재도전**: 클리어 완료 카드에 "재도전" 버튼 추가 (재클리어 시 성능 등급 덮어쓰기)
+
+#### 성능 평가 (등급)
+- `calcPerformance()`: `margin = (user.strengthStat - boss.requiredStrength) + (user.enduranceStat - boss.requiredEndurance)`
+  - margin ≥ 50 → "압도적인 승리" (S)
+  - margin ≥ 20 → "안정적인 승리" (A)
+  - margin < 20 → "간신히 승리" (B)
+- 등급은 `BossProgressEntity.performance`에 저장 → 재클리어 시 갱신
+
+#### 클리어 카드 UI
+- 게이지 바 완전 제거 → **등급 문자(S/A/B) 48sp Bold + 클리어 설명 문구** 표시
+  - S(압도적 클리어): NeonPurple / A(안정적 클리어): NeonGreen / B(간신히 클리어): NeonOrange
+- 클리어 설명 문구: 알파벳 아래 `labelSmall` + `TextMuted` 색상으로 작고 흐리게 표시
+- "재도전" 버튼: 타입 색상 60% 투명도
+
+#### BattleOverlay 개선
+- 결과 로그 메시지: "압도적으로 쓰러뜨렸습니다!" / "안정적으로 쓰러뜨렸습니다!" / "간신히 쓰러뜨렸습니다!" / "결국 무너졌습니다."
+- 전투 완료 + 승리 시 제목 아래 성능 뱃지 출현 (S=NeonPurple, A=NeonGreen, B=NeonOrange, RoundedCornerShape(20dp))
+- 확인 버튼 레이블: `"${performance}! 돌아가기"` (예: "압도적인 승리! 돌아가기")
+
+#### DB 변경
+- **v8 → v9** (`MIGRATION_8_9`): `bosses` DROP+재생성(bossOrder 컬럼 추가), `boss_progress` DROP+재생성(composite PK + isCleared)
+- **v9 → v10** (`MIGRATION_9_10`): `boss_progress`에 `performance TEXT NOT NULL DEFAULT ''` ALTER ADD
+- `insertSeedBosses()`: `bossOrder` 컬럼 포함하여 INSERT
+- `onOpen` 콜백: 보스 수 0이면 150개 재시드 (마이그레이션 후 자동 재삽입)
+
+#### 제거된 로직
+- `isCompletedToday`, `lastDefeatedAt`, `isToday()` Calendar 체크 — 완전 삭제
+- `recordDefeat(userId, bossId, timestamp)` → `recordClear(userId, bossId, performance)`
+- `BossProgressDao.getProgress(userId, bossId)` — composite PK @Upsert로 불필요
+
+---
+
+### Phase 22: 보스 요구 조건 게이지 UX ✅ (2026-03-29)
+- **`StatStatus`** enum: SUFFICIENT / NORMAL / LOW
+  - `getStatStatus()`: 비율 ≥1.0 → SUFFICIENT, ≥0.7 → NORMAL, <0.7 → LOW
+  - 색상: 🟢 NeonGreen / 🟠 NeonOrange / 🔴 NeonRed
+  - 텍스트: 충분함 / 가능 / 부족
+- **`RequirementGauge`** (기존 `RequirementChip` 대체):
+  - 숫자 완전 제거 (`current / required` 표시 없음)
+  - 라벨(좌) + 상태 텍스트(우) → 색상 게이지 바 (높이 5dp, `RoundedCornerShape(3dp)`)
+  - `animateFloatAsState(tween 600ms, FastOutSlowInEasing)` → 카드 진입 시 게이지 차오르는 효과
+  - 잠금 상태: 회색 빈 게이지
+- **실패 다이얼로그 자연어 개선**:
+  - 기존: "• 근력 +20 필요 / • 레벨 +3 필요" (숫자 노출)
+  - 변경: `buildFailureMessage()` — "근력과 레벨이 부족합니다." (자연어)
+  - `buildMotivationMessage()` — 부족 항목에 맞는 행동 유도 메시지 (NeonOrange 배지):
+    - 근력만: "근력 운동을 추천합니다."
+    - 지구력만: "지구력 운동을 추천합니다."
+    - 레벨만: "조금 더 운동하면 레벨이 올라갑니다."
+    - 복합: "꾸준한 운동으로 강해질 수 있습니다."
+
 ### Phase 14: 프로필 사진 기능 ✅ (2026-03-29)
 - 홈 화면 유저 카드에 원형 프로필 사진 추가 (닉네임 위)
 - 기본값: 온보딩에서 선택한 아바타 이미지(남성/여성)를 원형 crop으로 표시
@@ -407,7 +569,7 @@ users/{firebaseUid}
 - [x] 스플래시 화면
 - [x] Hilt DI
 - [x] Sealed UI State (Loading/Error/Success)
-- [x] DB 인덱스/FK/마이그레이션 (v7)
+- [x] DB 인덱스/FK/마이그레이션 (v10, boss_progress composite PK + performance 컬럼)
 - [x] 네트워크 보안 설정
 - [x] Repository 추상화 (interface + Local)
 - [x] EncryptedSharedPreferences
@@ -423,10 +585,20 @@ users/{firebaseUid}
 - [x] 온보딩 아바타 선택 — 이모지 → 실제 남성/여성 아바타 이미지 카드 선택
 - [x] 홈 화면 — 원형 프로필 사진 + 닉네임/직업/목표 배지 표시
 - [x] 프로필 사진 — 갤러리/카메라 선택, Base64로 Room/Firestore 동기화 저장
-- [x] 아바타 탭 — 전신 이미지 + 드래그 좌우 회전 (rotationY 3D 효과, 스프링 복귀)
+- [x] 아바타 탭 — 남성 360도 스프라이트 시트 회전 (24프레임, 드래그 감도 0.5), 여성 단일 이미지
 - [x] XP/스탯 프로그레스 바 테두리 (0일 때도 바 윤곽 표시)
 - [x] 로그인 에러 메시지 — Firebase 예외 클래스 기반 정확한 한국어 매핑
 - [x] 인트로 건너뛰기 버튼 우측 최상단 배치
+- [x] 직업 선택 화면 개편 — 캐치프레이즈 + 특성 불릿 + 선택 애니메이션 (scale/alpha)
+- [x] 직업별 스탯 배율 — STRENGTH/ENDURANCE 해당 운동 ×2.0, BALANCE 전체 ×1.5
+- [x] 운동 완료 화면 직업 효과 표시 — 기본 보상 → 최종 보상 + "직업 효과" 배지
+- [x] 보스 전투 애니메이션 — 700ms 순차 로그 출력, LogType별 색상, 전투 오버레이
+- [x] 보스 화면 그룹별 가로 스크롤 — 근력/지구력/하이브리드 LazyRow
+- [x] 보스 시스템 재설계 — 150보스(3타입×50), 영구 클리어, 순서 잠금, 재도전 (DB v10)
+- [x] 보스 요구 조건 게이지 — 숫자 제거, StatStatus 색상 게이지 + 자연어 실패 메시지
+- [x] 보스 성능 평가 — margin 공식으로 S/A/B 등급 산정 + 클리어 카드에 등급 표시
+- [x] 보스 클리어 카드 — 게이지 대신 48sp 등급 문자 + 설명 문구(labelSmall/TextMuted) + 재도전 버튼
+- [x] 전투 오버레이 — 등급별 결과 메시지 + 성능 뱃지 + 확인 버튼에 성능 텍스트 표시
 
 ---
 
@@ -463,15 +635,20 @@ users/{firebaseUid}
 5. **릴리즈 서명** — signing config 미설정, Play Store 배포 전 keystore 생성 필요
 6. **DB 마이그레이션 주의** — ALTER TABLE에 `DEFAULT NULL` 쓰면 Room 스키마 검증 실패. `DEFAULT` 절 없이 컬럼 추가해야 함
 7. **Firestore 닉네임 중복 체크** — 네트워크/권한 오류 시 건너뜀 (false 반환). Firestore 보안 규칙에서 users 읽기가 인증된 유저 전체에게 열려있어야 동작
-8. **아바타 회전 한계** — PNG 이미지 1장으로 구현 → rotationY ±75도로 제한 (90도 초과 시 거울 반전 노출). 360도 완전 회전을 원하면 ①각도별 프레임 이미지 8~16장 또는 ②`.glb` 3D 모델 + SceneView 라이브러리 필요
+8. **아바타 회전** — 남성은 스프라이트 시트 24프레임(15도 간격) 방식으로 360도 회전 가능. 여성은 단일 PNG로 회전 없음 (여성 360도 스프라이트 시트 또는 `.glb` 모델 추가 필요)
 9. **avatarIndex 하위 호환** — 기존 DB에 0~7 이모지 인덱스로 저장된 유저는 0이면 남성, 1이면 여성으로 표시되고 2~7은 여성 이미지로 fallback됨 (신규 유저만 정확히 동작)
 10. **프로필 사진 Base64 저장** — Firestore 문서 1MB 제한 내에서 동작 (512x512 JPEG ≈ 50~100KB → Base64 ≈ 70~130KB). 고해상도 사진이나 다수 필드 추가 시 문서 크기 주의. 향후 Firebase Storage 사용 시 URL 방식으로 전환 가능 (profileImageUrl 컬럼 재활용)
+11. **보스 진행 데이터 미동기화** — `boss_progress` 테이블은 로컬 Room에만 저장, Firestore 동기화 미구현. 기기 변경 시 보스 클리어 기록 초기화됨. 향후 Firestore 연동 필요.
+12. **보스 등급 재클리어 시 덮어쓰기** — 재도전으로 더 낮은 등급(예: S→B)이 나와도 덮어써짐. 향후 "최고 등급 보존" 로직 추가 가능.
 
 ---
 
 ## Git 커밋 히스토리
 
 ```
+(최신 커밋들은 git log로 확인)
+(Phase 19~22 커밋들: 보스 전투 애니메이션, 그룹 가로 스크롤, 진행 시스템 DB v8, 게이지 UX)
+(Phase 15~18 커밋들: 아바타 360도 스프라이트, 직업 선택 UI 개편, 직업별 배율, 운동 완료 효과 표시)
 ac3de29 fix: 프로필 사진 카메라 아이콘 잘림 수정
 87101fd feat: 프로필 사진 기능 추가 — 갤러리/카메라 선택 + Firestore 동기화
 f4e8188 fix: XP/스탯 프로그레스 바 테두리 추가 + 온보딩 버튼 느낌표 제거

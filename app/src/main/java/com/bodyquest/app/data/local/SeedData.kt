@@ -104,34 +104,89 @@ val seedQuests = listOf(
         category = "ENDURANCE", bodyPart = "달리기", specificArea = null,
         name = "회복 조깅", description = "매우 느린 페이스로 가볍게 조깅",
         difficulty = 1, durationMinutes = 15, sets = 1, repsPerSet = 0,
-        xpReward = 20, statType = "ENDURANCE", statReward = 1
+        xpReward = 20, statType = "ENDURANCE", statReward = 2
     ),
     QuestEntity(
         id = "end_cycling",
         category = "ENDURANCE", bodyPart = "자전거", specificArea = null,
         name = "사이클링", description = "30분 자전거 타기",
         difficulty = 2, durationMinutes = 30, sets = 1, repsPerSet = 0,
-        xpReward = 50, statType = "ENDURANCE", statReward = 3
+        xpReward = 50, statType = "ENDURANCE", statReward = 4
     ),
-
 )
 
-val seedBosses = listOf(
-    // ── STRENGTH 보스 ──
-    BossEntity(id = 1, name = "철권의 야수", requiredStrength = 10, requiredEndurance = 0, requiredLevel = 3, type = "STRENGTH"),
-    BossEntity(id = 2, name = "화강암 거인", requiredStrength = 25, requiredEndurance = 0, requiredLevel = 6, type = "STRENGTH"),
-    BossEntity(id = 3, name = "분노한 타이탄", requiredStrength = 50, requiredEndurance = 0, requiredLevel = 10, type = "STRENGTH"),
-    BossEntity(id = 4, name = "강철 군주", requiredStrength = 80, requiredEndurance = 0, requiredLevel = 15, type = "STRENGTH"),
+// ── 보스 생성 ─────────────────────────────────────────────────────────────────
 
-    // ── ENDURANCE 보스 ──
-    BossEntity(id = 5, name = "바람의 사자", requiredStrength = 0, requiredEndurance = 10, requiredLevel = 3, type = "ENDURANCE"),
-    BossEntity(id = 6, name = "폭풍의 용사", requiredStrength = 0, requiredEndurance = 25, requiredLevel = 6, type = "ENDURANCE"),
-    BossEntity(id = 7, name = "번개 달인", requiredStrength = 0, requiredEndurance = 50, requiredLevel = 10, type = "ENDURANCE"),
-    BossEntity(id = 8, name = "질풍 지배자", requiredStrength = 0, requiredEndurance = 80, requiredLevel = 15, type = "ENDURANCE"),
-
-    // ── HYBRID 보스 ──
-    BossEntity(id = 9, name = "균형의 수호자", requiredStrength = 15, requiredEndurance = 15, requiredLevel = 5, type = "HYBRID"),
-    BossEntity(id = 10, name = "이중 전사", requiredStrength = 35, requiredEndurance = 35, requiredLevel = 9, type = "HYBRID"),
-    BossEntity(id = 11, name = "혼돈의 현자", requiredStrength = 60, requiredEndurance = 60, requiredLevel = 14, type = "HYBRID"),
-    BossEntity(id = 12, name = "전설의 챔피언", requiredStrength = 90, requiredEndurance = 90, requiredLevel = 20, type = "HYBRID")
+private val strengthPrefixes = listOf(
+    "잠든", "눈뜬", "성난", "무쇠", "화강암의",
+    "불굴의", "분노한", "용암의", "화염의", "전설의"
 )
+private val strengthSuffixes = listOf("야수", "전사", "거인", "파괴자", "군주")
+
+private val endurancePrefixes = listOf(
+    "미풍의", "산들의", "거센", "폭풍의", "번개의",
+    "질풍의", "회오리의", "태풍의", "폭풍우의", "전설의"
+)
+private val enduranceSuffixes = listOf("사자", "용사", "달인", "지배자", "챔피언")
+
+private val hybridPrefixes = listOf(
+    "고요한", "균형의", "이중의", "혼돈의", "융합의",
+    "조화의", "복합의", "이원의", "초월의", "전설의"
+)
+private val hybridSuffixes = listOf("수호자", "현자", "전사", "심판자", "군주")
+
+/** index 0~49 기준 기본 스탯 계산 (누적 증가율 구간별 감소) */
+private fun computeBaseStat(index: Int): Int {
+    var stat = 10.0
+    for (i in 1..index) {
+        stat += when {
+            i <= 15 -> 3.0
+            i <= 30 -> 2.5
+            else    -> 2.0
+        }
+    }
+    return stat.toInt()
+}
+
+private fun buildBoss(type: String, index: Int): BossEntity {
+    val idOffset = when (type) {
+        "STRENGTH"  -> 1
+        "ENDURANCE" -> 51
+        else        -> 101
+    }
+    val prefixes = when (type) {
+        "STRENGTH"  -> strengthPrefixes
+        "ENDURANCE" -> endurancePrefixes
+        else        -> hybridPrefixes
+    }
+    val suffixes = when (type) {
+        "STRENGTH"  -> strengthSuffixes
+        "ENDURANCE" -> enduranceSuffixes
+        else        -> hybridSuffixes
+    }
+
+    val name = "${prefixes[index / 5]} ${suffixes[index % 5]}"
+    val base = computeBaseStat(index)
+
+    val (reqStr, reqEnd) = when (type) {
+        "STRENGTH"  -> Pair(base, (base * 0.3).toInt())
+        "ENDURANCE" -> Pair((base * 0.3).toInt(), base)
+        else        -> Pair((base * 0.8).toInt(), (base * 0.8).toInt())
+    }
+
+    return BossEntity(
+        id = idOffset + index,
+        name = name,
+        requiredStrength = reqStr,
+        requiredEndurance = reqEnd,
+        requiredLevel = index,
+        type = type,
+        order = index
+    )
+}
+
+val seedBosses: List<BossEntity> = buildList {
+    for (type in listOf("STRENGTH", "ENDURANCE", "HYBRID")) {
+        repeat(50) { index -> add(buildBoss(type, index)) }
+    }
+}
