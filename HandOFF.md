@@ -1,7 +1,7 @@
 
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-03-29 (아바타 이미지 선택 + 아바타 탭 회전 기능)
+> 마지막 업데이트: 2026-03-29 (프로필 사진 기능 + UI 개선 + 로그인 에러 메시지 개선)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -40,7 +40,8 @@
 - **DI**: Hilt (`@HiltAndroidApp`, `@AndroidEntryPoint`, `@HiltViewModel`)
 - **인증**: Firebase Auth (이메일/비밀번호 + Google Sign-In)
 - **클라우드 DB**: Firebase Firestore (유저 프로필 + 운동 기록 동기화)
-- **로컬 DB**: Room v5 (UI 단일 데이터 소스, Firestore는 클라우드 백업/동기화)
+- **로컬 DB**: Room v7 (UI 단일 데이터 소스, Firestore는 클라우드 백업/동기화)
+- **이미지 로딩**: Coil 2.6.0 (Compose용)
 - **테마**: 항상 다크 모드 (다이나믹 컬러 없음)
 - **보안**: network_security_config (HTTPS 강제), EncryptedSharedPreferences 준비 완료
 
@@ -61,14 +62,14 @@ app/src/main/java/com/bodyquest/app/
 │
 ├── data/
 │   ├── local/
-│   │   ├── BodyQuestDatabase.kt # Room DB (v5), exportSchema=true, Migration(1,2), Migration(2,3), Migration(4,5)
+│   │   ├── BodyQuestDatabase.kt # Room DB (v7), exportSchema=true, Migration(1,2)~Migration(6,7)
 │   │   ├── SeedData.kt          # ~20개 하드코딩 퀘스트 (근력/지구력/밸런스)
 │   │   ├── dao/
-│   │   │   ├── UserDao.kt       # abstract class, getUser(uid), @Transaction applyWorkoutRewards()
+│   │   │   ├── UserDao.kt       # abstract class, getUser(uid), @Transaction applyWorkoutRewards(), updateProfileImageUrl()
 │   │   │   ├── QuestDao.kt      # 카테고리/부위/난이도 필터링
 │   │   │   └── WorkoutDao.kt    # 운동 기록 CRUD, 시간 기반 쿼리, getWorkoutByFirestoreId()
 │   │   └── entity/
-│   │       ├── UserEntity.kt    # id, nickname, job, goal, avatarIndex, stats, xp, level, firebaseUid, email, authProvider, updatedAt
+│   │       ├── UserEntity.kt    # id, nickname, job, goal, avatarIndex, stats, xp, level, firebaseUid, email, authProvider, profileImageUrl, updatedAt
 │   │       ├── QuestEntity.kt   # id, category, bodyPart, name, difficulty, rewards
 │   │       ├── WorkoutEntity.kt # FK(userId→users, questId→quests), 복합인덱스, CASCADE, firestoreId
 │   │       └── WorkoutSetEntity.kt # FK(workoutId→workouts), CASCADE
@@ -115,12 +116,14 @@ app/src/main/java/com/bodyquest/app/
 │   │   └── AvatarCreationPage.kt    # 닉네임 입력 + 남성/여성 아바타 이미지 카드 선택 (avatarIndex: 0=남성, 1=여성)
 │   │
 │   ├── home/
-│   │   ├── HomeScreen.kt           # UiState 분기 (Loading/Error/Success)
-│   │   ├── HomeViewModel.kt        # @HiltViewModel, AuthRepository로 Firebase UID 기반 유저 조회
+│   │   ├── HomeScreen.kt           # UiState 분기, 프로필 사진 갤러리/카메라 선택, ActivityResultContracts
+│   │   ├── HomeViewModel.kt        # @HiltViewModel, 프로필 사진 업로드 (Base64), @ApplicationContext
 │   │   └── components/
-│   │       ├── StatBar.kt
-│   │       ├── XpProgressBar.kt
-│   │       └── TodayQuestCard.kt
+│   │       ├── StatBar.kt           # 테두리 있는 프로그레스 바
+│   │       ├── XpProgressBar.kt     # 테두리 있는 XP 프로그레스 바
+│   │       ├── TodayQuestCard.kt
+│   │       ├── ProfileImage.kt      # 원형 프로필 사진 (Base64 디코딩, 아바타 fallback, 카메라 아이콘)
+│   │       └── ImagePickerSheet.kt  # 갤러리/카메라 선택 BottomSheet
 │   │
 │   ├── quest/
 │   │   ├── QuestScreen.kt          # 카테고리 선택
@@ -151,7 +154,8 @@ app/src/main/java/com/bodyquest/app/
 │       └── Type.kt
 │
 └── util/
-    └── XpCalculator.kt
+    ├── XpCalculator.kt
+    └── ImageUtil.kt             # 이미지 압축(512x512 JPEG), 카메라 임시 URI 생성
 ```
 
 ---
@@ -240,8 +244,8 @@ service cloud.firestore {
 ### Firestore 데이터 구조
 ```
 users/{firebaseUid}
-  ├── nickname, job, goal, avatarIndex
-  ├── strengthStat, enduranceStat, balanceStat
+  ├── nickname, job, goal, avatarIndex, profileImageUrl (Base64)
+  ├── strengthStat, enduranceStat
   ├── xp, level, createdAt, updatedAt, email, authProvider
   │
   └── workouts/{firestoreWorkoutId}
@@ -344,6 +348,39 @@ users/{firebaseUid}
 - AvatarScreen이 `HomeViewModel`을 재사용 (별도 ViewModel 없음)
 - NavGraph: `AvatarScreen()` → `AvatarScreen(viewModel = hiltViewModel())`
 
+### Phase 13: UI 개선 + 로그인 에러 메시지 개선 ✅ (2026-03-29)
+- 인트로 건너뛰기 버튼 우측 최상단으로 위치 조정 (statusBarsPadding 제거, top=0)
+- 로그인 에러 매핑을 문자열 매칭 → Firebase 예외 클래스 기반(`FirebaseAuthInvalidUserException` 등)으로 변경
+  - "가입되지 않은 이메일입니다." / "비밀번호가 올바르지 않습니다." 등 정확한 메시지
+  - 로그 추가: `Log.e("FirebaseAuth", ...)` 로 실제 에러 클래스/메시지 출력
+- 모든 에러/안내 메시지에 마침표(`.`) 통일
+- 회원가입 완료 메시지 — 입력 시작하면 자동 제거 (`signUpCompleted = false`)
+- XP/스탯 프로그레스 바에 `DarkBorder` 테두리 추가 (0일 때도 바 윤곽 표시)
+- 온보딩 마지막 버튼 "시작하기!" → "시작하기" (느낌표 제거)
+
+### Phase 14: 프로필 사진 기능 ✅ (2026-03-29)
+- 홈 화면 유저 카드에 원형 프로필 사진 추가 (닉네임 위)
+- 기본값: 온보딩에서 선택한 아바타 이미지(남성/여성)를 원형 crop으로 표시
+- 프로필 사진 탭 → `ModalBottomSheet`으로 갤러리/카메라 선택
+- **갤러리**: `ActivityResultContracts.GetContent("image/*")`
+- **카메라**: `ActivityResultContracts.TakePicture` + `FileProvider` + 런타임 카메라 퍼미션
+- 이미지 처리: `ImageUtil.compressAndResize()` — 512x512 center crop, JPEG 80% 압축
+- **저장 방식: Base64** (Firebase Storage 유료 → Base64로 Room/Firestore 직접 저장)
+  - `android.util.Base64.encodeToString(bytes, NO_WRAP)` → `profileImageUrl` 컬럼에 저장
+  - 표시 시 `Base64.decode()` → `BitmapFactory.decodeByteArray()` → `Image(bitmap.asImageBitmap())`
+- DB v6→v7 마이그레이션: `ALTER TABLE users ADD COLUMN profileImageUrl TEXT`
+- `UserDao.updateProfileImageUrl(uid, url, updatedAt)` 쿼리 추가
+- `UserRepository` + `LocalUserRepository`에 `updateProfileImageUrl()` 메서드 추가
+- `FirestoreUserService`: push/pull에 `profileImageUrl` 필드 포함
+- `SyncManager.syncOnLogin()`: 클라우드→로컬 동기화 시 `profileImageUrl` 포함
+- `HomeViewModel`: `@ApplicationContext` 주입, `uploadProfileImage(uri)` 메서드
+- `ProfileImage` 컴포넌트: Base64 디코딩, 아바타 fallback, 카메라 아이콘 오버레이
+- `ImagePickerSheet`: 갤러리/카메라 선택 BottomSheet (Material3 ModalBottomSheet)
+- `AndroidManifest.xml`: CAMERA 퍼미션 + FileProvider 추가
+- `res/xml/file_paths.xml`: 카메라 임시 파일 경로
+- Coil 2.6.0 의존성 추가 (현재 Base64 직접 디코딩이므로 AsyncImage 미사용, 향후 URL 방식 전환 대비)
+- 에러 처리: 업로드 실패 시 프로필 아래 빨간 에러 메시지 3초 표시
+
 ### Phase 10: Firestore 클라우드 동기화 ✅
 - Firebase Firestore 의존성 추가
 - FirestoreUserService: Firestore CRUD (push/pull user, push/pull workouts, delete, isNicknameTaken)
@@ -370,7 +407,7 @@ users/{firebaseUid}
 - [x] 스플래시 화면
 - [x] Hilt DI
 - [x] Sealed UI State (Loading/Error/Success)
-- [x] DB 인덱스/FK/마이그레이션 (v5)
+- [x] DB 인덱스/FK/마이그레이션 (v7)
 - [x] 네트워크 보안 설정
 - [x] Repository 추상화 (interface + Local)
 - [x] EncryptedSharedPreferences
@@ -384,8 +421,12 @@ users/{firebaseUid}
 - [x] Firebase UID 기반 유저 데이터 조회 (계정별 데이터 분리)
 - [x] 인트로 슬라이드 화면 (첫 로그인 전 기기에만 표시, HorizontalPager 5장)
 - [x] 온보딩 아바타 선택 — 이모지 → 실제 남성/여성 아바타 이미지 카드 선택
-- [x] 홈 화면 — 아바타 이미지 제거, 닉네임/직업/목표 텍스트만 표시
+- [x] 홈 화면 — 원형 프로필 사진 + 닉네임/직업/목표 배지 표시
+- [x] 프로필 사진 — 갤러리/카메라 선택, Base64로 Room/Firestore 동기화 저장
 - [x] 아바타 탭 — 전신 이미지 + 드래그 좌우 회전 (rotationY 3D 효과, 스프링 복귀)
+- [x] XP/스탯 프로그레스 바 테두리 (0일 때도 바 윤곽 표시)
+- [x] 로그인 에러 메시지 — Firebase 예외 클래스 기반 정확한 한국어 매핑
+- [x] 인트로 건너뛰기 버튼 우측 최상단 배치
 
 ---
 
@@ -398,7 +439,10 @@ users/{firebaseUid}
 - [ ] **앱 재시작 시 추천퀘스트 고정** — 현재 shuffle로 매번 바뀜, 하루 단위 고정 필요
 
 ### 중간 우선순위
-- [ ] **아바타 시스템** — 360도 회전 (각도별 프레임 이미지 or `.glb` 3D 모델), 레벨/직업별 장비, 외형 커스터마이징
+- [ ] **3D 아바타 시스템** — Ready Player Me .glb 모델 + SceneView 라이브러리, 360도 회전, 레벨/직업별 장비
+  - **준비 중**: Ready Player Me에서 남성/여성 .glb 모델 생성 필요
+  - 모델 파일 위치: `app/src/main/assets/avatar_male.glb`, `avatar_female.glb`
+  - 모델 준비 완료 후 SceneView 통합 구현 예정
 - [ ] **PvP 대전** — 스탯 기반 1:1 비교 대결
 - [ ] **알림/리마인더** — 운동 시간 알림
 - [ ] **운동 중 실제 센서 연동** — Google Fit / Health Connect API
@@ -421,12 +465,23 @@ users/{firebaseUid}
 7. **Firestore 닉네임 중복 체크** — 네트워크/권한 오류 시 건너뜀 (false 반환). Firestore 보안 규칙에서 users 읽기가 인증된 유저 전체에게 열려있어야 동작
 8. **아바타 회전 한계** — PNG 이미지 1장으로 구현 → rotationY ±75도로 제한 (90도 초과 시 거울 반전 노출). 360도 완전 회전을 원하면 ①각도별 프레임 이미지 8~16장 또는 ②`.glb` 3D 모델 + SceneView 라이브러리 필요
 9. **avatarIndex 하위 호환** — 기존 DB에 0~7 이모지 인덱스로 저장된 유저는 0이면 남성, 1이면 여성으로 표시되고 2~7은 여성 이미지로 fallback됨 (신규 유저만 정확히 동작)
+10. **프로필 사진 Base64 저장** — Firestore 문서 1MB 제한 내에서 동작 (512x512 JPEG ≈ 50~100KB → Base64 ≈ 70~130KB). 고해상도 사진이나 다수 필드 추가 시 문서 크기 주의. 향후 Firebase Storage 사용 시 URL 방식으로 전환 가능 (profileImageUrl 컬럼 재활용)
 
 ---
 
 ## Git 커밋 히스토리
 
 ```
+ac3de29 fix: 프로필 사진 카메라 아이콘 잘림 수정
+87101fd feat: 프로필 사진 기능 추가 — 갤러리/카메라 선택 + Firestore 동기화
+f4e8188 fix: XP/스탯 프로그레스 바 테두리 추가 + 온보딩 버튼 느낌표 제거
+ae78de0 fix: 로그인 에러 메시지 개선 — 예외 클래스 기반 매핑 + 마침표 통일
+4e5f9fa fix: 인트로 화면 건너뛰기 버튼 우측 최상단으로 위치 조정
+507f502 feat: 아바타 이미지 선택 + 아바타 탭 회전 기능 추가
+8bea080 feat: 퀘스트 선택 화면 — 직업 대신 운동 종류(근력/유산소)로 변경
+f7de4b0 feat: Balance 스탯 제거 + 보스 시스템 추가 (DB v6)
+6f88917 feat: 인트로 슬라이드 화면 추가 + 퀘스트/운동 버그 수정
+c6764d1 docs: HandOFF.md 업데이트 — Firestore 동기화, 계정 관리, 버그 수정 반영
 c2a4753 feat: 닉네임 중복 체크 + 계정 삭제 시 Firestore 데이터 정리
 a6fffe7 feat: Firebase Firestore 클라우드 동기화 추가
 7865374 feat: 계정 삭제 기능 추가 + DB v4 초기화
