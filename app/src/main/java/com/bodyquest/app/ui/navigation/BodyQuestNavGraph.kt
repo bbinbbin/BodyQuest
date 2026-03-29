@@ -220,7 +220,8 @@ fun BodyQuestNavGraph() {
                 BossScreen(viewModel = bossViewModel)
             }
             composable(Screen.Avatar.route) {
-                AvatarScreen()
+                val homeViewModel: HomeViewModel = hiltViewModel()
+                AvatarScreen(viewModel = homeViewModel)
             }
             composable(Screen.Profile.route) {
                 ProfileScreen(

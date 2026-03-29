@@ -50,8 +50,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 
-private val avatarEmojis = listOf("🦸", "🧙", "🥷", "🧑‍🚀", "🦹", "🧑‍💻", "🏋️", "🤺")
-
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
@@ -128,20 +126,6 @@ private fun HomeContent(
                 modifier = Modifier.padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Avatar
-                Box(
-                    modifier = Modifier
-                        .size(72.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(NeonPurple.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = avatarEmojis.getOrElse(user.avatarIndex) { "🦸" },
-                        fontSize = 36.sp
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = user.nickname,
                     style = MaterialTheme.typography.titleMedium,

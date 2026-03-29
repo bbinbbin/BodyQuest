@@ -1,7 +1,7 @@
 
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-03-28 (인트로 슬라이드 화면 추가 + 버그 수정)
+> 마지막 업데이트: 2026-03-29 (아바타 이미지 선택 + 아바타 탭 회전 기능)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -112,7 +112,7 @@ app/src/main/java/com/bodyquest/app/
 │   │   ├── OnboardingViewModel.kt   # @HiltViewModel, 닉네임 중복 체크 + Firestore push
 │   │   ├── JobSelectionPage.kt
 │   │   ├── GoalSelectionPage.kt
-│   │   └── AvatarCreationPage.kt    # 닉네임 에러 표시 (isError + supportingText)
+│   │   └── AvatarCreationPage.kt    # 닉네임 입력 + 남성/여성 아바타 이미지 카드 선택 (avatarIndex: 0=남성, 1=여성)
 │   │
 │   ├── home/
 │   │   ├── HomeScreen.kt           # UiState 분기 (Loading/Error/Success)
@@ -135,7 +135,7 @@ app/src/main/java/com/bodyquest/app/
 │   │   └── WorkoutViewModel.kt     # @HiltViewModel, 운동 완료 시 Firestore push (workout + user)
 │   │
 │   ├── pvp/PvpScreen.kt            # Coming Soon
-│   ├── avatar/AvatarScreen.kt      # Coming Soon
+│   ├── avatar/AvatarScreen.kt      # 아바타 이미지 전신 표시 + 드래그 좌우 회전 (rotationY, ±75도, 스프링 복귀)
 │   ├── profile/
 │   │   ├── ProfileScreen.kt        # 로그아웃 + 계정 삭제 (확인 다이얼로그, 로딩/에러 상태)
 │   │   └── ProfileViewModel.kt     # @HiltViewModel, signOut(), deleteAccount() (Firestore→Room→Auth 순서)
@@ -331,6 +331,19 @@ users/{firebaseUid}
 - **버그 수정** WorkoutScreen: `val quest = state.quest ?: return` → 로컬 변수 + null 체크로 변경 (빈 화면 → LoadingScreen)
 - **버그 수정** BodyQuestDatabase: 퀘스트 씨드 삽입을 코루틴 비동기 → `db.execSQL` 동기 방식으로 변경, `onOpen`에서도 퀘스트 수 확인 후 없으면 재삽입 (레이스 컨디션 + 기존 기기 대응)
 
+### Phase 12: 아바타 이미지 시스템 ✅ (2026-03-29)
+- 온보딩 아바타 선택 UI 교체: 이모지 8개 → 남성/여성 실제 캐릭터 이미지 카드
+- drawable 리소스 추가: `avatar_male.png`, `avatar_female.png` (Android 리소스명 규칙 적용)
+- `avatarIndex` 의미 변경: 0 = 남성, 1 = 여성 (기존 0~7 이모지 인덱스 폐기)
+- HomeScreen: 아바타 이미지 Box 제거 → 닉네임 + 직업 배지 + 목표 배지만 표시
+- AvatarScreen: Coming Soon → 실제 아바타 화면으로 교체
+  - 상단: 전신 아바타 이미지 (ContentScale.Fit)
+  - 드래그 제스처로 좌우 회전 (rotationY ±75도, `cameraDistance`로 원근감)
+  - 손 떼면 스프링 애니메이션으로 0도 복귀 (dampingRatio=0.6, stiffness=200)
+  - 하단 카드: 닉네임 · 직업 · 목표 · 레벨 표시
+- AvatarScreen이 `HomeViewModel`을 재사용 (별도 ViewModel 없음)
+- NavGraph: `AvatarScreen()` → `AvatarScreen(viewModel = hiltViewModel())`
+
 ### Phase 10: Firestore 클라우드 동기화 ✅
 - Firebase Firestore 의존성 추가
 - FirestoreUserService: Firestore CRUD (push/pull user, push/pull workouts, delete, isNicknameTaken)
@@ -370,6 +383,9 @@ users/{firebaseUid}
 - [x] 닉네임 중복 체크 (Firestore 기반)
 - [x] Firebase UID 기반 유저 데이터 조회 (계정별 데이터 분리)
 - [x] 인트로 슬라이드 화면 (첫 로그인 전 기기에만 표시, HorizontalPager 5장)
+- [x] 온보딩 아바타 선택 — 이모지 → 실제 남성/여성 아바타 이미지 카드 선택
+- [x] 홈 화면 — 아바타 이미지 제거, 닉네임/직업/목표 텍스트만 표시
+- [x] 아바타 탭 — 전신 이미지 + 드래그 좌우 회전 (rotationY 3D 효과, 스프링 복귀)
 
 ---
 
@@ -382,7 +398,7 @@ users/{firebaseUid}
 - [ ] **앱 재시작 시 추천퀘스트 고정** — 현재 shuffle로 매번 바뀜, 하루 단위 고정 필요
 
 ### 중간 우선순위
-- [ ] **아바타 시스템** — 레벨/직업별 장비, 외형 커스터마이징
+- [ ] **아바타 시스템** — 360도 회전 (각도별 프레임 이미지 or `.glb` 3D 모델), 레벨/직업별 장비, 외형 커스터마이징
 - [ ] **PvP 대전** — 스탯 기반 1:1 비교 대결
 - [ ] **알림/리마인더** — 운동 시간 알림
 - [ ] **운동 중 실제 센서 연동** — Google Fit / Health Connect API
@@ -403,6 +419,8 @@ users/{firebaseUid}
 5. **릴리즈 서명** — signing config 미설정, Play Store 배포 전 keystore 생성 필요
 6. **DB 마이그레이션 주의** — ALTER TABLE에 `DEFAULT NULL` 쓰면 Room 스키마 검증 실패. `DEFAULT` 절 없이 컬럼 추가해야 함
 7. **Firestore 닉네임 중복 체크** — 네트워크/권한 오류 시 건너뜀 (false 반환). Firestore 보안 규칙에서 users 읽기가 인증된 유저 전체에게 열려있어야 동작
+8. **아바타 회전 한계** — PNG 이미지 1장으로 구현 → rotationY ±75도로 제한 (90도 초과 시 거울 반전 노출). 360도 완전 회전을 원하면 ①각도별 프레임 이미지 8~16장 또는 ②`.glb` 3D 모델 + SceneView 라이브러리 필요
+9. **avatarIndex 하위 호환** — 기존 DB에 0~7 이모지 인덱스로 저장된 유저는 0이면 남성, 1이면 여성으로 표시되고 2~7은 여성 이미지로 fallback됨 (신규 유저만 정확히 동작)
 
 ---
 
