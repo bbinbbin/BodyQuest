@@ -18,7 +18,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.border
 import androidx.compose.ui.unit.dp
+import com.bodyquest.app.ui.theme.DarkBorder
 import com.bodyquest.app.ui.theme.DarkSurfaceVariant
 import com.bodyquest.app.ui.theme.NeonPurple
 import com.bodyquest.app.ui.theme.TextSecondary
@@ -61,6 +63,7 @@ fun XpProgressBar(
                 .height(10.dp)
                 .clip(RoundedCornerShape(5.dp))
                 .background(DarkSurfaceVariant)
+                .border(1.dp, DarkBorder, RoundedCornerShape(5.dp))
         ) {
             Box(
                 modifier = Modifier

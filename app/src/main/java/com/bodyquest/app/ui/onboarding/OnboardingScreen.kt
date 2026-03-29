@@ -155,7 +155,7 @@ fun OnboardingScreen(
                 )
             ) {
                 Text(
-                    text = if (state.currentStep < TOTAL_STEPS - 1) "다음" else "시작하기!",
+                    text = if (state.currentStep < TOTAL_STEPS - 1) "다음" else "시작하기",
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
             }
