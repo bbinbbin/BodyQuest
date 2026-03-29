@@ -33,6 +33,7 @@ class SyncManager @Inject constructor(
                     enduranceStat = cloudUser.enduranceStat,
                     xp = cloudUser.xp,
                     level = cloudUser.level,
+                    profileImageUrl = cloudUser.profileImageUrl,
                     updatedAt = cloudUser.updatedAt
                 )
                 userDao.updateUser(updated)

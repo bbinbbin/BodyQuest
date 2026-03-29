@@ -43,12 +43,22 @@ import com.bodyquest.app.ui.theme.NeonPurple
 import com.bodyquest.app.ui.theme.TextMuted
 import com.bodyquest.app.ui.theme.TextSecondary
 import java.util.Calendar
+import android.Manifest
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
+import com.bodyquest.app.ui.home.components.ImagePickerSheet
+import com.bodyquest.app.ui.home.components.ProfileImage
+import com.bodyquest.app.util.ImageUtil
 
 @Composable
 fun HomeScreen(
@@ -57,6 +67,31 @@ fun HomeScreen(
     onQuestClick: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var cameraUri by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<Uri?>(null) }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.uploadProfileImage(it) }
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        if (success) cameraUri?.let { viewModel.uploadProfileImage(it) }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted: Boolean ->
+        if (granted) {
+            val uri = ImageUtil.createTempImageUri(context)
+            cameraUri = uri
+            cameraLauncher.launch(uri)
+        }
+    }
 
     when (val current = uiState) {
         is UiState.Loading -> {
@@ -71,8 +106,30 @@ fun HomeScreen(
             HomeContent(
                 state = current.data,
                 onNavigateToQuest = onNavigateToQuest,
-                onQuestClick = onQuestClick
+                onQuestClick = onQuestClick,
+                onProfileClick = { viewModel.showImagePicker() }
             )
+
+            if (current.data.showImagePicker) {
+                ImagePickerSheet(
+                    onDismiss = { viewModel.dismissImagePicker() },
+                    onGalleryClick = {
+                        viewModel.dismissImagePicker()
+                        galleryLauncher.launch("image/*")
+                    },
+                    onCameraClick = {
+                        viewModel.dismissImagePicker()
+                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    }
+                )
+            }
+
+            current.data.imageError?.let { error ->
+                androidx.compose.runtime.LaunchedEffect(error) {
+                    kotlinx.coroutines.delay(3000)
+                    viewModel.clearImageError()
+                }
+            }
         }
     }
 }
@@ -81,7 +138,8 @@ fun HomeScreen(
 private fun HomeContent(
     state: HomeState,
     onNavigateToQuest: () -> Unit,
-    onQuestClick: (String) -> Unit
+    onQuestClick: (String) -> Unit,
+    onProfileClick: () -> Unit = {}
 ) {
     val user = state.user ?: return
 
@@ -126,6 +184,22 @@ private fun HomeContent(
                 modifier = Modifier.padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                ProfileImage(
+                    profileImageUrl = user.profileImageUrl,
+                    avatarIndex = user.avatarIndex,
+                    size = 72.dp,
+                    isUploading = state.isUploadingImage,
+                    onClick = onProfileClick
+                )
+                if (state.imageError != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = state.imageError,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = com.bodyquest.app.ui.theme.NeonRed
+                    )
+                }
+                Spacer(modifier = Modifier.height(10.dp))
                 Text(
                     text = user.nickname,
                     style = MaterialTheme.typography.titleMedium,
@@ -225,7 +299,7 @@ private fun HomeContent(
                 Spacer(modifier = Modifier.height(10.dp))
                 if (state.todaysQuests.isEmpty()) {
                     Text(
-                        text = "아직 완료한 퀘스트가 없어요",
+                        text = "아직 완료한 퀘스트가 없어요.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextMuted
                     )

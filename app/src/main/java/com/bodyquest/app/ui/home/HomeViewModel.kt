@@ -1,15 +1,22 @@
 package com.bodyquest.app.ui.home
 
+import android.content.Context
+import android.net.Uri
+import android.util.Base64
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bodyquest.app.data.local.entity.QuestEntity
 import com.bodyquest.app.data.local.entity.UserEntity
+import com.bodyquest.app.data.remote.SyncManager
 import com.bodyquest.app.data.repository.AuthRepository
 import com.bodyquest.app.data.repository.QuestRepository
 import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.data.repository.WorkoutRepository
 import com.bodyquest.app.ui.common.UiState
+import com.bodyquest.app.util.ImageUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -28,15 +35,20 @@ data class HomeState(
     val user: UserEntity? = null,
     val todaysQuests: List<CompletedQuestInfo> = emptyList(),
     val recommendedQuests: List<QuestEntity> = emptyList(),
-    val weekWorkoutDays: Set<Int> = emptySet()
+    val weekWorkoutDays: Set<Int> = emptySet(),
+    val showImagePicker: Boolean = false,
+    val isUploadingImage: Boolean = false,
+    val imageError: String? = null
 )
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val userRepository: UserRepository,
     private val questRepository: QuestRepository,
     private val workoutRepository: WorkoutRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val syncManager: SyncManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<UiState<HomeState>>(UiState.Loading)
@@ -143,6 +155,47 @@ class HomeViewModel @Inject constructor(
                 }
             } catch (_: Exception) { }
         }
+    }
+
+    fun showImagePicker() {
+        updateSuccessState { it.copy(showImagePicker = true) }
+    }
+
+    fun dismissImagePicker() {
+        updateSuccessState { it.copy(showImagePicker = false) }
+    }
+
+    fun uploadProfileImage(uri: Uri) {
+        val uid = authRepository.currentUserId
+        Log.d("ProfileImage", "uploadProfileImage called, uid=$uid, uri=$uri")
+        if (uid == null) return
+        viewModelScope.launch {
+            try {
+                updateSuccessState { it.copy(isUploadingImage = true, imageError = null) }
+                val bytes = ImageUtil.compressAndResize(appContext, uri)
+                val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                Log.d("ProfileImage", "Compressed: ${bytes.size} bytes, base64: ${base64.length} chars")
+                userRepository.updateProfileImageUrl(uid, base64)
+                val updatedUser = userRepository.getUserOnce(uid)
+                if (updatedUser != null) {
+                    syncManager.pushUserToCloud(updatedUser)
+                }
+                Log.d("ProfileImage", "Profile image saved successfully")
+                updateSuccessState { it.copy(isUploadingImage = false) }
+            } catch (e: Exception) {
+                Log.e("ProfileImage", "Failed to save profile image", e)
+                updateSuccessState {
+                    it.copy(
+                        isUploadingImage = false,
+                        imageError = "프로필 사진 변경에 실패했습니다."
+                    )
+                }
+            }
+        }
+    }
+
+    fun clearImageError() {
+        updateSuccessState { it.copy(imageError = null) }
     }
 
     private fun updateSuccessState(update: (HomeState) -> HomeState) {

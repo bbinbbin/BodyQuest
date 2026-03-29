@@ -34,6 +34,9 @@ abstract class UserDao {
     @Query("UPDATE users SET xp = :xp, level = :level, enduranceStat = :statValue WHERE id = :userId")
     abstract suspend fun updateRewardsEndurance(userId: Long, xp: Int, level: Int, statValue: Int)
 
+    @Query("UPDATE users SET profileImageUrl = :url, updatedAt = :updatedAt WHERE firebaseUid = :uid")
+    abstract suspend fun updateProfileImageUrl(uid: String, url: String, updatedAt: Long)
+
     @Transaction
     open suspend fun applyWorkoutRewards(
         userId: Long,

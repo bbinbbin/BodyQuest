@@ -26,4 +26,7 @@ class LocalUserRepository(private val userDao: UserDao) : UserRepository {
 
     override suspend fun deleteUserByFirebaseUid(uid: String) =
         userDao.deleteUserByFirebaseUid(uid)
+
+    override suspend fun updateProfileImageUrl(firebaseUid: String, url: String) =
+        userDao.updateProfileImageUrl(firebaseUid, url, System.currentTimeMillis())
 }

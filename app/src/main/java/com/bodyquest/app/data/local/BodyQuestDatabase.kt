@@ -24,7 +24,7 @@ import com.bodyquest.app.data.local.entity.WorkoutSetEntity
         WorkoutSetEntity::class,
         BossEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 abstract class BodyQuestDatabase : RoomDatabase() {
@@ -126,6 +126,12 @@ abstract class BodyQuestDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE users ADD COLUMN profileImageUrl TEXT")
+            }
+        }
+
         private fun insertSeedQuests(db: SupportSQLiteDatabase) {
             seedQuests.forEach { q ->
                 db.execSQL(
@@ -151,7 +157,7 @@ abstract class BodyQuestDatabase : RoomDatabase() {
                     BodyQuestDatabase::class.java,
                     "bodyquest_db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                     .fallbackToDestructiveMigration()
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {

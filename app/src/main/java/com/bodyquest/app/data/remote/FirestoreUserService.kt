@@ -45,7 +45,8 @@ class FirestoreUserService @Inject constructor(
             "createdAt" to user.createdAt,
             "updatedAt" to System.currentTimeMillis(),
             "email" to user.email,
-            "authProvider" to user.authProvider
+            "authProvider" to user.authProvider,
+            "profileImageUrl" to user.profileImageUrl
         )
         firestore.collection("users").document(uid).set(data).await()
     }
@@ -66,6 +67,7 @@ class FirestoreUserService @Inject constructor(
             firebaseUid = firebaseUid,
             email = doc.getString("email"),
             authProvider = doc.getString("authProvider"),
+            profileImageUrl = doc.getString("profileImageUrl"),
             updatedAt = doc.getLong("updatedAt") ?: 0
         )
     }

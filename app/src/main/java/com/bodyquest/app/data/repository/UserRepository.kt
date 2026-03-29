@@ -17,4 +17,5 @@ interface UserRepository {
     )
     suspend fun getUserByFirebaseUid(uid: String): UserEntity?
     suspend fun deleteUserByFirebaseUid(uid: String)
+    suspend fun updateProfileImageUrl(firebaseUid: String, url: String)
 }
