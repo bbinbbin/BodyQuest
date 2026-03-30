@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.bodyquest.app.data.local.entity.BossEntity
 import com.bodyquest.app.data.local.entity.BossProgressEntity
 import com.bodyquest.app.data.local.entity.UserEntity
+import com.bodyquest.app.data.remote.SyncManager
 import com.bodyquest.app.data.repository.AuthRepository
 import com.bodyquest.app.data.repository.BossRepository
 import com.bodyquest.app.data.repository.UserRepository
@@ -40,7 +41,8 @@ data class BossState(
 class BossViewModel @Inject constructor(
     private val bossRepository: BossRepository,
     private val userRepository: UserRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val syncManager: SyncManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<UiState<BossState>>(UiState.Loading)
@@ -184,6 +186,16 @@ class BossViewModel @Inject constructor(
                 val uid = authRepository.currentUserId
                 if (uid != null) {
                     bossRepository.recordClear(uid, result.bossId, result.performance)
+                    // Push to Firestore
+                    syncManager.pushBossProgressToCloud(
+                        uid,
+                        BossProgressEntity(
+                            bossId = result.bossId,
+                            userId = uid,
+                            isCleared = true,
+                            performance = result.performance
+                        )
+                    )
                 }
             }
 

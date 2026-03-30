@@ -1,5 +1,6 @@
 package com.bodyquest.app.data.remote
 
+import com.bodyquest.app.data.local.entity.BossProgressEntity
 import com.bodyquest.app.data.local.entity.UserEntity
 import com.bodyquest.app.data.local.entity.WorkoutEntity
 import com.bodyquest.app.data.local.entity.WorkoutSetEntity
@@ -25,6 +26,11 @@ class FirestoreUserService @Inject constructor(
         // Delete workouts subcollection first
         val workouts = userRef.collection("workouts").get().await()
         for (doc in workouts.documents) {
+            doc.reference.delete().await()
+        }
+        // Delete bossProgress subcollection
+        val bossProgress = userRef.collection("bossProgress").get().await()
+        for (doc in bossProgress.documents) {
             doc.reference.delete().await()
         }
         // Delete user document
@@ -99,6 +105,34 @@ class FirestoreUserService @Inject constructor(
         val docRef = firestore.collection("users").document(firebaseUid)
             .collection("workouts").add(data).await()
         return docRef.id
+    }
+
+    suspend fun pushBossProgress(firebaseUid: String, progress: BossProgressEntity) {
+        val data = mapOf(
+            "bossId" to progress.bossId,
+            "isCleared" to progress.isCleared,
+            "performance" to progress.performance
+        )
+        firestore.collection("users").document(firebaseUid)
+            .collection("bossProgress").document(progress.bossId.toString())
+            .set(data).await()
+    }
+
+    suspend fun pullAllBossProgress(firebaseUid: String): List<BossProgressEntity> {
+        val snapshot = firestore.collection("users").document(firebaseUid)
+            .collection("bossProgress").get().await()
+
+        return snapshot.documents.mapNotNull { doc ->
+            val bossId = (doc.getLong("bossId") ?: return@mapNotNull null).toInt()
+            val isCleared = doc.getBoolean("isCleared") ?: false
+            val performance = doc.getString("performance") ?: ""
+            BossProgressEntity(
+                bossId = bossId,
+                userId = firebaseUid,
+                isCleared = isCleared,
+                performance = performance
+            )
+        }
     }
 
     suspend fun pullAllWorkouts(firebaseUid: String): List<Pair<WorkoutEntity, List<WorkoutSetEntity>>> {

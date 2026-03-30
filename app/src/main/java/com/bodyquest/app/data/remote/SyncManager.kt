@@ -1,7 +1,9 @@
 package com.bodyquest.app.data.remote
 
+import com.bodyquest.app.data.local.dao.BossProgressDao
 import com.bodyquest.app.data.local.dao.UserDao
 import com.bodyquest.app.data.local.dao.WorkoutDao
+import com.bodyquest.app.data.local.entity.BossProgressEntity
 import com.bodyquest.app.data.local.entity.UserEntity
 import com.bodyquest.app.data.local.entity.WorkoutEntity
 import com.bodyquest.app.data.local.entity.WorkoutSetEntity
@@ -10,7 +12,8 @@ import javax.inject.Inject
 class SyncManager @Inject constructor(
     private val firestoreService: FirestoreUserService,
     private val userDao: UserDao,
-    private val workoutDao: WorkoutDao
+    private val workoutDao: WorkoutDao,
+    private val bossProgressDao: BossProgressDao
 ) {
 
     suspend fun syncOnLogin(firebaseUid: String) {
@@ -39,6 +42,9 @@ class SyncManager @Inject constructor(
                 userDao.updateUser(updated)
                 pullWorkoutsFromCloud(firebaseUid, localUser.id)
             }
+
+            // Boss progress는 항상 pull (updatedAt과 무관하게 동기화)
+            pullBossProgressFromCloud(firebaseUid)
         } catch (_: Exception) {
             // Cloud sync failure should not block login
         }
@@ -61,6 +67,25 @@ class SyncManager @Inject constructor(
             }
         } catch (_: Exception) {
             // Partial sync failure is acceptable
+        }
+    }
+
+    private suspend fun pullBossProgressFromCloud(firebaseUid: String) {
+        try {
+            val cloudProgress = firestoreService.pullAllBossProgress(firebaseUid)
+            for (progress in cloudProgress) {
+                bossProgressDao.upsert(progress)
+            }
+        } catch (_: Exception) {
+            // Partial sync failure is acceptable
+        }
+    }
+
+    suspend fun pushBossProgressToCloud(firebaseUid: String, progress: BossProgressEntity) {
+        try {
+            firestoreService.pushBossProgress(firebaseUid, progress)
+        } catch (_: Exception) {
+            // Cloud push failure should not affect local operation
         }
     }
 
