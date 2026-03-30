@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bodyquest.app.ui.theme.NeonPurple
 import com.bodyquest.app.R
+import com.bodyquest.app.domain.model.ALL_SKINS
 import com.bodyquest.app.domain.model.Job
 import com.bodyquest.app.ui.common.ErrorScreen
 import com.bodyquest.app.ui.common.LoadingScreen
@@ -68,6 +69,7 @@ fun AvatarScreen(
                         .weight(1f)
                         .background(DarkSurfaceVariant)
                 ) {
+                    // 기본 아바타
                     val avatarRes = if (user.avatarIndex == 0) R.drawable.avatar_male else R.drawable.avatar_female
                     Image(
                         painter = painterResource(avatarRes),
@@ -75,6 +77,16 @@ fun AvatarScreen(
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.fillMaxSize()
                     )
+                    // 장착된 스킨 오버레이
+                    val equippedSkin = user.equippedSkinId?.let { id -> ALL_SKINS.find { it.id == id } }
+                    if (equippedSkin != null) {
+                        Image(
+                            painter = painterResource(equippedSkin.drawableRes),
+                            contentDescription = equippedSkin.name,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
 
                 Surface(

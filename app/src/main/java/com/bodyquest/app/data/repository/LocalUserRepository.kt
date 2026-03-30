@@ -29,4 +29,7 @@ class LocalUserRepository(private val userDao: UserDao) : UserRepository {
 
     override suspend fun updateProfileImageUrl(firebaseUid: String, url: String) =
         userDao.updateProfileImageUrl(firebaseUid, url, System.currentTimeMillis())
+
+    override suspend fun updateEquippedSkin(firebaseUid: String, skinId: String?) =
+        userDao.updateEquippedSkin(firebaseUid, skinId)
 }
