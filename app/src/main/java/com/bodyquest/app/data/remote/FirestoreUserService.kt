@@ -1,6 +1,7 @@
 package com.bodyquest.app.data.remote
 
 import com.bodyquest.app.data.local.entity.BossProgressEntity
+import com.bodyquest.app.data.local.entity.SkinInventoryEntity
 import com.bodyquest.app.data.local.entity.UserEntity
 import com.bodyquest.app.data.local.entity.WorkoutEntity
 import com.bodyquest.app.data.local.entity.WorkoutSetEntity
@@ -31,6 +32,11 @@ class FirestoreUserService @Inject constructor(
         // Delete bossProgress subcollection
         val bossProgress = userRef.collection("bossProgress").get().await()
         for (doc in bossProgress.documents) {
+            doc.reference.delete().await()
+        }
+        // Delete inventory subcollection
+        val inventory = userRef.collection("inventory").get().await()
+        for (doc in inventory.documents) {
             doc.reference.delete().await()
         }
         // Delete user document
@@ -132,6 +138,27 @@ class FirestoreUserService @Inject constructor(
                 isCleared = isCleared,
                 performance = performance
             )
+        }
+    }
+
+    suspend fun pushSkinInventory(firebaseUid: String, item: SkinInventoryEntity) {
+        val data = mapOf(
+            "skinId" to item.skinId,
+            "count" to item.count
+        )
+        firestore.collection("users").document(firebaseUid)
+            .collection("inventory").document(item.skinId)
+            .set(data).await()
+    }
+
+    suspend fun pullAllSkinInventory(firebaseUid: String): List<SkinInventoryEntity> {
+        val snapshot = firestore.collection("users").document(firebaseUid)
+            .collection("inventory").get().await()
+
+        return snapshot.documents.mapNotNull { doc ->
+            val skinId = doc.getString("skinId") ?: return@mapNotNull null
+            val count = (doc.getLong("count") ?: 0).toInt()
+            SkinInventoryEntity(skinId = skinId, userId = firebaseUid, count = count)
         }
     }
 

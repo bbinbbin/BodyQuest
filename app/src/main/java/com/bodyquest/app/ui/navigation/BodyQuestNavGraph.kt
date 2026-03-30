@@ -27,6 +27,9 @@ import com.bodyquest.app.ui.quest.QuestTreeScreen
 import com.bodyquest.app.ui.quest.QuestViewModel
 import com.bodyquest.app.ui.avatar.AvatarScreen
 import com.bodyquest.app.ui.gacha.GachaScreen
+import com.bodyquest.app.ui.gacha.GachaViewModel
+import com.bodyquest.app.ui.inventory.InventoryScreen
+import com.bodyquest.app.ui.inventory.InventoryViewModel
 import com.bodyquest.app.ui.profile.ProfileScreen
 import com.bodyquest.app.ui.boss.BossScreen
 import com.bodyquest.app.ui.boss.BossViewModel
@@ -224,11 +227,23 @@ fun BodyQuestNavGraph() {
                 val homeViewModel: HomeViewModel = hiltViewModel()
                 AvatarScreen(
                     viewModel = homeViewModel,
-                    onNavigateToGacha = { navController.navigate(Screen.Gacha.route) }
+                    onNavigateToGacha = { navController.navigate(Screen.Gacha.route) },
+                    onNavigateToInventory = { navController.navigate(Screen.Inventory.route) }
                 )
             }
             composable(Screen.Gacha.route) {
-                GachaScreen(onBack = { navController.popBackStack() })
+                val gachaViewModel: GachaViewModel = hiltViewModel()
+                GachaScreen(
+                    viewModel = gachaViewModel,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(Screen.Inventory.route) {
+                val inventoryViewModel: InventoryViewModel = hiltViewModel()
+                InventoryScreen(
+                    viewModel = inventoryViewModel,
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable(Screen.Profile.route) {
                 ProfileScreen(

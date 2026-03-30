@@ -62,8 +62,11 @@ import kotlinx.coroutines.delay
 
 private enum class GachaPhase { IDLE, SPINNING, REVEALED }
 
+// 현재 뽑기에서 나오는 스킨 ID (추후 확률 테이블로 교체)
+private const val GACHA_SKIN_ID = "underarmour_male"
+
 @Composable
-fun GachaScreen(onBack: () -> Unit) {
+fun GachaScreen(viewModel: GachaViewModel, onBack: () -> Unit) {
     var phase by remember { mutableStateOf(GachaPhase.IDLE) }
     var showFlash by remember { mutableStateOf(false) }
     var revealVisible by remember { mutableStateOf(false) }
@@ -76,6 +79,8 @@ fun GachaScreen(onBack: () -> Unit) {
             showFlash = true
             delay(250)
             phase = GachaPhase.REVEALED
+            // 결과 확정 시 인벤토리에 저장
+            viewModel.onGachaResolved(GACHA_SKIN_ID)
             delay(100)
             showFlash = false
             delay(100)

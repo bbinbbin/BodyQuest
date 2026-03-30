@@ -11,9 +11,11 @@ import com.bodyquest.app.data.local.dao.BossProgressDao
 import com.bodyquest.app.data.local.dao.QuestDao
 import com.bodyquest.app.data.local.dao.UserDao
 import com.bodyquest.app.data.local.dao.WorkoutDao
+import com.bodyquest.app.data.local.dao.SkinInventoryDao
 import com.bodyquest.app.data.local.entity.BossEntity
 import com.bodyquest.app.data.local.entity.BossProgressEntity
 import com.bodyquest.app.data.local.entity.QuestEntity
+import com.bodyquest.app.data.local.entity.SkinInventoryEntity
 import com.bodyquest.app.data.local.entity.UserEntity
 import com.bodyquest.app.data.local.entity.WorkoutEntity
 import com.bodyquest.app.data.local.entity.WorkoutSetEntity
@@ -25,9 +27,10 @@ import com.bodyquest.app.data.local.entity.WorkoutSetEntity
         WorkoutEntity::class,
         WorkoutSetEntity::class,
         BossEntity::class,
-        BossProgressEntity::class
+        BossProgressEntity::class,
+        SkinInventoryEntity::class
     ],
-    version = 10,
+    version = 11,
     exportSchema = true
 )
 abstract class BodyQuestDatabase : RoomDatabase() {
@@ -36,6 +39,7 @@ abstract class BodyQuestDatabase : RoomDatabase() {
     abstract fun workoutDao(): WorkoutDao
     abstract fun bossDao(): BossDao
     abstract fun bossProgressDao(): BossProgressDao
+    abstract fun skinInventoryDao(): SkinInventoryDao
 
     companion object {
         @Volatile
@@ -168,6 +172,19 @@ abstract class BodyQuestDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `skin_inventory` (
+                        `skinId` TEXT NOT NULL,
+                        `userId` TEXT NOT NULL,
+                        `count` INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(`skinId`, `userId`)
+                    )
+                """.trimIndent())
+            }
+        }
+
         private fun insertSeedQuests(db: SupportSQLiteDatabase) {
             seedQuests.forEach { q ->
                 db.execSQL(
@@ -193,7 +210,7 @@ abstract class BodyQuestDatabase : RoomDatabase() {
                     BodyQuestDatabase::class.java,
                     "bodyquest_db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                     .fallbackToDestructiveMigration()
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {

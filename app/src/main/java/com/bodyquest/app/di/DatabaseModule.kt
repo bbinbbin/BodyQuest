@@ -5,14 +5,17 @@ import com.bodyquest.app.data.local.BodyQuestDatabase
 import com.bodyquest.app.data.local.dao.BossDao
 import com.bodyquest.app.data.local.dao.BossProgressDao
 import com.bodyquest.app.data.local.dao.QuestDao
+import com.bodyquest.app.data.local.dao.SkinInventoryDao
 import com.bodyquest.app.data.local.dao.UserDao
 import com.bodyquest.app.data.local.dao.WorkoutDao
 import com.bodyquest.app.data.repository.BossRepository
 import com.bodyquest.app.data.repository.LocalBossRepository
 import com.bodyquest.app.data.repository.LocalQuestRepository
+import com.bodyquest.app.data.repository.LocalSkinInventoryRepository
 import com.bodyquest.app.data.repository.LocalUserRepository
 import com.bodyquest.app.data.repository.LocalWorkoutRepository
 import com.bodyquest.app.data.repository.QuestRepository
+import com.bodyquest.app.data.repository.SkinInventoryRepository
 import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.data.repository.WorkoutRepository
 import dagger.Module
@@ -79,5 +82,16 @@ object DatabaseModule {
     @Singleton
     fun provideBossRepository(bossDao: BossDao, bossProgressDao: BossProgressDao): BossRepository {
         return LocalBossRepository(bossDao, bossProgressDao)
+    }
+
+    @Provides
+    fun provideSkinInventoryDao(database: BodyQuestDatabase): SkinInventoryDao {
+        return database.skinInventoryDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideSkinInventoryRepository(skinInventoryDao: SkinInventoryDao): SkinInventoryRepository {
+        return LocalSkinInventoryRepository(skinInventoryDao)
     }
 }

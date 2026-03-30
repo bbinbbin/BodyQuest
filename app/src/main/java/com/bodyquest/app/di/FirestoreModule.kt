@@ -1,6 +1,7 @@
 package com.bodyquest.app.di
 
 import com.bodyquest.app.data.local.dao.BossProgressDao
+import com.bodyquest.app.data.local.dao.SkinInventoryDao
 import com.bodyquest.app.data.local.dao.UserDao
 import com.bodyquest.app.data.local.dao.WorkoutDao
 import com.bodyquest.app.data.remote.FirestoreUserService
@@ -31,6 +32,7 @@ object FirestoreModule {
         firestoreService: FirestoreUserService,
         userDao: UserDao,
         workoutDao: WorkoutDao,
-        bossProgressDao: BossProgressDao
-    ): SyncManager = SyncManager(firestoreService, userDao, workoutDao, bossProgressDao)
+        bossProgressDao: BossProgressDao,
+        skinInventoryDao: SkinInventoryDao
+    ): SyncManager = SyncManager(firestoreService, userDao, workoutDao, bossProgressDao, skinInventoryDao)
 }

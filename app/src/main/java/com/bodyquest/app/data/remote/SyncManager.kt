@@ -1,9 +1,11 @@
 package com.bodyquest.app.data.remote
 
 import com.bodyquest.app.data.local.dao.BossProgressDao
+import com.bodyquest.app.data.local.dao.SkinInventoryDao
 import com.bodyquest.app.data.local.dao.UserDao
 import com.bodyquest.app.data.local.dao.WorkoutDao
 import com.bodyquest.app.data.local.entity.BossProgressEntity
+import com.bodyquest.app.data.local.entity.SkinInventoryEntity
 import com.bodyquest.app.data.local.entity.UserEntity
 import com.bodyquest.app.data.local.entity.WorkoutEntity
 import com.bodyquest.app.data.local.entity.WorkoutSetEntity
@@ -13,7 +15,8 @@ class SyncManager @Inject constructor(
     private val firestoreService: FirestoreUserService,
     private val userDao: UserDao,
     private val workoutDao: WorkoutDao,
-    private val bossProgressDao: BossProgressDao
+    private val bossProgressDao: BossProgressDao,
+    private val skinInventoryDao: SkinInventoryDao
 ) {
 
     suspend fun syncOnLogin(firebaseUid: String) {
@@ -45,6 +48,8 @@ class SyncManager @Inject constructor(
 
             // Boss progress는 항상 pull (updatedAt과 무관하게 동기화)
             pullBossProgressFromCloud(firebaseUid)
+            // 인벤토리도 항상 pull
+            pullSkinInventoryFromCloud(firebaseUid)
         } catch (_: Exception) {
             // Cloud sync failure should not block login
         }
@@ -79,6 +84,21 @@ class SyncManager @Inject constructor(
         } catch (_: Exception) {
             // Partial sync failure is acceptable
         }
+    }
+
+    private suspend fun pullSkinInventoryFromCloud(firebaseUid: String) {
+        try {
+            val items = firestoreService.pullAllSkinInventory(firebaseUid)
+            for (item in items) {
+                skinInventoryDao.upsert(item)
+            }
+        } catch (_: Exception) {}
+    }
+
+    suspend fun pushSkinInventoryToCloud(firebaseUid: String, item: SkinInventoryEntity) {
+        try {
+            firestoreService.pushSkinInventory(firebaseUid, item)
+        } catch (_: Exception) {}
     }
 
     suspend fun pushBossProgressToCloud(firebaseUid: String, progress: BossProgressEntity) {

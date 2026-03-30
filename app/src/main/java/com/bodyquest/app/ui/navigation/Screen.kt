@@ -22,5 +22,6 @@ sealed class Screen(val route: String) {
     object Boss : Screen("boss")
     object Avatar : Screen("avatar")
     object Gacha : Screen("gacha")
+    object Inventory : Screen("inventory")
     object Profile : Screen("profile")
 }

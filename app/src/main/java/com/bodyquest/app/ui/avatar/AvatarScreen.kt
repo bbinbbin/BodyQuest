@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,7 +36,11 @@ import com.bodyquest.app.ui.theme.DarkSurfaceVariant
 import com.bodyquest.app.ui.theme.TextSecondary
 
 @Composable
-fun AvatarScreen(viewModel: HomeViewModel, onNavigateToGacha: () -> Unit = {}) {
+fun AvatarScreen(
+    viewModel: HomeViewModel,
+    onNavigateToGacha: () -> Unit = {},
+    onNavigateToInventory: () -> Unit = {}
+) {
     val uiState by viewModel.uiState.collectAsState()
 
     when (val current = uiState) {
@@ -111,10 +116,15 @@ fun AvatarScreen(viewModel: HomeViewModel, onNavigateToGacha: () -> Unit = {}) {
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(
-                                text = "✨ 스킨 뽑기",
-                                fontWeight = FontWeight.Bold
-                            )
+                            Text(text = "✨ 스킨 뽑기", fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = onNavigateToInventory,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(text = "인벤토리", fontWeight = FontWeight.Bold, color = NeonPurple)
                         }
                     }
                 }
