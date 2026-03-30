@@ -1,7 +1,7 @@
 
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-03-30 (Phase 26: 세션 타임아웃 15분, 보스 Firestore 동기화, 최고 등급 보존)
+> 마지막 업데이트: 2026-03-30 (Phase 29: 스킨 인벤토리 — Room + Firestore 동기화)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -227,6 +227,9 @@ service cloud.firestore {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
       match /bossProgress/{bossId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /inventory/{skinId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
@@ -531,6 +534,56 @@ users/{firebaseUid}
 - **`BossRepository` interface**: `recordClear()` 반환 타입 `Unit` → `String`
 - **`BossViewModel`**: `confirmBattle()`에서 `bestPerformance`를 받아 Firestore push
 
+### Phase 27: 아바타 회전 제거 — 2D 단일 이미지로 단순화 ✅ (2026-03-30)
+- 스프라이트 시트(`avatar_male_360`) 기반 360도 회전 로직 전체 제거
+- `MaleAvatarView()` / `FemaleAvatarView()` 분리 구조 → 단일 `Image` 컴포넌트로 통합
+- 남성/여성 모두 `avatar_male.png` / `avatar_female.png` 단일 이미지 표시
+- "← 좌우로 드래그 →" 힌트 텍스트 제거
+- `avatar_male_360.png` 스프라이트 시트 파일은 drawable에 잔류 (삭제 가능)
+
+### Phase 28: 스킨 뽑기 (Gacha) 기능 추가 ✅ (2026-03-30)
+- **신규 파일**: `ui/gacha/GachaScreen.kt`, `ui/gacha/GachaViewModel.kt`
+- **GachaPhase** 3단계 상태 머신: `IDLE → SPINNING → REVEALED`
+  - IDLE: "?" 카드 + "✨ 뽑기" 버튼
+  - SPINNING (2.5초): 보라/핑크 아크 회전 글로우 링 + "?" 카드 펄싱 애니메이션
+  - REVEALED: 화면 플래시 → 스킨 이미지 스프링 등장 + "언더아머 티셔츠를 뽑았다!" (XpGold)
+- **애니메이션 버그 수정**: `LaunchedEffect(phase)` → `LaunchedEffect(animTrigger)` 로 변경
+  - phase 변경 시 코루틴이 취소되어 `showFlash=false` / `revealVisible=true`가 실행되지 않던 문제 해결
+- **drawable**: `언더아머남성.png` → `skin_underarmour_male.png` (Android 리소스 규칙)
+- **이미지 배경 제거**: rembg(u2net AI 모델)로 배경 픽셀 alpha=0 처리
+  - 기존 PNG에 반투명 배경 픽셀이 있어 어두운 배경에서 점박이처럼 보이던 문제 해결
+- `Screen.Gacha` 라우트 추가, 아바타 탭에 "✨ 스킨 뽑기" 버튼 추가
+- `GACHA_SKIN_ID = "underarmour_male"` 상수 — 추후 확률 테이블로 교체 예정
+
+### Phase 29: 스킨 인벤토리 ✅ (2026-03-30)
+
+#### 데이터 레이어
+- **신규 Entity**: `SkinInventoryEntity` — `skin_inventory` 테이블 (`skinId`, `userId` 복합 PK, `count`)
+- **신규 DAO**: `SkinInventoryDao` — `getInventory(Flow)`, `getItem()`, `@Upsert`
+- **DB v10 → v11** (`MIGRATION_10_11`): `skin_inventory` 테이블 생성
+- **`SkinInventoryRepository`** 인터페이스 + `LocalSkinInventoryRepository` 구현체
+  - `addOrIncrement()`: 기존 항목 있으면 count+1, 없으면 count=1로 신규 생성
+- **`SkinItem`** 도메인 모델 (`domain/model/SkinItem.kt`)
+  - `ALL_SKINS` 목록으로 스킨 ID ↔ 이름/이미지 매핑 관리
+
+#### Firestore 동기화
+- Firestore 경로: `users/{uid}/inventory/{skinId}` — 필드: `skinId`, `count`
+- **`FirestoreUserService`**: `pushSkinInventory()`, `pullAllSkinInventory()` 추가
+- **`SyncManager`**: `skinInventoryDao` 주입, `pullSkinInventoryFromCloud()` + `pushSkinInventoryToCloud()` 추가
+  - `syncOnLogin()`에서 인벤토리 항상 pull (bossProgress와 동일 방식)
+- **`deleteUser()`**: `inventory` 서브컬렉션도 함께 삭제
+
+#### 뽑기 연동
+- **`GachaViewModel`**: `onGachaResolved(skinId)` — Room count+1 → Firestore push
+- **`GachaScreen`**: phase=REVEALED 전환 시 즉시 `onGachaResolved()` 호출 (확인 버튼과 무관하게 저장)
+
+#### UI
+- **`InventoryScreen`**: 2열 `LazyVerticalGrid`, 스킨 이미지 + 이름 표시
+  - 개수 배지: count ≥ 2일 때 이미지 우측 하단에 `×N` (NeonPurple 원형 배지)
+  - 빈 인벤토리: "아직 획득한 스킨이 없습니다" 안내 메시지
+- **아바타 탭**: "인벤토리" `OutlinedButton` 추가 (스킨 뽑기 버튼 아래)
+- `Screen.Inventory` 라우트 추가
+
 ### Phase 26: 세션 타임아웃 15분 ✅ (2026-03-30)
 - **기존**: 앱 실행 시 무조건 `signOut()` 후 로그인 필수
 - **변경**: 백그라운드 15분 이내 복귀 시 로그인 스킵 → Home 직행
@@ -645,6 +698,10 @@ users/{firebaseUid}
 - [x] 보스 진행 Firestore 동기화 — 클리어 시 push, 로그인 시 항상 pull, 계정 삭제 시 정리
 - [x] 보스 최고 등급 보존 — 재도전 시 S > A > B 비교 후 상위 등급만 저장
 - [x] 세션 타임아웃 15분 — 백그라운드 15분 이내 복귀 시 로그인 스킵, Home 직행
+- [x] 아바타 탭 — 회전 제거, 남성/여성 단일 이미지로 단순화 (2D)
+- [x] 스킨 뽑기 (Gacha) — IDLE/SPINNING/REVEALED 3단계 애니메이션, 결과 공개
+- [x] 스킨 이미지 배경 제거 — rembg AI(u2net) 처리, alpha=0 투명 배경
+- [x] 스킨 인벤토리 — Room DB v11 + Firestore 동기화, 2열 그리드, ×N 개수 배지
 
 ---
 
@@ -657,10 +714,10 @@ users/{firebaseUid}
 - [ ] **앱 재시작 시 추천퀘스트 고정** — 현재 shuffle로 매번 바뀜, 하루 단위 고정 필요
 
 ### 중간 우선순위
-- [ ] **3D 아바타 시스템** — Ready Player Me .glb 모델 + SceneView 라이브러리, 360도 회전, 레벨/직업별 장비
-  - **준비 중**: Ready Player Me에서 남성/여성 .glb 모델 생성 필요
-  - 모델 파일 위치: `app/src/main/assets/avatar_male.glb`, `avatar_female.glb`
-  - 모델 준비 완료 후 SceneView 통합 구현 예정
+- [ ] **스킨 확률 테이블** — 현재 단일 스킨 고정(`GACHA_SKIN_ID`), 복수 스킨 + 확률 도입 필요
+- [ ] **스킨 착용 시스템** — 인벤토리에서 스킨 선택 → 아바타에 적용
+- [ ] **2D 아바타 시스템** — 현재 단일 이미지, 향후 스킨 착용 반영
+- [ ] **PvP 대전** — 스탯 기반 1:1 비교 대결
 - [ ] **PvP 대전** — 스탯 기반 1:1 비교 대결
 - [ ] **알림/리마인더** — 운동 시간 알림
 - [ ] **운동 중 실제 센서 연동** — Google Fit / Health Connect API
@@ -681,17 +738,26 @@ users/{firebaseUid}
 5. **릴리즈 서명** — signing config 미설정, Play Store 배포 전 keystore 생성 필요
 6. **DB 마이그레이션 주의** — ALTER TABLE에 `DEFAULT NULL` 쓰면 Room 스키마 검증 실패. `DEFAULT` 절 없이 컬럼 추가해야 함
 7. **Firestore 닉네임 중복 체크** — 네트워크/권한 오류 시 건너뜀 (false 반환). Firestore 보안 규칙에서 users 읽기가 인증된 유저 전체에게 열려있어야 동작
-8. **아바타 회전** — 남성은 스프라이트 시트 24프레임(15도 간격) 방식으로 360도 회전 가능. 여성은 단일 PNG로 회전 없음 (여성 360도 스프라이트 시트 또는 `.glb` 모델 추가 필요)
+8. **아바타 이미지** — 현재 남성/여성 단일 PNG 표시. 스킨 착용 시스템 구현 시 AvatarScreen 수정 필요
 9. **avatarIndex 하위 호환** — 기존 DB에 0~7 이모지 인덱스로 저장된 유저는 0이면 남성, 1이면 여성으로 표시되고 2~7은 여성 이미지로 fallback됨 (신규 유저만 정확히 동작)
 10. **프로필 사진 Base64 저장** — Firestore 문서 1MB 제한 내에서 동작 (512x512 JPEG ≈ 50~100KB → Base64 ≈ 70~130KB). 고해상도 사진이나 다수 필드 추가 시 문서 크기 주의. 향후 Firebase Storage 사용 시 URL 방식으로 전환 가능 (profileImageUrl 컬럼 재활용)
 11. ~~**보스 진행 데이터 미동기화**~~ — **Phase 24에서 해결**. `bossProgress` 서브컬렉션으로 Firestore 동기화 완료.
 12. ~~**보스 등급 재클리어 시 덮어쓰기**~~ — **Phase 25에서 해결**. 최고 등급 보존 로직 추가 (S > A > B 비교).
+13. **스킨 뽑기 확률** — 현재 `GACHA_SKIN_ID = "underarmour_male"` 고정. 복수 스킨 추가 시 확률 테이블 구현 필요
+14. **Firestore 보안 규칙** — `inventory/{skinId}` 서브컬렉션 규칙 추가 필요 (현재 미적용 시 push/pull 실패 가능)
 
 ---
 
 ## Git 커밋 히스토리
 
 ```
+1271dce feat: 스킨 인벤토리 구현 — Room + Firestore 동기화
+22d0e7f fix: 언더아머 티셔츠 이미지 배경 제거 — rembg AI 처리
+5e69c4d fix: 뽑기 결과 카드 배경 제거 — PNG 투명도 그대로 표시
+6630ba3 fix: 뽑기 애니메이션 흰 화면 버그 수정
+ebdc8cb feat: 스킨 뽑기 기능 추가 — 뽑기 애니메이션 + 결과 공개
+21d1f28 refactor: 아바타 회전 기능 제거 — 2D 단일 이미지로 단순화
+7c88647 docs: HandOFF.md 업데이트 — 보스 Firestore 동기화, 최고 등급 보존, 세션 타임아웃 반영
 678a0e9 feat: 세션 타임아웃 15분 — 백그라운드 15분 이내 복귀 시 로그인 스킵
 2b64b4e fix: 보스 재도전 시 최고 등급 보존 — S > A > B 비교 후 상위 등급만 저장
 98fe708 feat: 보스 진행 Firestore 동기화 — push/pull + 로그인 시 자동 동기화
