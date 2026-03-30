@@ -67,9 +67,11 @@ fun GachaScreen(onBack: () -> Unit) {
     var phase by remember { mutableStateOf(GachaPhase.IDLE) }
     var showFlash by remember { mutableStateOf(false) }
     var revealVisible by remember { mutableStateOf(false) }
+    // phase가 아닌 별도 트리거로 키를 설정 — phase 변경 시 코루틴이 취소되지 않음
+    var animTrigger by remember { mutableStateOf(0) }
 
-    LaunchedEffect(phase) {
-        if (phase == GachaPhase.SPINNING) {
+    LaunchedEffect(animTrigger) {
+        if (animTrigger > 0) {
             delay(2500)
             showFlash = true
             delay(250)
@@ -130,7 +132,7 @@ fun GachaScreen(onBack: () -> Unit) {
             when (phase) {
                 GachaPhase.IDLE -> {
                     Button(
-                        onClick = { phase = GachaPhase.SPINNING },
+                        onClick = { phase = GachaPhase.SPINNING; animTrigger++ },
                         modifier = Modifier
                             .fillMaxWidth(0.65f)
                             .height(52.dp),
