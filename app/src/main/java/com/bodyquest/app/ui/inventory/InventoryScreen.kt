@@ -1,7 +1,6 @@
 package com.bodyquest.app.ui.inventory
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,7 +21,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -42,8 +39,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -53,24 +48,21 @@ import com.bodyquest.app.domain.model.SkinItem
 import com.bodyquest.app.ui.theme.DarkBackground
 import com.bodyquest.app.ui.theme.DarkSurface
 import com.bodyquest.app.ui.theme.DarkSurfaceVariant
-import com.bodyquest.app.ui.theme.NeonGreen
 import com.bodyquest.app.ui.theme.NeonPurple
 import com.bodyquest.app.ui.theme.TextMuted
 import com.bodyquest.app.ui.theme.TextPrimary
 import com.bodyquest.app.ui.theme.TextSecondary
-import com.bodyquest.app.ui.theme.XpGold
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InventoryScreen(viewModel: InventoryViewModel, onBack: () -> Unit) {
     val inventory by viewModel.inventory.collectAsState()
-    val equippedSkinId by viewModel.equippedSkinId.collectAsState()
 
     var dialogSkin by remember { mutableStateOf<SkinItem?>(null) }
+    var showComingSoon by remember { mutableStateOf(false) }
 
-    // 장착/해제 다이얼로그
+    // 장착 다이얼로그
     dialogSkin?.let { skin ->
-        val isEquipped = equippedSkinId == skin.id
         AlertDialog(
             onDismissRequest = { dialogSkin = null },
             containerColor = DarkSurfaceVariant,
@@ -79,18 +71,18 @@ fun InventoryScreen(viewModel: InventoryViewModel, onBack: () -> Unit) {
             },
             text = {
                 Text(
-                    text = if (isEquipped) "현재 장착 중인 스킨입니다." else "이 스킨을 장착하시겠습니까?",
+                    text = "${skin.category.emoji} ${skin.category.displayName} 스킨입니다.",
                     color = TextSecondary
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
-                    if (isEquipped) viewModel.unequipSkin() else viewModel.equipSkin(skin.id)
                     dialogSkin = null
+                    showComingSoon = true
                 }) {
                     Text(
-                        text = if (isEquipped) "해제하기" else "장착하기",
-                        color = if (isEquipped) NeonPurple else XpGold,
+                        text = "장착하기",
+                        color = NeonPurple,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -98,6 +90,28 @@ fun InventoryScreen(viewModel: InventoryViewModel, onBack: () -> Unit) {
             dismissButton = {
                 TextButton(onClick = { dialogSkin = null }) {
                     Text(text = "취소", color = TextMuted)
+                }
+            }
+        )
+    }
+
+    // 구현 중 다이얼로그
+    if (showComingSoon) {
+        AlertDialog(
+            onDismissRequest = { showComingSoon = false },
+            containerColor = DarkSurfaceVariant,
+            title = {
+                Text(text = "알림", fontWeight = FontWeight.Bold, color = TextPrimary)
+            },
+            text = {
+                Text(
+                    text = "구현 중입니다. 곧 찾아뵙겠습니다.",
+                    color = TextSecondary
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { showComingSoon = false }) {
+                    Text(text = "확인", color = NeonPurple, fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -154,7 +168,6 @@ fun InventoryScreen(viewModel: InventoryViewModel, onBack: () -> Unit) {
                     SkinCard(
                         skin = skin,
                         count = count,
-                        isEquipped = equippedSkinId == skin.id,
                         onClick = { dialogSkin = skin }
                     )
                 }
@@ -167,59 +180,58 @@ fun InventoryScreen(viewModel: InventoryViewModel, onBack: () -> Unit) {
 private fun SkinCard(
     skin: SkinItem,
     count: Int,
-    isEquipped: Boolean,
     onClick: () -> Unit
 ) {
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = DarkSurfaceVariant,
-        border = if (isEquipped) BorderStroke(2.dp, XpGold) else null,
+        border = BorderStroke(1.dp, skin.category.color.copy(alpha = 0.4f)),
         tonalElevation = 2.dp,
         modifier = Modifier.clickable(onClick = onClick)
     ) {
         Column {
+            // 카테고리 + 이모지 영역
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .background(DarkBackground, RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                    .height(100.dp)
+                    .background(
+                        skin.category.color.copy(alpha = 0.1f),
+                        RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                    ),
+                contentAlignment = Alignment.Center
             ) {
-                Image(
-                    painter = painterResource(skin.drawableRes),
-                    contentDescription = skin.name,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(12.dp)
-                )
-
-                // 장착중 배지
-                if (isEquipped) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "장착중",
-                        tint = XpGold,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(6.dp)
-                            .size(22.dp)
-                    )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = skin.category.emoji, fontSize = 36.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = skin.category.color.copy(alpha = 0.2f)
+                    ) {
+                        Text(
+                            text = skin.category.displayName,
+                            fontSize = 11.sp,
+                            color = skin.category.color,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        )
+                    }
                 }
 
-                // 개수 배지 (2개 이상)
+                // 개수 배지
                 if (count >= 2) {
                     Surface(
                         shape = CircleShape,
                         color = NeonPurple,
                         modifier = Modifier
-                            .align(Alignment.BottomEnd)
+                            .align(Alignment.TopEnd)
                             .padding(8.dp)
-                            .size(28.dp)
+                            .size(26.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
                                 text = "×$count",
-                                fontSize = 11.sp,
+                                fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = TextPrimary
                             )
@@ -231,7 +243,7 @@ private fun SkinCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -243,14 +255,6 @@ private fun SkinCard(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
-                if (isEquipped) {
-                    Text(
-                        text = "장착중",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = XpGold,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
             }
         }
     }

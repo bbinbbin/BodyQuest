@@ -1,7 +1,7 @@
 
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-03-30 (Phase 29: 스킨 인벤토리 — Room + Firestore 동기화)
+> 마지막 업데이트: 2026-03-30 (Phase 32: 스킨 시스템 재설계 — 텍스트 기반 15개 스킨, 장착 구현 중 알림)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -92,7 +92,8 @@ app/src/main/java/com/bodyquest/app/
 │   ├── AuthResult.kt              # sealed class: Success/Error
 │   ├── Job.kt                     # enum: STRENGTH/ENDURANCE/BALANCE
 │   ├── Goal.kt                    # enum: DIET/BULK_UP/MAINTAIN
-│   └── StatType.kt                # enum: STRENGTH/ENDURANCE/BALANCE
+│   ├── StatType.kt                # enum: STRENGTH/ENDURANCE/BALANCE
+│   └── SkinItem.kt                # SkinCategory enum(상의/하의/신발/장갑/모자+emoji+color), SkinItem(id, name, category), ALL_SKINS(15개)
 │
 ├── ui/
 │   ├── common/
@@ -584,6 +585,51 @@ users/{firebaseUid}
 - **아바타 탭**: "인벤토리" `OutlinedButton` 추가 (스킨 뽑기 버튼 아래)
 - `Screen.Inventory` 라우트 추가
 
+### Phase 30: 스킨 착용 시스템 (DB v12) ✅ (2026-03-30)
+- **`UserEntity`**: `equippedSkinId: String? = null` 필드 추가
+- **DB v11 → v12** (`MIGRATION_11_12`): `ALTER TABLE users ADD COLUMN equippedSkinId TEXT`
+- **`UserDao`**: `updateEquippedSkin(uid, skinId)` 쿼리 추가
+- **`UserRepository` / `LocalUserRepository`**: `updateEquippedSkin()` 메서드 추가
+- **`FirestoreUserService`**: `pushUser` / `pullUser`에 `equippedSkinId` 필드 포함
+- **`InventoryViewModel`**: `equippedSkinId: StateFlow<String?>`, `equipSkin()`, `unequipSkin()` 추가
+  - 장착/해제 후 `syncManager.pushUserToCloud()` 호출
+- **`AvatarScreen`**: 장착된 스킨 PNG를 기본 아바타 위에 `ContentScale.Fit` 오버레이 표시
+- **`InventoryScreen`**: 스킨 카드 클릭 → 장착하기/해제하기/취소 AlertDialog
+  - 장착중: XpGold 테두리(2dp) + CheckCircle 아이콘 + "장착중" 텍스트
+
+### Phase 31: 스킨 이미지 처리 (여우 티셔츠 + 장갑) ✅ (2026-03-30)
+- **여우 티셔츠** (`여우티셔츠남성.png` → `skin_fox_tshirt_male.png`):
+  - rembg(u2net AI) 2차 적용 + alpha < 50 강제 투명 처리
+  - 아바타 어깨 폭(765px) 기준 리사이즈 → 1536×2754 캔버스에 재배치
+  - 칼라 위치를 아바타 목 위치(23%, row 635)에 정렬
+  - 기존 `skin_underarmour_male.png` 삭제
+- **장갑** (`장갑.png` → `skin_gloves_male.png`):
+  - rembg 배경 제거 + alpha < 30 투명 처리
+  - 좌/우 장갑 분리 크롭 후 리사이즈(높이 450px)
+  - 아바타 팔 위치(왼팔 col 445, 오른팔 col 1117, top row 1580)에 배치
+- **`SkinItem.kt`**: `ALL_SKINS`에 여우 티셔츠 + 기본 장갑 추가
+- **`GachaScreen.kt`**: `GACHA_SKIN_ID` 상수 제거 → `ALL_SKINS.random()`으로 랜덤 뽑기
+
+### Phase 32: 스킨 시스템 전면 재설계 — 텍스트 기반 ✅ (2026-03-30)
+- **배경**: 스킨 PNG 이미지가 아바타 비율에 맞지 않아 이미지 방식 포기
+- **스킨 이미지 전체 삭제**: `skin_fox_tshirt_male.png`, `skin_gloves_male.png` 삭제
+- **`SkinItem.kt` 전면 재설계**:
+  - `drawableRes: Int` 제거
+  - `SkinCategory` enum 추가: 상의/하의/신발/장갑/모자 (각 `displayName`, `emoji`, `color`)
+  - `SkinItem(id, name, category)`
+  - `ALL_SKINS` 15개 (카테고리별 3개):
+    - 상의: 기본 티셔츠 / 후드티 / 운동복 상의
+    - 하의: 기본 반바지 / 트레이닝 팬츠 / 레깅스
+    - 신발: 기본 운동화 / 러닝화 / 하이탑
+    - 장갑: 기본 장갑 / 웨이트 장갑 / 권투 장갑
+    - 모자: 기본 캡 / 비니 / 헤드밴드
+- **`GachaScreen`**: `RevealedCard` → 이미지 대신 이모지+이름+카테고리 뱃지 카드
+- **`InventoryScreen`**: 이미지 카드 → 이모지+카테고리 뱃지 텍스트 카드
+  - 장착 버튼: "장착하기" 클릭 → "구현 중입니다. 곧 찾아뵙겠습니다." AlertDialog
+- **`InventoryViewModel`**: `equippedSkinId`, `equipSkin()`, `unequipSkin()`, `SyncManager`, `UserRepository` 의존성 제거
+- **`AvatarScreen`**: 스킨 오버레이 이미지 제거 (기본 아바타 단일 표시)
+- `UserEntity.equippedSkinId` 컬럼은 DB에 잔류 (향후 착용 시스템 구현 시 재활용)
+
 ### Phase 26: 세션 타임아웃 15분 ✅ (2026-03-30)
 - **기존**: 앱 실행 시 무조건 `signOut()` 후 로그인 필수
 - **변경**: 백그라운드 15분 이내 복귀 시 로그인 스킵 → Home 직행
@@ -702,6 +748,9 @@ users/{firebaseUid}
 - [x] 스킨 뽑기 (Gacha) — IDLE/SPINNING/REVEALED 3단계 애니메이션, 결과 공개
 - [x] 스킨 이미지 배경 제거 — rembg AI(u2net) 처리, alpha=0 투명 배경
 - [x] 스킨 인벤토리 — Room DB v11 + Firestore 동기화, 2열 그리드, ×N 개수 배지
+- [x] 스킨 뽑기 랜덤화 — ALL_SKINS.random()으로 15개 중 랜덤 선택
+- [x] 스킨 시스템 재설계 — 이미지 제거, 텍스트+이모지+카테고리 배지 기반, 카테고리 5종×3개=15개
+- [x] 인벤토리 장착 버튼 — "구현 중입니다. 곧 찾아뵙겠습니다." 알림 다이얼로그
 
 ---
 
@@ -714,9 +763,12 @@ users/{firebaseUid}
 - [ ] **앱 재시작 시 추천퀘스트 고정** — 현재 shuffle로 매번 바뀜, 하루 단위 고정 필요
 
 ### 중간 우선순위
-- [ ] **스킨 확률 테이블** — 현재 단일 스킨 고정(`GACHA_SKIN_ID`), 복수 스킨 + 확률 도입 필요
-- [ ] **스킨 착용 시스템** — 인벤토리에서 스킨 선택 → 아바타에 적용
-- [ ] **2D 아바타 시스템** — 현재 단일 이미지, 향후 스킨 착용 반영
+- [ ] **스킨 착용 시스템** — 인벤토리 장착 버튼 현재 "구현 중" 알림만 표시. 실제 착용 로직 및 아바타 반영 필요
+  - `UserEntity.equippedSkinId` 컬럼은 DB v12에 이미 존재 (재활용 가능)
+  - `UserDao.updateEquippedSkin()` 쿼리도 존재
+  - 텍스트 기반 스킨이므로 아바타에 착용 표시 방식(뱃지/오버레이 텍스트 등) 결정 필요
+- [ ] **스킨 확률 테이블** — 현재 `ALL_SKINS.random()` 균일 확률. 희귀도별 가중 확률 도입 가능
+- [ ] **2D 아바타 시스템** — 현재 단일 PNG 이미지, 스킨 착용 시각적 표현 방식 미정
 - [ ] **PvP 대전** — 스탯 기반 1:1 비교 대결
 - [ ] **PvP 대전** — 스탯 기반 1:1 비교 대결
 - [ ] **알림/리마인더** — 운동 시간 알림
@@ -743,8 +795,10 @@ users/{firebaseUid}
 10. **프로필 사진 Base64 저장** — Firestore 문서 1MB 제한 내에서 동작 (512x512 JPEG ≈ 50~100KB → Base64 ≈ 70~130KB). 고해상도 사진이나 다수 필드 추가 시 문서 크기 주의. 향후 Firebase Storage 사용 시 URL 방식으로 전환 가능 (profileImageUrl 컬럼 재활용)
 11. ~~**보스 진행 데이터 미동기화**~~ — **Phase 24에서 해결**. `bossProgress` 서브컬렉션으로 Firestore 동기화 완료.
 12. ~~**보스 등급 재클리어 시 덮어쓰기**~~ — **Phase 25에서 해결**. 최고 등급 보존 로직 추가 (S > A > B 비교).
-13. **스킨 뽑기 확률** — 현재 `GACHA_SKIN_ID = "underarmour_male"` 고정. 복수 스킨 추가 시 확률 테이블 구현 필요
+13. ~~**스킨 뽑기 확률**~~ — **Phase 32에서 해결**. `ALL_SKINS.random()` 균일 확률로 15개 중 선택.
 14. **Firestore 보안 규칙** — `inventory/{skinId}` 서브컬렉션 규칙 추가 필요 (현재 미적용 시 push/pull 실패 가능)
+15. **스킨 착용 미구현** — `UserEntity.equippedSkinId`(DB v12) 및 `UserDao.updateEquippedSkin()` 이미 준비됨. InventoryScreen 장착 버튼은 "구현 중" 다이얼로그만 표시. 착용 후 아바타 표시 방식 결정 후 구현 필요.
+16. **SkinItem.drawableRes 제거** — Phase 32에서 이미지 방식 포기. 혹시 ALL_SKINS를 Room/Firestore에서 skinId로 참조하는 기존 데이터가 있으면 id만 저장되어 있으므로 호환 문제 없음. 스킨 id 변경 시 기존 인벤토리 데이터 orphan 주의.
 
 ---
 

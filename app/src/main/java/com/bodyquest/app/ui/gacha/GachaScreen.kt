@@ -14,7 +14,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,12 +43,11 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.bodyquest.app.R
+import com.bodyquest.app.domain.model.ALL_SKINS
+import com.bodyquest.app.domain.model.SkinItem
 import com.bodyquest.app.ui.theme.DarkBackground
 import com.bodyquest.app.ui.theme.DarkSurfaceVariant
 import com.bodyquest.app.ui.theme.NeonPink
@@ -62,14 +60,12 @@ import kotlinx.coroutines.delay
 
 private enum class GachaPhase { IDLE, SPINNING, REVEALED }
 
-// 현재 뽑기에서 나오는 스킨 ID (추후 확률 테이블로 교체)
-private const val GACHA_SKIN_ID = "underarmour_male"
-
 @Composable
 fun GachaScreen(viewModel: GachaViewModel, onBack: () -> Unit) {
     var phase by remember { mutableStateOf(GachaPhase.IDLE) }
     var showFlash by remember { mutableStateOf(false) }
     var revealVisible by remember { mutableStateOf(false) }
+    var drawnSkin by remember { mutableStateOf<SkinItem?>(null) }
     // phase가 아닌 별도 트리거로 키를 설정 — phase 변경 시 코루틴이 취소되지 않음
     var animTrigger by remember { mutableStateOf(0) }
 
@@ -80,7 +76,7 @@ fun GachaScreen(viewModel: GachaViewModel, onBack: () -> Unit) {
             delay(250)
             phase = GachaPhase.REVEALED
             // 결과 확정 시 인벤토리에 저장
-            viewModel.onGachaResolved(GACHA_SKIN_ID)
+            drawnSkin?.let { viewModel.onGachaResolved(it.id) }
             delay(100)
             showFlash = false
             delay(100)
@@ -128,7 +124,7 @@ fun GachaScreen(viewModel: GachaViewModel, onBack: () -> Unit) {
             when (phase) {
                 GachaPhase.IDLE -> IdleCard()
                 GachaPhase.SPINNING -> SpinningCard()
-                GachaPhase.REVEALED -> RevealedCard(visible = revealVisible)
+                GachaPhase.REVEALED -> RevealedCard(visible = revealVisible, skin = drawnSkin)
             }
 
             Spacer(Modifier.height(40.dp))
@@ -137,7 +133,11 @@ fun GachaScreen(viewModel: GachaViewModel, onBack: () -> Unit) {
             when (phase) {
                 GachaPhase.IDLE -> {
                     Button(
-                        onClick = { phase = GachaPhase.SPINNING; animTrigger++ },
+                        onClick = {
+                            drawnSkin = ALL_SKINS.random()
+                            phase = GachaPhase.SPINNING
+                            animTrigger++
+                        },
                         modifier = Modifier
                             .fillMaxWidth(0.65f)
                             .height(52.dp),
@@ -165,7 +165,7 @@ fun GachaScreen(viewModel: GachaViewModel, onBack: () -> Unit) {
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = "언더아머 티셔츠를 뽑았다!",
+                                text = "${drawnSkin?.name ?: "스킨"}을 뽑았다!",
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = XpGold
@@ -307,9 +307,9 @@ private fun SpinningCard() {
     }
 }
 
-// 뽑기 결과 카드: 스킨 이미지 공개
+// 뽑기 결과 카드: 스킨 텍스트 공개
 @Composable
-private fun RevealedCard(visible: Boolean) {
+private fun RevealedCard(visible: Boolean, skin: SkinItem?) {
     AnimatedVisibility(
         visible = visible,
         enter = scaleIn(
@@ -320,11 +320,39 @@ private fun RevealedCard(visible: Boolean) {
             )
         ) + fadeIn(tween(200))
     ) {
-        Image(
-            painter = painterResource(R.drawable.skin_underarmour_male),
-            contentDescription = "언더아머 티셔츠",
-            contentScale = ContentScale.Fit,
-            modifier = Modifier.size(200.dp, 290.dp)
-        )
+        if (skin != null) {
+            Surface(
+                modifier = Modifier.size(180.dp, 240.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = DarkSurfaceVariant,
+                border = BorderStroke(2.dp, skin.category.color)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = skin.category.emoji, fontSize = 56.sp)
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            text = skin.name,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = skin.category.color.copy(alpha = 0.2f)
+                        ) {
+                            Text(
+                                text = skin.category.displayName,
+                                fontSize = 12.sp,
+                                color = skin.category.color,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
