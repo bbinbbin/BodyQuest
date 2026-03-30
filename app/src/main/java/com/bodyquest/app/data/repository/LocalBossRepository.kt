@@ -16,14 +16,31 @@ class LocalBossRepository(
     override fun getProgressForUser(userId: String): Flow<List<BossProgressEntity>> =
         bossProgressDao.getProgressForUser(userId)
 
-    override suspend fun recordClear(userId: String, bossId: Int, performance: String) {
+    override suspend fun recordClear(userId: String, bossId: Int, performance: String): String {
+        val existing = bossProgressDao.getProgress(userId, bossId)
+        val bestPerformance = if (existing != null) {
+            betterPerformance(existing.performance, performance)
+        } else {
+            performance
+        }
         bossProgressDao.upsert(
             BossProgressEntity(
                 bossId = bossId,
                 userId = userId,
                 isCleared = true,
-                performance = performance
+                performance = bestPerformance
             )
         )
+        return bestPerformance
     }
+
+    private fun performanceRank(performance: String): Int = when (performance) {
+        "압도적인 승리" -> 3  // S
+        "안정적인 승리" -> 2  // A
+        "간신히 승리"   -> 1  // B
+        else            -> 0
+    }
+
+    private fun betterPerformance(a: String, b: String): String =
+        if (performanceRank(a) >= performanceRank(b)) a else b
 }

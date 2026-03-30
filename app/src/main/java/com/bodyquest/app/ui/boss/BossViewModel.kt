@@ -185,7 +185,7 @@ class BossViewModel @Inject constructor(
             if (result.success) {
                 val uid = authRepository.currentUserId
                 if (uid != null) {
-                    bossRepository.recordClear(uid, result.bossId, result.performance)
+                    val bestPerformance = bossRepository.recordClear(uid, result.bossId, result.performance)
                     // Push to Firestore
                     syncManager.pushBossProgressToCloud(
                         uid,
@@ -193,7 +193,7 @@ class BossViewModel @Inject constructor(
                             bossId = result.bossId,
                             userId = uid,
                             isCleared = true,
-                            performance = result.performance
+                            performance = bestPerformance
                         )
                     )
                 }

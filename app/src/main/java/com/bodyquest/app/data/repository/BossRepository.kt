@@ -9,5 +9,5 @@ interface BossRepository {
     fun getBossesByType(type: String): Flow<List<BossEntity>>
     suspend fun getBossById(id: Int): BossEntity?
     fun getProgressForUser(userId: String): Flow<List<BossProgressEntity>>
-    suspend fun recordClear(userId: String, bossId: Int, performance: String)
+    suspend fun recordClear(userId: String, bossId: Int, performance: String): String
 }
