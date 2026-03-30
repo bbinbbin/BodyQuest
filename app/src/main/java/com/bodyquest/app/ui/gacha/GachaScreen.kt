@@ -315,20 +315,11 @@ private fun RevealedCard(visible: Boolean) {
             )
         ) + fadeIn(tween(200))
     ) {
-        Surface(
-            modifier = Modifier.size(200.dp, 290.dp),
-            shape = RoundedCornerShape(16.dp),
-            color = DarkSurfaceVariant,
-            border = BorderStroke(2.dp, XpGold.copy(alpha = 0.8f))
-        ) {
-            Image(
-                painter = painterResource(R.drawable.skin_underarmour_male),
-                contentDescription = "언더아머 티셔츠",
-                contentScale = ContentScale.Fit,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(12.dp)
-            )
-        }
+        Image(
+            painter = painterResource(R.drawable.skin_underarmour_male),
+            contentDescription = "언더아머 티셔츠",
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.size(200.dp, 290.dp)
+        )
     }
 }
