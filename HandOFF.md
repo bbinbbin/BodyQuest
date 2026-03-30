@@ -1,7 +1,7 @@
 
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-03-29 (Phase 23: 보스 시스템 전면 재설계 — 150보스, 영구 클리어, S/A/B 등급, DB v10)
+> 마지막 업데이트: 2026-03-30 (Phase 26: 세션 타임아웃 15분, 보스 Firestore 동기화, 최고 등급 보존)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -68,7 +68,7 @@ app/src/main/java/com/bodyquest/app/
 │   │   │   ├── UserDao.kt       # abstract class, getUser(uid), @Transaction applyWorkoutRewards(), updateProfileImageUrl()
 │   │   │   ├── QuestDao.kt      # 카테고리/부위/난이도 필터링
 │   │   │   ├── WorkoutDao.kt    # 운동 기록 CRUD, 시간 기반 쿼리, getWorkoutByFirestoreId()
-│   │   │   └── BossProgressDao.kt # getProgressForUser(Flow), @Upsert (composite PK)
+│   │   │   └── BossProgressDao.kt # getProgressForUser(Flow), getProgress(one-shot), @Upsert (composite PK)
 │   │   └── entity/
 │   │       ├── UserEntity.kt    # id, nickname, job, goal, avatarIndex, stats, xp, level, firebaseUid, email, authProvider, profileImageUrl, updatedAt
 │   │       ├── QuestEntity.kt   # id, category, bodyPart, name, difficulty, rewards
@@ -77,7 +77,7 @@ app/src/main/java/com/bodyquest/app/
 │   │       └── BossProgressEntity.kt # boss_progress 테이블: bossId, userId (composite PK), isCleared, performance
 │   ├── remote/
 │   │   ├── FirestoreUserService.kt # Firestore CRUD: pushUser, pullUser, pushWorkout, pullAllWorkouts, deleteUser, isNicknameTaken
-│   │   └── SyncManager.kt         # 동기화 오케스트레이션: syncOnLogin, pushUserToCloud, pushCompletedWorkout
+│   │   └── SyncManager.kt         # 동기화 오케스트레이션: syncOnLogin, pushUserToCloud, pushCompletedWorkout, pushBossProgressToCloud
 │   └── repository/
 │       ├── AuthRepository.kt        # interface: 인증 추상화 (deleteAccount 포함)
 │       ├── FirebaseAuthRepository.kt # Firebase Auth 구현체, 한국어 에러 매핑
@@ -101,7 +101,7 @@ app/src/main/java/com/bodyquest/app/
 │   │
 │   ├── splash/
 │   │   ├── SplashScreen.kt      # "시작하기" 버튼 → Intro/Login/Onboarding/Home 4분기
-│   │   └── SplashViewModel.kt   # @HiltViewModel, has_logged_in 체크 → 미로그인 기기면 Intro로
+│   │   └── SplashViewModel.kt   # @HiltViewModel, 세션 타임아웃 15분 체크 → 유효 시 Home 직행
 │   │
 │   ├── intro/
 │   │   └── IntroScreen.kt       # HorizontalPager 5장 슬라이드, dot 인디케이터, 다음/시작하기/건너뛰기
@@ -171,7 +171,7 @@ app/src/main/java/com/bodyquest/app/
 1. **레벨/XP ≠ 스탯**: XP는 운동 수행으로 쌓이고, 스탯은 실측 데이터(InBody 등)로만 변경
 2. **자기 입력 스탯 금지**: 온보딩에서 스탯 입력 단계 제거 (초기값 0)
 3. **3탭 규칙**: 퀘스트 접근은 카테고리 → 부위 → 퀘스트 최대 3탭
-4. **매번 로그인**: 자동 로그인 없음, 앱 실행 시마다 로그인 필수
+4. **세션 타임아웃**: 백그라운드 15분 이내 복귀 시 로그인 스킵, 초과 시 재로그인 필수
 5. **심박수/칼로리는 시뮬레이션**: 현재 실제 센서 연동 없음
 6. **Room = UI 단일 데이터 소스**: Firestore는 클라우드 백업/동기화 채널, 클라우드 실패해도 로컬 동작에 영향 없음
 
@@ -183,7 +183,8 @@ app/src/main/java/com/bodyquest/app/
 ```
 Splash ("시작하기")
   → [한 번도 로그인 안 한 기기] Intro (5장 슬라이드) → Login
-  → [로그인 이력 있는 기기] Login
+  → [로그인 이력 있는 기기 + 세션 만료(15분 초과)] Login
+  → [로그인 이력 있는 기기 + 세션 유효(15분 이내)] Home 직행 (syncOnLogin 포함)
 Login → [신규] Onboarding → Home
       → [기존/클라우드 복원] Home
 Profile → 로그아웃 → Login
@@ -225,6 +226,9 @@ service cloud.firestore {
       match /workouts/{workoutId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
+      match /bossProgress/{bossId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
     }
   }
 }
@@ -232,6 +236,7 @@ service cloud.firestore {
 - users 읽기: 인증된 모든 유저 (닉네임 중복 체크용)
 - users 쓰기: 본인만
 - workouts 읽기/쓰기: 본인만
+- bossProgress 읽기/쓰기: 본인만
 
 ### DB 연동
 - `UserEntity`에 `firebaseUid`, `email`, `authProvider`, `updatedAt` 필드
@@ -254,20 +259,25 @@ users/{firebaseUid}
   ├── strengthStat, enduranceStat
   ├── xp, level, createdAt, updatedAt, email, authProvider
   │
-  └── workouts/{firestoreWorkoutId}
-        ├── questId, startTime, endTime, elapsedSeconds
-        ├── caloriesBurned, heartRateAvg, completed, xpEarned
-        └── sets: [ {setNumber, reps, completed, completedAt} ]  ← 배열
+  ├── workouts/{firestoreWorkoutId}
+  │     ├── questId, startTime, endTime, elapsedSeconds
+  │     ├── caloriesBurned, heartRateAvg, completed, xpEarned
+  │     └── sets: [ {setNumber, reps, completed, completedAt} ]  ← 배열
+  │
+  └── bossProgress/{bossId}
+        ├── bossId, isCleared, performance
 ```
 
 ### Push 시점 (로컬 → 클라우드)
 - 온보딩 완료 (프로필 생성) → `pushUserToCloud()`
 - 운동 완료 → `pushCompletedWorkout()` + `pushUserToCloud()`
+- 보스 클리어 → `pushBossProgressToCloud()`
 
 ### Pull 시점 (클라우드 → 로컬)
 - 로그인 시 로컬에 유저 없으면 → Firestore에서 유저 + 전체 운동 기록 pull
 - 로그인 시 로컬에 유저 있지만 클라우드가 더 최신(updatedAt 비교) → 유저 데이터 업데이트 + 새 운동 기록 pull
-- 중복 방지: `firestoreId`로 이미 동기화된 운동 건너뜀
+- 로그인 시 boss progress 항상 pull (updatedAt과 무관, 보스 클리어는 user updatedAt을 변경하지 않으므로)
+- 중복 방지: `firestoreId`로 이미 동기화된 운동 건너뜀, boss progress는 @Upsert로 덮어쓰기
 
 ---
 
@@ -499,6 +509,39 @@ users/{firebaseUid}
 - `recordDefeat(userId, bossId, timestamp)` → `recordClear(userId, bossId, performance)`
 - `BossProgressDao.getProgress(userId, bossId)` — composite PK @Upsert로 불필요
 
+### Phase 24: 보스 진행 Firestore 동기화 ✅ (2026-03-30)
+- **`FirestoreUserService`**: `pushBossProgress()`, `pullAllBossProgress()` 메서드 추가
+  - Firestore 경로: `users/{uid}/bossProgress/{bossId}`
+  - 저장 필드: `bossId`, `isCleared`, `performance`
+- **`SyncManager`**: `BossProgressDao` 주입, `pullBossProgressFromCloud()` + `pushBossProgressToCloud()` 추가
+  - `syncOnLogin()`에서 boss progress 항상 pull (`updatedAt` 조건 밖으로 분리)
+  - 보스 클리어는 user `updatedAt`을 변경하지 않으므로, `updatedAt` 비교와 무관하게 동기화
+- **`FirestoreModule`**: `SyncManager` 생성자에 `BossProgressDao` 추가
+- **`BossViewModel`**: `SyncManager` 주입, `confirmBattle()`에서 로컬 저장 후 Firestore push
+- **`deleteUser()`**: `bossProgress` 서브컬렉션도 함께 삭제
+- **Firestore 보안 규칙**: `bossProgress/{bossId}` 규칙 추가 (본인만 읽기/쓰기)
+
+### Phase 25: 보스 최고 등급 보존 ✅ (2026-03-30)
+- **`BossProgressDao`**: `getProgress(userId, bossId)` one-shot 쿼리 추가
+- **`LocalBossRepository`**: `recordClear()` 로직 변경
+  - 기존 등급과 새 등급을 비교하여 상위 등급만 저장 (S > A > B)
+  - `performanceRank()`: 압도적인 승리=3, 안정적인 승리=2, 간신히 승리=1
+  - `betterPerformance()`: 두 등급 중 높은 것 반환
+  - 반환값을 `String`으로 변경 → ViewModel에서 Firestore push 시 최고 등급 사용
+- **`BossRepository` interface**: `recordClear()` 반환 타입 `Unit` → `String`
+- **`BossViewModel`**: `confirmBattle()`에서 `bestPerformance`를 받아 Firestore push
+
+### Phase 26: 세션 타임아웃 15분 ✅ (2026-03-30)
+- **기존**: 앱 실행 시 무조건 `signOut()` 후 로그인 필수
+- **변경**: 백그라운드 15분 이내 복귀 시 로그인 스킵 → Home 직행
+- **`MainActivity`**: `DefaultLifecycleObserver.onStop()`에서 `last_active_time` 타임스탬프를 `EncryptedSharedPreferences`에 저장
+- **`SplashViewModel.checkUser()`** 전면 변경:
+  - `has_logged_in` false → Intro
+  - `has_logged_in` true + Firebase 인증 살아있음 + `elapsed < 15분` → `syncOnLogin()` 후 Home 직행
+  - `has_logged_in` true + 세션 만료/인증 없음 → `signOut()` 후 Login
+- `SyncManager` 주입 추가 (세션 유효 시에도 클라우드 동기화 수행)
+- `SESSION_TIMEOUT_MS = 15 * 60 * 1000L` (companion object 상수)
+
 ---
 
 ### Phase 22: 보스 요구 조건 게이지 UX ✅ (2026-03-29)
@@ -599,6 +642,9 @@ users/{firebaseUid}
 - [x] 보스 성능 평가 — margin 공식으로 S/A/B 등급 산정 + 클리어 카드에 등급 표시
 - [x] 보스 클리어 카드 — 게이지 대신 48sp 등급 문자 + 설명 문구(labelSmall/TextMuted) + 재도전 버튼
 - [x] 전투 오버레이 — 등급별 결과 메시지 + 성능 뱃지 + 확인 버튼에 성능 텍스트 표시
+- [x] 보스 진행 Firestore 동기화 — 클리어 시 push, 로그인 시 항상 pull, 계정 삭제 시 정리
+- [x] 보스 최고 등급 보존 — 재도전 시 S > A > B 비교 후 상위 등급만 저장
+- [x] 세션 타임아웃 15분 — 백그라운드 15분 이내 복귀 시 로그인 스킵, Home 직행
 
 ---
 
@@ -638,16 +684,18 @@ users/{firebaseUid}
 8. **아바타 회전** — 남성은 스프라이트 시트 24프레임(15도 간격) 방식으로 360도 회전 가능. 여성은 단일 PNG로 회전 없음 (여성 360도 스프라이트 시트 또는 `.glb` 모델 추가 필요)
 9. **avatarIndex 하위 호환** — 기존 DB에 0~7 이모지 인덱스로 저장된 유저는 0이면 남성, 1이면 여성으로 표시되고 2~7은 여성 이미지로 fallback됨 (신규 유저만 정확히 동작)
 10. **프로필 사진 Base64 저장** — Firestore 문서 1MB 제한 내에서 동작 (512x512 JPEG ≈ 50~100KB → Base64 ≈ 70~130KB). 고해상도 사진이나 다수 필드 추가 시 문서 크기 주의. 향후 Firebase Storage 사용 시 URL 방식으로 전환 가능 (profileImageUrl 컬럼 재활용)
-11. **보스 진행 데이터 미동기화** — `boss_progress` 테이블은 로컬 Room에만 저장, Firestore 동기화 미구현. 기기 변경 시 보스 클리어 기록 초기화됨. 향후 Firestore 연동 필요.
-12. **보스 등급 재클리어 시 덮어쓰기** — 재도전으로 더 낮은 등급(예: S→B)이 나와도 덮어써짐. 향후 "최고 등급 보존" 로직 추가 가능.
+11. ~~**보스 진행 데이터 미동기화**~~ — **Phase 24에서 해결**. `bossProgress` 서브컬렉션으로 Firestore 동기화 완료.
+12. ~~**보스 등급 재클리어 시 덮어쓰기**~~ — **Phase 25에서 해결**. 최고 등급 보존 로직 추가 (S > A > B 비교).
 
 ---
 
 ## Git 커밋 히스토리
 
 ```
-(최신 커밋들은 git log로 확인)
-(Phase 19~22 커밋들: 보스 전투 애니메이션, 그룹 가로 스크롤, 진행 시스템 DB v8, 게이지 UX)
+678a0e9 feat: 세션 타임아웃 15분 — 백그라운드 15분 이내 복귀 시 로그인 스킵
+2b64b4e fix: 보스 재도전 시 최고 등급 보존 — S > A > B 비교 후 상위 등급만 저장
+98fe708 feat: 보스 진행 Firestore 동기화 — push/pull + 로그인 시 자동 동기화
+(Phase 19~23 커밋들: 보스 전면 재설계, 전투 애니메이션, 그룹 가로 스크롤, 진행 시스템, 게이지 UX)
 (Phase 15~18 커밋들: 아바타 360도 스프라이트, 직업 선택 UI 개편, 직업별 배율, 운동 완료 효과 표시)
 ac3de29 fix: 프로필 사진 카메라 아이콘 잘림 수정
 87101fd feat: 프로필 사진 기능 추가 — 갤러리/카메라 선택 + Firestore 동기화
