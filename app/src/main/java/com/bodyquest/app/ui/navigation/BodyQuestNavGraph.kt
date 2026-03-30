@@ -26,6 +26,7 @@ import com.bodyquest.app.ui.quest.QuestScreen
 import com.bodyquest.app.ui.quest.QuestTreeScreen
 import com.bodyquest.app.ui.quest.QuestViewModel
 import com.bodyquest.app.ui.avatar.AvatarScreen
+import com.bodyquest.app.ui.gacha.GachaScreen
 import com.bodyquest.app.ui.profile.ProfileScreen
 import com.bodyquest.app.ui.boss.BossScreen
 import com.bodyquest.app.ui.boss.BossViewModel
@@ -221,7 +222,13 @@ fun BodyQuestNavGraph() {
             }
             composable(Screen.Avatar.route) {
                 val homeViewModel: HomeViewModel = hiltViewModel()
-                AvatarScreen(viewModel = homeViewModel)
+                AvatarScreen(
+                    viewModel = homeViewModel,
+                    onNavigateToGacha = { navController.navigate(Screen.Gacha.route) }
+                )
+            }
+            composable(Screen.Gacha.route) {
+                GachaScreen(onBack = { navController.popBackStack() })
             }
             composable(Screen.Profile.route) {
                 ProfileScreen(

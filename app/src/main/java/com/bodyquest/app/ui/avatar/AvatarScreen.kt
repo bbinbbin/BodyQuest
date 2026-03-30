@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -20,7 +22,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.bodyquest.app.ui.theme.NeonPurple
 import com.bodyquest.app.R
 import com.bodyquest.app.domain.model.Job
 import com.bodyquest.app.ui.common.ErrorScreen
@@ -31,7 +35,7 @@ import com.bodyquest.app.ui.theme.DarkSurfaceVariant
 import com.bodyquest.app.ui.theme.TextSecondary
 
 @Composable
-fun AvatarScreen(viewModel: HomeViewModel) {
+fun AvatarScreen(viewModel: HomeViewModel, onNavigateToGacha: () -> Unit = {}) {
     val uiState by viewModel.uiState.collectAsState()
 
     when (val current = uiState) {
@@ -100,6 +104,18 @@ fun AvatarScreen(viewModel: HomeViewModel) {
                             style = MaterialTheme.typography.labelLarge,
                             color = TextSecondary
                         )
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Button(
+                            onClick = onNavigateToGacha,
+                            colors = ButtonDefaults.buttonColors(containerColor = NeonPurple),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "✨ 스킨 뽑기",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
