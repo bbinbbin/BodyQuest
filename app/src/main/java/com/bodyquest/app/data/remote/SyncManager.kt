@@ -9,6 +9,7 @@ import com.bodyquest.app.data.local.entity.SkinInventoryEntity
 import com.bodyquest.app.data.local.entity.UserEntity
 import com.bodyquest.app.data.local.entity.WorkoutEntity
 import com.bodyquest.app.data.local.entity.WorkoutSetEntity
+import android.util.Log
 import javax.inject.Inject
 
 class SyncManager @Inject constructor(
@@ -50,8 +51,8 @@ class SyncManager @Inject constructor(
             pullBossProgressFromCloud(firebaseUid)
             // 인벤토리도 항상 pull
             pullSkinInventoryFromCloud(firebaseUid)
-        } catch (_: Exception) {
-            // Cloud sync failure should not block login
+        } catch (e: Exception) {
+            Log.w("SyncManager", "로그인 동기화 실패", e)
         }
     }
 
@@ -70,8 +71,8 @@ class SyncManager @Inject constructor(
                     workoutDao.insertWorkoutSet(set.copy(workoutId = workoutId))
                 }
             }
-        } catch (_: Exception) {
-            // Partial sync failure is acceptable
+        } catch (e: Exception) {
+            Log.w("SyncManager", "운동 기록 pull 실패", e)
         }
     }
 
@@ -81,8 +82,8 @@ class SyncManager @Inject constructor(
             for (progress in cloudProgress) {
                 bossProgressDao.upsert(progress)
             }
-        } catch (_: Exception) {
-            // Partial sync failure is acceptable
+        } catch (e: Exception) {
+            Log.w("SyncManager", "보스 진행 pull 실패", e)
         }
     }
 
@@ -92,28 +93,32 @@ class SyncManager @Inject constructor(
             for (item in items) {
                 skinInventoryDao.upsert(item)
             }
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            Log.w("SyncManager", "인벤토리 pull 실패", e)
+        }
     }
 
     suspend fun pushSkinInventoryToCloud(firebaseUid: String, item: SkinInventoryEntity) {
         try {
             firestoreService.pushSkinInventory(firebaseUid, item)
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            Log.w("SyncManager", "인벤토리 push 실패", e)
+        }
     }
 
     suspend fun pushBossProgressToCloud(firebaseUid: String, progress: BossProgressEntity) {
         try {
             firestoreService.pushBossProgress(firebaseUid, progress)
-        } catch (_: Exception) {
-            // Cloud push failure should not affect local operation
+        } catch (e: Exception) {
+            Log.w("SyncManager", "보스 진행 push 실패", e)
         }
     }
 
     suspend fun pushUserToCloud(user: UserEntity) {
         try {
             firestoreService.pushUser(user)
-        } catch (_: Exception) {
-            // Cloud push failure should not affect local operation
+        } catch (e: Exception) {
+            Log.w("SyncManager", "유저 push 실패", e)
         }
     }
 
@@ -127,8 +132,8 @@ class SyncManager @Inject constructor(
             val firestoreId = firestoreService.pushWorkout(firebaseUid, workout, sets)
             // Save firestoreId back to local DB
             workoutDao.updateWorkout(workout.copy(firestoreId = firestoreId))
-        } catch (_: Exception) {
-            // Cloud push failure should not affect local operation
+        } catch (e: Exception) {
+            Log.w("SyncManager", "운동 기록 push 실패", e)
         }
     }
 }
