@@ -17,12 +17,14 @@ import com.bodyquest.app.ui.common.UiState
 import com.bodyquest.app.util.ImageUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Calendar
 import javax.inject.Inject
 
@@ -172,8 +174,11 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 updateSuccessState { it.copy(isUploadingImage = true, imageError = null) }
-                val bytes = ImageUtil.compressAndResize(appContext, uri)
-                val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                val (bytes, base64) = withContext(Dispatchers.IO) {
+                    val b = ImageUtil.compressAndResize(appContext, uri)
+                    val encoded = Base64.encodeToString(b, Base64.NO_WRAP)
+                    b to encoded
+                }
                 Log.d("ProfileImage", "Compressed: ${bytes.size} bytes, base64: ${base64.length} chars")
                 userRepository.updateProfileImageUrl(uid, base64)
                 val updatedUser = userRepository.getUserOnce(uid)
