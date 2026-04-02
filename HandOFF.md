@@ -1,7 +1,7 @@
 
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-03-30 (Phase 32: 스킨 시스템 재설계 — 텍스트 기반 15개 스킨, 장착 구현 중 알림)
+> 마지막 업데이트: 2026-04-02 (Phase 34: 프로필 화면 구현 + 코드 품질 개선)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -630,6 +630,57 @@ users/{firebaseUid}
 - **`AvatarScreen`**: 스킨 오버레이 이미지 제거 (기본 아바타 단일 표시)
 - `UserEntity.equippedSkinId` 컬럼은 DB에 잔류 (향후 착용 시스템 구현 시 재활용)
 
+### Phase 33: 코드 품질 개선 — 버그 수정 + 로깅 + UI 개선 ✅ (2026-04-02)
+
+#### 버그 수정
+- **프로필 사진 EXIF 회전 보정**: `ImageUtil.compressAndResize()`에서 `ExifInterface`로 회전 정보 읽어서 `Matrix.postRotate()`로 바르게 회전 적용. `androidx.exifinterface:exifinterface:1.4.1` 의존성 추가
+- **이미지 처리 IO 스레드 이동**: `HomeViewModel.uploadProfileImage()`에서 `ImageUtil.compressAndResize()` + `Base64.encodeToString()`을 `withContext(Dispatchers.IO)` 블록으로 이동 → ANR 방지
+- **Flow 수집 코루틴 누적 방지**: `HomeViewModel`에 `loadJob`/`subJobs` 필드 추가, `retry()` 시 이전 코루틴 취소 후 재시작. `collectLatest` 내부에서도 새 user 값 올 때 서브 Job 정리
+- **SharedPreferences `.apply()` → `.commit()`**: `LoginViewModel.handleAuthSuccess()`에서 `has_logged_in` 플래그 저장을 동기적으로 변경 → 앱 강제 종료 시 플래그 유실 방지
+
+#### 로깅 개선
+- **HomeViewModel 예외 로그 추가**: `loadTodaysQuests`, `loadRecommendedQuests`, `loadWeekWorkouts` 3곳의 `catch (_: Exception) { }` → `catch (e: Exception) { Log.w("HomeViewModel", ..., e) }`
+- **SyncManager 예외 로그 추가**: 8개 catch 블록 모두 `Log.w("SyncManager", ..., e)` 추가 (syncOnLogin, pullWorkouts, pullBossProgress, pullSkinInventory, pushSkinInventory, pushBossProgress, pushUser, pushCompletedWorkout)
+
+#### UI 개선
+- **홈 추천 퀘스트 XP 표시**: Row + 2개 Text → `buildAnnotatedString`으로 한 줄 표시 (`"초급 · 15분 · + 100 XP"`, TextMuted + NeonPurple 색상 유지)
+- **홈 주간 활동 체크 아이콘**: `"✓"` 텍스트 → `Icons.Default.Check` 아이콘 (18dp, 더 크고 선명)
+- **보스 카드 높이 고정**: `BossCard` Surface에 `height(230.dp)` + `Arrangement.SpaceBetween` 적용 → 클리어 전후 카드 크기 통일
+
+### Phase 34: 프로필 화면 구현 ✅ (2026-04-02)
+
+#### 데이터 레이어
+- **`WorkoutDao`**: 4개 집계 쿼리 추가 (마이그레이션 불필요, @Query만 추가)
+  - `getCompletedWorkoutCount(userId)`: `COUNT(*)` — 완료 운동 총 횟수
+  - `getTotalXpEarned(userId)`: `SUM(xpEarned)` — 총 XP 획득량
+  - `getTotalElapsedSeconds(userId)`: `SUM(elapsedSeconds)` — 총 운동 시간
+  - `getRecentCompletedWorkouts(userId, limit)`: 최근 N개 완료 운동 (히스토리용)
+- **`BossProgressDao`**: `getClearedBossCount(userId)` 추가 — 클리어 보스 수
+- **`WorkoutRepository` / `LocalWorkoutRepository`**: 4개 메서드 추가 (DAO 위임)
+- **`BossRepository` / `LocalBossRepository`**: `getClearedBossCount()` 메서드 추가
+
+#### ViewModel
+- **`ProfileViewModel`** 전면 재작성:
+  - `ProfileState` (cumulativeStats, workoutHistory, accountInfo)
+  - `UiState<ProfileState>` + 기존 `DeleteState` 병존
+  - `combine()`으로 4개 통계 Flow 결합 (workoutCount, totalXp, totalSeconds, bossClears)
+  - 운동 히스토리: 최근 20개, `questRepository.getQuestById()`로 퀘스트명 해석
+  - `loadJob`/`subJobs` 패턴으로 코루틴 관리 (HomeViewModel과 동일)
+  - `formatElapsedTime()`: 초 → `"3시간 25분"` 형식
+  - `formatAuthProvider()`: `"GOOGLE"` → `"Google"`, `"EMAIL"` → `"이메일"`
+  - 기존 `signOut()`, `deleteAccount()` 완전 유지
+
+#### UI
+- **`ProfileScreen`** 전면 재작성:
+  - `Column + verticalScroll` 스크롤 레이아웃
+  - **섹션 1: 누적 통계** — 2×2 그리드 `ProfileStatCard` (총 운동/총 XP/운동 시간/보스 클리어), DarkSurface 배경, NeonGreen 값 표시
+  - **섹션 2: 운동 히스토리** — `WorkoutHistoryRow` forEach (퀘스트명 + 날짜 + XP), `HorizontalDivider` 구분, 빈 상태 안내 문구
+  - **섹션 3: 계정 정보** — `AccountInfoRow` (이메일/가입일/로그인 방법), label-value 좌우 배치
+  - **섹션 4: 로그아웃/계정 삭제** — 기존 기능 하단 배치, AlertDialog 유지
+  - `UiState` 분기 (Loading/Error/Success)
+
+> userId 타입 주의: `WorkoutDao`는 `Long`(Room ID = user.id), `BossProgressDao`는 `String`(firebaseUid = authRepository.currentUserId)
+
 ### Phase 26: 세션 타임아웃 15분 ✅ (2026-03-30)
 - **기존**: 앱 실행 시 무조건 `signOut()` 후 로그인 필수
 - **변경**: 백그라운드 15분 이내 복귀 시 로그인 스킵 → Home 직행
@@ -751,13 +802,16 @@ users/{firebaseUid}
 - [x] 스킨 뽑기 랜덤화 — ALL_SKINS.random()으로 15개 중 랜덤 선택
 - [x] 스킨 시스템 재설계 — 이미지 제거, 텍스트+이모지+카테고리 배지 기반, 카테고리 5종×3개=15개
 - [x] 인벤토리 장착 버튼 — "구현 중입니다. 곧 찾아뵙겠습니다." 알림 다이얼로그
+- [x] 코드 품질 개선 — EXIF 회전 보정, IO 스레드 이미지 처리, Flow 누적 방지, 예외 로깅
+- [x] 홈 UI 개선 — 추천 퀘스트 XP 한 줄 표시, 주간 활동 Check 아이콘, 보스 카드 높이 고정
+- [x] 프로필 화면 — 누적 통계(4종), 운동 히스토리(최근 20개), 계정 정보, 로그아웃/삭제
 
 ---
 
 ## 미구현 / 다음 작업 후보
 
 ### 높은 우선순위
-- [ ] **프로필 화면** — 운동 히스토리, 누적 통계, 계정 설정
+- [x] ~~**프로필 화면**~~ — **Phase 34에서 구현 완료**. 누적 통계 + 운동 히스토리 + 계정 정보
 - [ ] **인바디 데이터 입력** — 프로필에서 인바디 수치 기록 → 스탯 반영
 - [ ] **퀘스트 데이터 확장** — 현재 ~20개 → 더 많은 운동 추가
 - [ ] **앱 재시작 시 추천퀘스트 고정** — 현재 shuffle로 매번 바뀜, 하루 단위 고정 필요
@@ -805,6 +859,16 @@ users/{firebaseUid}
 ## Git 커밋 히스토리
 
 ```
+b408a6f feat: 프로필 화면 구현 — 누적 통계, 운동 히스토리, 계정 정보
+1e58f21 fix: LoginViewModel SharedPreferences .apply() → .commit() — 플래그 저장 보장
+188211f fix: SyncManager 전체 catch 블록에 경고 로그 추가
+a16eebc fix: HomeViewModel 서브 로딩 함수 예외 로그 추가
+0864de0 fix: 홈 화면 UI 개선 — 추천 퀘스트 XP 한 줄 표시, 주간 활동 체크 아이콘 변경
+393806c fix: 보스 카드 높이 고정 — 클리어 전후 카드 크기 통일 (230dp)
+ca28ffd fix: HomeViewModel retry 시 Flow 수집 코루틴 누적 방지 — Job 관리 추가
+e4d65bc fix: 프로필 사진 EXIF 회전 보정 — 카메라 촬영 시 이미지 회전 문제 해결
+6f62915 fix: 프로필 사진 이미지 처리를 IO 스레드로 이동 — ANR 방지
+d81acb4 refactor: 스킨 시스템 재설계 — 텍스트 기반 15개 스킨, 장착 구현 중 알림
 1271dce feat: 스킨 인벤토리 구현 — Room + Firestore 동기화
 22d0e7f fix: 언더아머 티셔츠 이미지 배경 제거 — rembg AI 처리
 5e69c4d fix: 뽑기 결과 카드 배경 제거 — PNG 투명도 그대로 표시
