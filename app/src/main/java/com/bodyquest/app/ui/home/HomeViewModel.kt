@@ -123,7 +123,9 @@ class HomeViewModel @Inject constructor(
                     }
                     updateSuccessState { it.copy(todaysQuests = questInfos) }
                 }
-            } catch (_: Exception) { }
+            } catch (e: Exception) {
+                Log.w("HomeViewModel", "오늘의 퀘스트 로딩 실패", e)
+            }
         }
         subJobs.add(job)
     }
@@ -144,7 +146,9 @@ class HomeViewModel @Inject constructor(
                 }.collectLatest { recommended ->
                     updateSuccessState { it.copy(recommendedQuests = recommended) }
                 }
-            } catch (_: Exception) { }
+            } catch (e: Exception) {
+                Log.w("HomeViewModel", "추천 퀘스트 로딩 실패", e)
+            }
         }
         subJobs.add(job)
     }
@@ -170,7 +174,9 @@ class HomeViewModel @Inject constructor(
                     }.toSet()
                     updateSuccessState { it.copy(weekWorkoutDays = days) }
                 }
-            } catch (_: Exception) { }
+            } catch (e: Exception) {
+                Log.w("HomeViewModel", "주간 운동 로딩 실패", e)
+            }
         }
         subJobs.add(job)
     }
