@@ -18,6 +18,7 @@ import com.bodyquest.app.util.ImageUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -56,6 +57,9 @@ class HomeViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<UiState<HomeState>>(UiState.Loading)
     val uiState: StateFlow<UiState<HomeState>> = _uiState
 
+    private var loadJob: Job? = null
+    private var subJobs = mutableListOf<Job>()
+
     init {
         loadData()
     }
@@ -66,7 +70,11 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun loadData() {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        subJobs.forEach { it.cancel() }
+        subJobs.clear()
+
+        loadJob = viewModelScope.launch {
             try {
                 val uid = authRepository.currentUserId
                 if (uid == null) {
@@ -74,6 +82,11 @@ class HomeViewModel @Inject constructor(
                     return@launch
                 }
                 userRepository.getUser(uid).collectLatest { user ->
+                    // collectLatest가 새 값 올 때 이전 블록을 취소하므로
+                    // 서브 Job들도 함께 정리
+                    subJobs.forEach { it.cancel() }
+                    subJobs.clear()
+
                     if (user != null) {
                         val currentData = (_uiState.value as? UiState.Success)?.data ?: HomeState()
                         _uiState.value = UiState.Success(currentData.copy(user = user))
@@ -98,7 +111,7 @@ class HomeViewModel @Inject constructor(
             set(Calendar.MILLISECOND, 0)
         }.timeInMillis
 
-        viewModelScope.launch {
+        val job = viewModelScope.launch {
             try {
                 workoutRepository.getTodaysCompletedWorkouts(userId, startOfDay).collectLatest { workouts ->
                     val questInfos = workouts.map { workout ->
@@ -112,10 +125,11 @@ class HomeViewModel @Inject constructor(
                 }
             } catch (_: Exception) { }
         }
+        subJobs.add(job)
     }
 
     private fun loadRecommendedQuests(userJob: String) {
-        viewModelScope.launch {
+        val job = viewModelScope.launch {
             try {
                 val allCategories = listOf("STRENGTH", "ENDURANCE")
                 val otherCategory = allCategories.filter { it != userJob }.random()
@@ -132,6 +146,7 @@ class HomeViewModel @Inject constructor(
                 }
             } catch (_: Exception) { }
         }
+        subJobs.add(job)
     }
 
     private fun loadWeekWorkouts(userId: Long) {
@@ -145,7 +160,7 @@ class HomeViewModel @Inject constructor(
             set(Calendar.MILLISECOND, 0)
         }.timeInMillis
 
-        viewModelScope.launch {
+        val job = viewModelScope.launch {
             try {
                 workoutRepository.getWeekWorkouts(userId, weekStart).collectLatest { workouts ->
                     val days = workouts.map { workout ->
@@ -157,6 +172,7 @@ class HomeViewModel @Inject constructor(
                 }
             } catch (_: Exception) { }
         }
+        subJobs.add(job)
     }
 
     fun showImagePicker() {
