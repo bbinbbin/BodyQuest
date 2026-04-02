@@ -42,4 +42,16 @@ interface WorkoutDao {
 
     @Query("SELECT * FROM workout_sets WHERE workoutId = :workoutId ORDER BY setNumber")
     suspend fun getSetsForWorkoutOnce(workoutId: Long): List<WorkoutSetEntity>
+
+    @Query("SELECT COUNT(*) FROM workouts WHERE userId = :userId AND completed = 1")
+    fun getCompletedWorkoutCount(userId: Long): Flow<Int>
+
+    @Query("SELECT COALESCE(SUM(xpEarned), 0) FROM workouts WHERE userId = :userId AND completed = 1")
+    fun getTotalXpEarned(userId: Long): Flow<Int>
+
+    @Query("SELECT COALESCE(SUM(elapsedSeconds), 0) FROM workouts WHERE userId = :userId AND completed = 1")
+    fun getTotalElapsedSeconds(userId: Long): Flow<Int>
+
+    @Query("SELECT * FROM workouts WHERE userId = :userId AND completed = 1 ORDER BY startTime DESC LIMIT :limit")
+    fun getRecentCompletedWorkouts(userId: Long, limit: Int): Flow<List<WorkoutEntity>>
 }

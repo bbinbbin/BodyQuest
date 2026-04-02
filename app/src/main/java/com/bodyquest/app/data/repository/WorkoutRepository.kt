@@ -15,4 +15,8 @@ interface WorkoutRepository {
     suspend fun updateWorkoutSet(set: WorkoutSetEntity)
     fun getSetsForWorkout(workoutId: Long): Flow<List<WorkoutSetEntity>>
     suspend fun getSetsForWorkoutOnce(workoutId: Long): List<WorkoutSetEntity>
+    fun getCompletedWorkoutCount(userId: Long): Flow<Int>
+    fun getTotalXpEarned(userId: Long): Flow<Int>
+    fun getTotalElapsedSeconds(userId: Long): Flow<Int>
+    fun getRecentCompletedWorkouts(userId: Long, limit: Int): Flow<List<WorkoutEntity>>
 }

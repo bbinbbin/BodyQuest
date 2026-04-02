@@ -43,4 +43,7 @@ class LocalBossRepository(
 
     private fun betterPerformance(a: String, b: String): String =
         if (performanceRank(a) >= performanceRank(b)) a else b
+
+    override fun getClearedBossCount(userId: String): Flow<Int> =
+        bossProgressDao.getClearedBossCount(userId)
 }

@@ -17,4 +17,7 @@ interface BossProgressDao {
 
     @Upsert
     suspend fun upsert(progress: BossProgressEntity)
+
+    @Query("SELECT COUNT(*) FROM boss_progress WHERE userId = :userId AND isCleared = 1")
+    fun getClearedBossCount(userId: String): Flow<Int>
 }

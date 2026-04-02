@@ -35,4 +35,16 @@ class LocalWorkoutRepository(private val workoutDao: WorkoutDao) : WorkoutReposi
 
     override suspend fun getSetsForWorkoutOnce(workoutId: Long): List<WorkoutSetEntity> =
         workoutDao.getSetsForWorkoutOnce(workoutId)
+
+    override fun getCompletedWorkoutCount(userId: Long): Flow<Int> =
+        workoutDao.getCompletedWorkoutCount(userId)
+
+    override fun getTotalXpEarned(userId: Long): Flow<Int> =
+        workoutDao.getTotalXpEarned(userId)
+
+    override fun getTotalElapsedSeconds(userId: Long): Flow<Int> =
+        workoutDao.getTotalElapsedSeconds(userId)
+
+    override fun getRecentCompletedWorkouts(userId: Long, limit: Int): Flow<List<WorkoutEntity>> =
+        workoutDao.getRecentCompletedWorkouts(userId, limit)
 }
