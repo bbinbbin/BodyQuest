@@ -25,7 +25,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bodyquest.app.domain.model.Job
@@ -54,6 +57,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import com.bodyquest.app.ui.home.components.ImagePickerSheet
@@ -375,19 +379,17 @@ private fun HomeContent(
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
-                                    Row {
-                                        Text(
-                                            text = "$difficultyLabel · ${quest.durationMinutes}분",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = TextMuted
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = "+${quest.xpReward} XP",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = NeonPurple
-                                        )
-                                    }
+                                    Text(
+                                        text = buildAnnotatedString {
+                                            withStyle(SpanStyle(color = TextMuted)) {
+                                                append("$difficultyLabel · ${quest.durationMinutes}분 · ")
+                                            }
+                                            withStyle(SpanStyle(color = NeonPurple)) {
+                                                append("+ ${quest.xpReward} XP")
+                                            }
+                                        },
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
                                 }
                                 Text(
                                     text = "→",
@@ -440,10 +442,11 @@ private fun HomeContent(
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (isActive) {
-                                    Text(
-                                        text = "✓",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.background
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.background,
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
                             }
