@@ -277,11 +277,16 @@ private fun BossCard(
     val dimColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
 
     Surface(
-        modifier = Modifier.width(220.dp),
+        modifier = Modifier
+            .width(220.dp)
+            .height(230.dp),
         shape = RoundedCornerShape(14.dp),
         color = DarkSurfaceVariant
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
             Text(
                 text = boss.name,
                 style = MaterialTheme.typography.titleMedium,
