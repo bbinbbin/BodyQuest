@@ -68,9 +68,9 @@ fun QuestTreeScreen(
 
     val state = (uiState as UiState.Success).data
     val (categoryDisplayName, categoryColor) = when (category) {
-        "ENDURANCE" -> "유산소운동" to NeonBlue
-        "BALANCE" -> "균형운동" to NeonGreen
-        else -> "근력운동" to NeonRed
+        "ENDURANCE" -> "유산소 운동" to NeonBlue
+        "BALANCE" -> "균형 운동" to NeonGreen
+        else -> "근력 운동" to NeonRed
     }
 
     Column(
