@@ -1,7 +1,7 @@
 
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-04-03 (Phase 38: 홈 보스 진행률 + 프로필 직업 배율 + 주간 운동 그래프)
+> 마지막 업데이트: 2026-04-03 (Phase 39: 프로필 운동 히스토리 달력 UI + 스탯 획득량 표시)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -721,6 +721,33 @@ users/{firebaseUid}
 - **퀘스트 상세 보상 표시**: `+60` → `+ 60` 공백 추가
 - **운동 카테고리 띄어쓰기**: "근력운동" → "근력 운동", "유산소운동" → "유산소 운동", "균형운동" → "균형 운동"
 
+### Phase 39: 프로필 운동 히스토리 달력 UI + 스탯 획득량 표시 ✅ (2026-04-03)
+
+#### 데이터 레이어
+- **`WorkoutDao`**: `getCompletedWorkoutsSince(userId, startTime)` 쿼리 추가 (startTime 이후 완료 운동 전체, 달력용)
+- **`WorkoutRepository` / `LocalWorkoutRepository`**: 위 메서드 추가
+
+#### ViewModel
+- **`WorkoutHistoryItem`**: `statType: String`, `statGained: Int` 필드 추가 / `date: String` → `dateKey: String`("yyyy-MM-dd") 변경
+- **`ProfileState`**: `workoutHistory: List<WorkoutHistoryItem>` → **`calendarData: Map<String, List<WorkoutHistoryItem>>`** 교체 (dateKey → 해당 날 운동 목록)
+- **`ProfileViewModel.loadCalendarData(userJob)`**:
+  - 6개월치 완료 운동 로드 (`getCompletedWorkoutsSince`)
+  - 날짜별 그룹핑
+  - 직업 배율 적용 후 `statGained` 계산: STRENGTH·ENDURANCE 해당 운동 ×2.0 / BALANCE ×1.5 / 기타 ×1.0
+
+#### UI (`ProfileScreen`)
+- **`WorkoutCalendarSection`**: 운동 히스토리 리스트 → 월별 달력으로 교체
+  - `<` / `>` 버튼으로 월 이동
+  - 요일 헤더: 일(NeonRed)~토
+  - `CalendarDayCell`: 운동 있는 날 — NeonPurple 반투명 원+테두리, 선택 시 채워진 원, 2건 이상 점(·) 표시 / 오늘 — NeonGreen 테두리
+  - 운동 있는 날 탭 → 달력 아래 요약 카드 출현: "대표 퀘스트명 외 N건"
+  - 요약 카드 탭 → **`WorkoutDetailDialog`** 상세 다이얼로그
+    - 첫 번째 운동에 "대표" 뱃지
+    - 각 항목: 퀘스트명 / 운동 시간 / + XP / 스탯 획득량
+- **`WorkoutDetailRow`**: 스탯 획득량 표시 추가
+  - 근력 + N (NeonRed) / 지구력 + N (NeonBlue) / 균형 + N (NeonOrange)
+  - statGained = 0이면 미표시
+
 ### Phase 38: 홈 보스 진행률 + 프로필 직업 배율 + 주간 운동 그래프 ✅ (2026-04-03)
 
 #### 홈 화면 — 보스 진행률
@@ -871,6 +898,8 @@ users/{firebaseUid}
 - [x] 홈 보스 진행률 — 프로그레스 바 + N/150 수치 표시
 - [x] 프로필 직업 배율 안내 — 직업 배지 + 배율 텍스트 카드
 - [x] 프로필 주간 운동 그래프 — 월~일 바 차트
+- [x] 프로필 운동 히스토리 달력 UI — 월 이동 네비게이션, 운동 있는 날 보라색 원, 날짜 탭 시 요약 카드
+- [x] 운동 히스토리 날짜 상세 다이얼로그 — 대표 운동 뱃지, 퀘스트명·운동시간·XP·스탯 획득량 표시
 
 ---
 
@@ -923,6 +952,8 @@ users/{firebaseUid}
 ## Git 커밋 히스토리
 
 ```
+04bafce feat: 프로필 운동 히스토리 → 달력 UI + 스탯 획득량 표시
+cbcd550 docs: HandOFF.md 업데이트 — Phase 35~38 반영 (뽑기 티켓, 퀘스트 확장, UI 개선, 홈/프로필 기능)
 88dd542 feat: 홈 보스 진행률 + 프로필 직업 배율 안내 + 주간 운동 그래프
 582e8bd fix: 운동 카테고리 띄어쓰기 수정 — 근력운동 → 근력 운동
 3747a61 fix: 전체 앱 문장 부호 통일 — 마침표/물음표 누락 수정
