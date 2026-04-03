@@ -1,7 +1,7 @@
 
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-04-02 (Phase 34: 프로필 화면 구현 + 코드 품질 개선)
+> 마지막 업데이트: 2026-04-03 (Phase 38: 홈 보스 진행률 + 프로필 직업 배율 + 주간 운동 그래프)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -62,7 +62,7 @@ app/src/main/java/com/bodyquest/app/
 │
 ├── data/
 │   ├── local/
-│   │   ├── BodyQuestDatabase.kt # Room DB (v10), exportSchema=true, Migration(1,2)~Migration(9,10)
+│   │   ├── BodyQuestDatabase.kt # Room DB (v13), exportSchema=true, Migration(1,2)~Migration(12,13)
 │   │   ├── SeedData.kt          # 퀘스트 ~20개 + 보스 150개(3타입×50) 프로그래매틱 생성
 │   │   ├── dao/
 │   │   │   ├── UserDao.kt       # abstract class, getUser(uid), @Transaction applyWorkoutRewards(), updateProfileImageUrl()
@@ -70,7 +70,7 @@ app/src/main/java/com/bodyquest/app/
 │   │   │   ├── WorkoutDao.kt    # 운동 기록 CRUD, 시간 기반 쿼리, getWorkoutByFirestoreId()
 │   │   │   └── BossProgressDao.kt # getProgressForUser(Flow), getProgress(one-shot), @Upsert (composite PK)
 │   │   └── entity/
-│   │       ├── UserEntity.kt    # id, nickname, job, goal, avatarIndex, stats, xp, level, firebaseUid, email, authProvider, profileImageUrl, updatedAt
+│   │       ├── UserEntity.kt    # id, nickname, job, goal, avatarIndex, stats, xp, level, firebaseUid, email, authProvider, profileImageUrl, updatedAt, equippedSkinId, gachaTickets
 │   │       ├── QuestEntity.kt   # id, category, bodyPart, name, difficulty, rewards
 │   │       ├── WorkoutEntity.kt # FK(userId→users, questId→quests), 복합인덱스, CASCADE, firestoreId
 │   │       ├── WorkoutSetEntity.kt # FK(workoutId→workouts), CASCADE
@@ -681,6 +681,66 @@ users/{firebaseUid}
 
 > userId 타입 주의: `WorkoutDao`는 `Long`(Room ID = user.id), `BossProgressDao`는 `String`(firebaseUid = authRepository.currentUserId)
 
+### Phase 35: 뽑기 티켓 시스템 ✅ (2026-04-03)
+
+#### 데이터 레이어
+- **`UserEntity`**: `gachaTickets: Int = 0` 필드 추가
+- **DB v12 → v13** (`MIGRATION_12_13`): `ALTER TABLE users ADD COLUMN gachaTickets INTEGER NOT NULL DEFAULT 0`
+- **`UserDao`**: `updateGachaTickets(uid, tickets, updatedAt)` 쿼리 추가
+- **`UserRepository` / `LocalUserRepository`**: `updateGachaTickets()` 메서드 추가
+
+#### 보스 클리어 보상
+- **`BossRepository`**: `ClearResult(previousPerformance, bestPerformance)` data class 추가, `recordClear()` 반환 타입 변경
+- **`LocalBossRepository`**: `recordClear()`에서 이전 등급도 함께 반환
+- **`BossViewModel.confirmBattle()`**: 등급별 티켓 지급 (S=3, A=2, B=1), 재도전 시 등급 향상분만 추가
+- **`BossResult`**: `ticketsEarned: Int = 0` 필드 추가
+- **`BossScreen`**: `TicketRewardDialog` — 보스 클리어 후 "🎫 뽑기 티켓 +N" 다이얼로그 표시
+
+#### 뽑기 제한
+- **`GachaViewModel`**: `UserRepository` 주입, `ticketCount: StateFlow<Int>`, `consumeTicket(): Boolean`
+- **`GachaScreen`**: "🎫 보유 티켓: N장" 표시, 0장이면 버튼 비활성화 + "티켓이 없습니다"
+
+#### Firestore 동기화
+- **`FirestoreUserService`**: push/pull에 `gachaTickets` 필드 추가
+- **`SyncManager`**: `syncOnLogin()` 병합 시 `gachaTickets` 포함
+
+### Phase 36: 퀘스트 데이터 확장 — 15개→36개 + BALANCE 카테고리 ✅ (2026-04-03)
+- **`SeedData.kt`**: 퀘스트 15개 → 36개로 확장
+  - STRENGTH 기존 부위 난이도 채우기: 등/하체 고급, 어깨/팔 중급·고급 (+6개)
+  - STRENGTH 코어(복근) 초·중·고급 추가 (+3개)
+  - ENDURANCE 줄넘기 초·중·고급 추가 (+3개)
+  - BALANCE(신규): 요가 3개, 스트레칭 3개, 필라테스 3개 (+9개)
+- **`QuestScreen.kt`**: BALANCE "균형 운동" 🧘 카테고리 카드 추가 (NeonGreen)
+- **`QuestTreeScreen.kt`**: BALANCE 카테고리 "균형 운동" + NeonGreen 색상 매핑 추가
+- **`BodyQuestDatabase.kt`**: `onOpen` 시드 로직 `questCount == 0` → `questCount < seedQuests.size` 변경 (기존 기기에서도 새 퀘스트 자동 삽입)
+- BALANCE 퀘스트 스탯: 요가/스트레칭 → ENDURANCE, 필라테스 → STRENGTH
+
+### Phase 37: UI 텍스트 품질 개선 ✅ (2026-04-03)
+- **문장 부호 통일**: 에러 메시지 16곳 마침표, 안내 문장 8곳 마침표, 지시형 7곳 마침표, 질문형 3곳 물음표 추가
+- **퀘스트 화면 XP 표시**: Row + 복수 Text → `buildAnnotatedString`으로 한 줄 통합 (`"15분 · 3세트 x 12회 · + 30 XP"`)
+- **퀘스트 상세 보상 표시**: `+60` → `+ 60` 공백 추가
+- **운동 카테고리 띄어쓰기**: "근력운동" → "근력 운동", "유산소운동" → "유산소 운동", "균형운동" → "균형 운동"
+
+### Phase 38: 홈 보스 진행률 + 프로필 직업 배율 + 주간 운동 그래프 ✅ (2026-04-03)
+
+#### 홈 화면 — 보스 진행률
+- **`BossDao`**: `getTotalBossCount()` 쿼리 추가
+- **`BossRepository` / `LocalBossRepository`**: `getTotalBossCount()` 메서드 추가
+- **`HomeViewModel`**: `BossRepository` 주입, `loadBossProgress()` — `combine(clearedCount, totalCount)` Flow 결합
+- **`HomeState`**: `clearedBossCount`, `totalBossCount` 필드 추가
+- **`HomeScreen`**: 주간 활동 아래에 보스 진행률 프로그레스 바 + "N / 150" 수치 표시 (NeonRed)
+
+#### 프로필 화면 — 직업 배율 안내
+- **`ProfileState`**: `userJob: String` 필드 추가
+- **`ProfileViewModel`**: 유저 로드 시 `userJob` 설정
+- **`ProfileScreen`**: 누적 통계 아래에 직업 효과 카드 — 직업 배지 + 배율 텍스트 (STRENGTH: x2.0, ENDURANCE: x2.0, BALANCE: x1.5)
+
+#### 프로필 화면 — 주간 운동 통계 바 차트
+- **`DailyWorkoutStat`**: `label: String`, `count: Int` data class 추가
+- **`ProfileState`**: `weeklyStats: List<DailyWorkoutStat>` 필드 추가
+- **`ProfileViewModel`**: `loadWeeklyStats()` — 이번 주 월~일 운동 기록을 일별 집계
+- **`ProfileScreen`**: 직업 배율 아래에 바 차트 — 월~일 7개 바, 운동 횟수 비례 높이, 숫자 표시
+
 ### Phase 26: 세션 타임아웃 15분 ✅ (2026-03-30)
 - **기존**: 앱 실행 시 무조건 `signOut()` 후 로그인 필수
 - **변경**: 백그라운드 15분 이내 복귀 시 로그인 스킵 → Home 직행
@@ -762,7 +822,7 @@ users/{firebaseUid}
 - [x] 스플래시 화면
 - [x] Hilt DI
 - [x] Sealed UI State (Loading/Error/Success)
-- [x] DB 인덱스/FK/마이그레이션 (v10, boss_progress composite PK + performance 컬럼)
+- [x] DB 인덱스/FK/마이그레이션 (v13, gachaTickets 컬럼 추가)
 - [x] 네트워크 보안 설정
 - [x] Repository 추상화 (interface + Local)
 - [x] EncryptedSharedPreferences
@@ -805,16 +865,21 @@ users/{firebaseUid}
 - [x] 코드 품질 개선 — EXIF 회전 보정, IO 스레드 이미지 처리, Flow 누적 방지, 예외 로깅
 - [x] 홈 UI 개선 — 추천 퀘스트 XP 한 줄 표시, 주간 활동 Check 아이콘, 보스 카드 높이 고정
 - [x] 프로필 화면 — 누적 통계(4종), 운동 히스토리(최근 20개), 계정 정보, 로그아웃/삭제
+- [x] 뽑기 티켓 시스템 — 보스 클리어 시 등급별 티켓 지급 (S=3, A=2, B=1), 재도전 시 차이분만 추가
+- [x] 퀘스트 데이터 확장 — 15개→36개, BALANCE 카테고리 (요가/스트레칭/필라테스) 추가
+- [x] UI 텍스트 품질 개선 — 문장 부호 통일, XP 한 줄 표시, 카테고리 띄어쓰기
+- [x] 홈 보스 진행률 — 프로그레스 바 + N/150 수치 표시
+- [x] 프로필 직업 배율 안내 — 직업 배지 + 배율 텍스트 카드
+- [x] 프로필 주간 운동 그래프 — 월~일 바 차트
 
 ---
 
 ## 미구현 / 다음 작업 후보
 
 ### 높은 우선순위
-- [x] ~~**프로필 화면**~~ — **Phase 34에서 구현 완료**. 누적 통계 + 운동 히스토리 + 계정 정보
+- [x] ~~**프로필 화면**~~ — **Phase 34에서 구현 완료**.
+- [x] ~~**퀘스트 데이터 확장**~~ — **Phase 36에서 구현 완료**. 15개→36개 + BALANCE 카테고리
 - [ ] **인바디 데이터 입력** — 프로필에서 인바디 수치 기록 → 스탯 반영
-- [ ] **퀘스트 데이터 확장** — 현재 ~20개 → 더 많은 운동 추가
-- [ ] **앱 재시작 시 추천퀘스트 고정** — 현재 shuffle로 매번 바뀜, 하루 단위 고정 필요
 
 ### 중간 우선순위
 - [ ] **스킨 착용 시스템** — 인벤토리 장착 버튼 현재 "구현 중" 알림만 표시. 실제 착용 로직 및 아바타 반영 필요
@@ -823,7 +888,6 @@ users/{firebaseUid}
   - 텍스트 기반 스킨이므로 아바타에 착용 표시 방식(뱃지/오버레이 텍스트 등) 결정 필요
 - [ ] **스킨 확률 테이블** — 현재 `ALL_SKINS.random()` 균일 확률. 희귀도별 가중 확률 도입 가능
 - [ ] **2D 아바타 시스템** — 현재 단일 PNG 이미지, 스킨 착용 시각적 표현 방식 미정
-- [ ] **PvP 대전** — 스탯 기반 1:1 비교 대결
 - [ ] **PvP 대전** — 스탯 기반 1:1 비교 대결
 - [ ] **알림/리마인더** — 운동 시간 알림
 - [ ] **운동 중 실제 센서 연동** — Google Fit / Health Connect API
@@ -859,6 +923,13 @@ users/{firebaseUid}
 ## Git 커밋 히스토리
 
 ```
+88dd542 feat: 홈 보스 진행률 + 프로필 직업 배율 안내 + 주간 운동 그래프
+582e8bd fix: 운동 카테고리 띄어쓰기 수정 — 근력운동 → 근력 운동
+3747a61 fix: 전체 앱 문장 부호 통일 — 마침표/물음표 누락 수정
+fba129e fix: 퀘스트 화면 UI 개선 — XP 한 줄 표시, BALANCE 카테고리 매핑
+f5785bc feat: 퀘스트 데이터 확장 — 15개→36개, BALANCE 카테고리 추가
+9ecbec7 feat: 뽑기 티켓 시스템 — 보스 클리어 시 등급별 티켓 지급 (S=3, A=2, B=1)
+d728866 docs: HandOFF.md 업데이트 — Phase 33~34 반영 (코드 품질 개선, 프로필 화면)
 b408a6f feat: 프로필 화면 구현 — 누적 통계, 운동 히스토리, 계정 정보
 1e58f21 fix: LoginViewModel SharedPreferences .apply() → .commit() — 플래그 저장 보장
 188211f fix: SyncManager 전체 catch 블록에 경고 로그 추가
