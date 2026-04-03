@@ -19,4 +19,5 @@ interface WorkoutRepository {
     fun getTotalXpEarned(userId: Long): Flow<Int>
     fun getTotalElapsedSeconds(userId: Long): Flow<Int>
     fun getRecentCompletedWorkouts(userId: Long, limit: Int): Flow<List<WorkoutEntity>>
+    fun getCompletedWorkoutsSince(userId: Long, startTime: Long): Flow<List<WorkoutEntity>>
 }

@@ -22,11 +22,16 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
+import kotlin.math.roundToInt
 
 data class WorkoutHistoryItem(
+    val workoutId: Long,
     val questName: String,
-    val date: String,
-    val xpEarned: Int
+    val dateKey: String,        // "yyyy-MM-dd" (달력 lookup 키)
+    val xpEarned: Int,
+    val elapsedSeconds: Int,
+    val statType: String,       // "STRENGTH" | "ENDURANCE"
+    val statGained: Int         // 직업 배율 적용 후 실제 스탯 획득량
 )
 
 data class CumulativeStats(
@@ -49,7 +54,7 @@ data class DailyWorkoutStat(
 
 data class ProfileState(
     val cumulativeStats: CumulativeStats = CumulativeStats(),
-    val workoutHistory: List<WorkoutHistoryItem> = emptyList(),
+    val calendarData: Map<String, List<WorkoutHistoryItem>> = emptyMap(),
     val accountInfo: AccountInfo? = null,
     val userJob: String = "",
     val weeklyStats: List<DailyWorkoutStat> = emptyList()
@@ -73,7 +78,7 @@ class ProfileViewModel @Inject constructor(
 
     private var loadJob: Job? = null
     private var subJobs = mutableListOf<Job>()
-    private val dateFormat = SimpleDateFormat("yyyy.MM.dd", Locale.KOREA)
+    private val dateKeyFormat = SimpleDateFormat("yyyy-MM-dd", Locale.KOREA)
 
     init {
         loadData()
@@ -106,7 +111,7 @@ class ProfileViewModel @Inject constructor(
                             userJob = user.job
                         ))
                         loadCumulativeStats(user.id, firebaseUid)
-                        loadWorkoutHistory(user.id)
+                        loadCalendarData(user.id, user.job)
                         loadWeeklyStats(user.id)
                     } else {
                         _uiState.value = UiState.Success(ProfileState())
@@ -143,22 +148,37 @@ class ProfileViewModel @Inject constructor(
         subJobs.add(job)
     }
 
-    private fun loadWorkoutHistory(userId: Long) {
+    private fun loadCalendarData(userId: Long, userJob: String) {
+        val sixMonthsAgo = Calendar.getInstance().apply { add(Calendar.MONTH, -6) }.timeInMillis
         val job = viewModelScope.launch {
             try {
-                workoutRepository.getRecentCompletedWorkouts(userId, 20).collectLatest { workouts ->
-                    val items = workouts.map { workout ->
+                workoutRepository.getCompletedWorkoutsSince(userId, sixMonthsAgo).collectLatest { workouts ->
+                    val grouped = mutableMapOf<String, MutableList<WorkoutHistoryItem>>()
+                    for (workout in workouts) {
                         val quest = questRepository.getQuestById(workout.questId)
-                        WorkoutHistoryItem(
+                        val statType = quest?.statType ?: "STRENGTH"
+                        val statMultiplier = when (userJob) {
+                            "STRENGTH" -> if (statType == "STRENGTH") 2.0f else 1.0f
+                            "ENDURANCE" -> if (statType == "ENDURANCE") 2.0f else 1.0f
+                            "BALANCE" -> 1.5f
+                            else -> 1.0f
+                        }
+                        val statGained = ((quest?.statReward ?: 0) * statMultiplier).roundToInt()
+                        val item = WorkoutHistoryItem(
+                            workoutId = workout.id,
                             questName = quest?.name ?: "알 수 없는 퀘스트",
-                            date = dateFormat.format(Date(workout.startTime)),
-                            xpEarned = workout.xpEarned
+                            dateKey = dateKeyFormat.format(Date(workout.startTime)),
+                            xpEarned = workout.xpEarned,
+                            elapsedSeconds = workout.elapsedSeconds,
+                            statType = statType,
+                            statGained = statGained
                         )
+                        grouped.getOrPut(item.dateKey) { mutableListOf() }.add(item)
                     }
-                    updateSuccessState { it.copy(workoutHistory = items) }
+                    updateSuccessState { it.copy(calendarData = grouped) }
                 }
             } catch (e: Exception) {
-                Log.w("ProfileViewModel", "운동 히스토리 로딩 실패", e)
+                Log.w("ProfileViewModel", "달력 데이터 로딩 실패", e)
             }
         }
         subJobs.add(job)
@@ -166,7 +186,6 @@ class ProfileViewModel @Inject constructor(
 
     private fun loadWeeklyStats(userId: Long) {
         val cal = Calendar.getInstance()
-        // 7일 전 월요일부터 시작
         while (cal.get(Calendar.DAY_OF_WEEK) != Calendar.MONDAY) {
             cal.add(Calendar.DAY_OF_YEAR, -1)
         }

@@ -47,4 +47,7 @@ class LocalWorkoutRepository(private val workoutDao: WorkoutDao) : WorkoutReposi
 
     override fun getRecentCompletedWorkouts(userId: Long, limit: Int): Flow<List<WorkoutEntity>> =
         workoutDao.getRecentCompletedWorkouts(userId, limit)
+
+    override fun getCompletedWorkoutsSince(userId: Long, startTime: Long): Flow<List<WorkoutEntity>> =
+        workoutDao.getCompletedWorkoutsSince(userId, startTime)
 }

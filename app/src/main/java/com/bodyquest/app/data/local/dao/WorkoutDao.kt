@@ -54,4 +54,7 @@ interface WorkoutDao {
 
     @Query("SELECT * FROM workouts WHERE userId = :userId AND completed = 1 ORDER BY startTime DESC LIMIT :limit")
     fun getRecentCompletedWorkouts(userId: Long, limit: Int): Flow<List<WorkoutEntity>>
+
+    @Query("SELECT * FROM workouts WHERE userId = :userId AND completed = 1 AND startTime >= :startTime ORDER BY startTime DESC")
+    fun getCompletedWorkoutsSince(userId: Long, startTime: Long): Flow<List<WorkoutEntity>>
 }
