@@ -47,4 +47,7 @@ class LocalBossRepository(
 
     override fun getClearedBossCount(userId: String): Flow<Int> =
         bossProgressDao.getClearedBossCount(userId)
+
+    override fun getTotalBossCount(): Flow<Int> =
+        bossDao.getTotalBossCount()
 }

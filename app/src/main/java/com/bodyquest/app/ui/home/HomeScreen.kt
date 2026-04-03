@@ -43,6 +43,7 @@ import com.bodyquest.app.ui.theme.DarkSurface
 import com.bodyquest.app.ui.theme.DarkSurfaceVariant
 import com.bodyquest.app.ui.theme.NeonGreen
 import com.bodyquest.app.ui.theme.NeonPurple
+import com.bodyquest.app.ui.theme.NeonRed
 import com.bodyquest.app.ui.theme.TextMuted
 import com.bodyquest.app.ui.theme.TextSecondary
 import java.util.Calendar
@@ -458,6 +459,53 @@ private fun HomeContent(
                                 textAlign = TextAlign.Center
                             )
                         }
+                    }
+                }
+            }
+        }
+
+        // 보스 진행률
+        if (state.totalBossCount > 0) {
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                color = DarkSurfaceVariant
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "보스 진행률",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "${state.clearedBossCount} / ${state.totalBossCount}",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = NeonRed
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    val progress = state.clearedBossCount.toFloat() / state.totalBossCount.toFloat()
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(DarkSurface)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(progress)
+                                .height(8.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(NeonRed)
+                        )
                     }
                 }
             }

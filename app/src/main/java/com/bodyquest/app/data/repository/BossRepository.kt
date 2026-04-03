@@ -16,4 +16,5 @@ interface BossRepository {
     fun getProgressForUser(userId: String): Flow<List<BossProgressEntity>>
     suspend fun recordClear(userId: String, bossId: Int, performance: String): ClearResult
     fun getClearedBossCount(userId: String): Flow<Int>
+    fun getTotalBossCount(): Flow<Int>
 }

@@ -16,4 +16,7 @@ interface BossDao {
 
     @Query("SELECT * FROM bosses WHERE id = :id")
     suspend fun getBossById(id: Int): BossEntity?
+
+    @Query("SELECT COUNT(*) FROM bosses")
+    fun getTotalBossCount(): Flow<Int>
 }

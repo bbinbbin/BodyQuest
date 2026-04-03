@@ -10,6 +10,7 @@ import com.bodyquest.app.data.local.entity.QuestEntity
 import com.bodyquest.app.data.local.entity.UserEntity
 import com.bodyquest.app.data.remote.SyncManager
 import com.bodyquest.app.data.repository.AuthRepository
+import com.bodyquest.app.data.repository.BossRepository
 import com.bodyquest.app.data.repository.QuestRepository
 import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.data.repository.WorkoutRepository
@@ -41,7 +42,9 @@ data class HomeState(
     val weekWorkoutDays: Set<Int> = emptySet(),
     val showImagePicker: Boolean = false,
     val isUploadingImage: Boolean = false,
-    val imageError: String? = null
+    val imageError: String? = null,
+    val clearedBossCount: Int = 0,
+    val totalBossCount: Int = 0
 )
 
 @HiltViewModel
@@ -51,6 +54,7 @@ class HomeViewModel @Inject constructor(
     private val questRepository: QuestRepository,
     private val workoutRepository: WorkoutRepository,
     private val authRepository: AuthRepository,
+    private val bossRepository: BossRepository,
     private val syncManager: SyncManager
 ) : ViewModel() {
 
@@ -93,6 +97,7 @@ class HomeViewModel @Inject constructor(
                         loadTodaysQuests(user.id)
                         loadWeekWorkouts(user.id)
                         loadRecommendedQuests(user.job)
+                        loadBossProgress(uid)
                     } else {
                         _uiState.value = UiState.Success(HomeState())
                     }
@@ -176,6 +181,24 @@ class HomeViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.w("HomeViewModel", "주간 운동 로딩 실패", e)
+            }
+        }
+        subJobs.add(job)
+    }
+
+    private fun loadBossProgress(firebaseUid: String) {
+        val job = viewModelScope.launch {
+            try {
+                combine(
+                    bossRepository.getClearedBossCount(firebaseUid),
+                    bossRepository.getTotalBossCount()
+                ) { cleared, total ->
+                    cleared to total
+                }.collectLatest { (cleared, total) ->
+                    updateSuccessState { it.copy(clearedBossCount = cleared, totalBossCount = total) }
+                }
+            } catch (e: Exception) {
+                Log.w("HomeViewModel", "보스 진행률 로딩 실패", e)
             }
         }
         subJobs.add(job)

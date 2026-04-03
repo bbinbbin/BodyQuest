@@ -2,6 +2,7 @@ package com.bodyquest.app.ui.profile
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -40,6 +42,7 @@ import com.bodyquest.app.ui.common.LoadingScreen
 import com.bodyquest.app.ui.common.UiState
 import com.bodyquest.app.ui.theme.DarkSurface
 import com.bodyquest.app.ui.theme.DarkSurfaceVariant
+import com.bodyquest.app.ui.theme.NeonBlue
 import com.bodyquest.app.ui.theme.NeonGreen
 import com.bodyquest.app.ui.theme.NeonPurple
 import com.bodyquest.app.ui.theme.NeonRed
@@ -174,6 +177,111 @@ private fun ProfileContent(
         }
 
         Spacer(modifier = Modifier.height(20.dp))
+
+        // 직업 배율 안내
+        if (state.userJob.isNotEmpty()) {
+            val (jobName, jobColor, bonusText) = when (state.userJob) {
+                "STRENGTH" -> Triple("스트렝스", NeonRed, "근력 운동 스탯 x2.0")
+                "ENDURANCE" -> Triple("엔듀런스", NeonBlue, "지구력 운동 스탯 x2.0")
+                "BALANCE" -> Triple("밸런스", NeonGreen, "모든 운동 스탯 x1.5")
+                else -> Triple("", NeonPurple, "")
+            }
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                color = DarkSurfaceVariant
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "직업 효과",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = jobColor.copy(alpha = 0.15f)
+                        ) {
+                            Text(
+                                text = jobName,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                color = jobColor
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = bonusText,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+        }
+
+        // 주간 운동 통계
+        if (state.weeklyStats.isNotEmpty()) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                color = DarkSurfaceVariant
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "이번 주 운동",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    val maxCount = state.weeklyStats.maxOf { it.count }.coerceAtLeast(1)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().height(120.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = androidx.compose.ui.Alignment.Bottom
+                    ) {
+                        state.weeklyStats.forEach { stat ->
+                            Column(
+                                horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Bottom,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                if (stat.count > 0) {
+                                    Text(
+                                        text = "${stat.count}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = NeonGreen
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .width(24.dp)
+                                        .height((80 * stat.count.toFloat() / maxCount).dp.coerceAtLeast(4.dp))
+                                        .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                                        .background(if (stat.count > 0) NeonGreen else DarkSurface)
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = stat.label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = TextMuted
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+        }
 
         // 운동 히스토리
         Surface(

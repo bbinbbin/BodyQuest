@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
@@ -41,10 +42,17 @@ data class AccountInfo(
     val authProvider: String?
 )
 
+data class DailyWorkoutStat(
+    val label: String,
+    val count: Int
+)
+
 data class ProfileState(
     val cumulativeStats: CumulativeStats = CumulativeStats(),
     val workoutHistory: List<WorkoutHistoryItem> = emptyList(),
-    val accountInfo: AccountInfo? = null
+    val accountInfo: AccountInfo? = null,
+    val userJob: String = "",
+    val weeklyStats: List<DailyWorkoutStat> = emptyList()
 )
 
 @HiltViewModel
@@ -94,10 +102,12 @@ class ProfileViewModel @Inject constructor(
                                 email = user.email,
                                 createdAt = user.createdAt,
                                 authProvider = user.authProvider
-                            )
+                            ),
+                            userJob = user.job
                         ))
                         loadCumulativeStats(user.id, firebaseUid)
                         loadWorkoutHistory(user.id)
+                        loadWeeklyStats(user.id)
                     } else {
                         _uiState.value = UiState.Success(ProfileState())
                     }
@@ -149,6 +159,45 @@ class ProfileViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.w("ProfileViewModel", "운동 히스토리 로딩 실패", e)
+            }
+        }
+        subJobs.add(job)
+    }
+
+    private fun loadWeeklyStats(userId: Long) {
+        val cal = Calendar.getInstance()
+        // 7일 전 월요일부터 시작
+        while (cal.get(Calendar.DAY_OF_WEEK) != Calendar.MONDAY) {
+            cal.add(Calendar.DAY_OF_YEAR, -1)
+        }
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        val weekStart = cal.timeInMillis
+
+        val job = viewModelScope.launch {
+            try {
+                workoutRepository.getWeekWorkouts(userId, weekStart).collectLatest { workouts ->
+                    val dayLabels = listOf("월", "화", "수", "목", "금", "토", "일")
+                    val calDays = listOf(
+                        Calendar.MONDAY, Calendar.TUESDAY, Calendar.WEDNESDAY,
+                        Calendar.THURSDAY, Calendar.FRIDAY, Calendar.SATURDAY, Calendar.SUNDAY
+                    )
+                    val countByDay = workouts.groupBy { w ->
+                        Calendar.getInstance().apply { timeInMillis = w.startTime }
+                            .get(Calendar.DAY_OF_WEEK)
+                    }
+                    val stats = dayLabels.mapIndexed { index, label ->
+                        DailyWorkoutStat(
+                            label = label,
+                            count = countByDay[calDays[index]]?.size ?: 0
+                        )
+                    }
+                    updateSuccessState { it.copy(weeklyStats = stats) }
+                }
+            } catch (e: Exception) {
+                Log.w("ProfileViewModel", "주간 통계 로딩 실패", e)
             }
         }
         subJobs.add(job)
