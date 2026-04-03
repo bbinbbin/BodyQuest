@@ -1,6 +1,7 @@
 package com.bodyquest.app.ui.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -29,7 +30,8 @@ val bottomNavItems = listOf(
     BottomNavItem("퀘스트", Icons.Default.FitnessCenter, Screen.Quest.route),
     BottomNavItem("보스", Icons.Default.Whatshot, Screen.Boss.route),
     BottomNavItem("아바타", Icons.Default.Shield, Screen.Avatar.route),
-    BottomNavItem("프로필", Icons.Default.Person, Screen.Profile.route)
+    BottomNavItem("프로필", Icons.Default.Person, Screen.Profile.route),
+    BottomNavItem("테스트", Icons.Default.Build, Screen.ModelTest.route)
 )
 
 @Composable

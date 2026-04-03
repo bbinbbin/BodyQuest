@@ -1,7 +1,7 @@
 
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-04-03 (Phase 39: 프로필 운동 히스토리 달력 UI + 스탯 획득량 표시)
+> 마지막 업데이트: 2026-04-03 (Phase 40: 3D OBJ 뷰어 테스트 탭 — OpenGL ES 2.0)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -721,6 +721,62 @@ users/{firebaseUid}
 - **퀘스트 상세 보상 표시**: `+60` → `+ 60` 공백 추가
 - **운동 카테고리 띄어쓰기**: "근력운동" → "근력 운동", "유산소운동" → "유산소 운동", "균형운동" → "균형 운동"
 
+### Phase 40: 3D OBJ 뷰어 테스트 탭 ✅ (2026-04-03)
+
+#### 개요
+- 하단 탭 6번째 "테스트 (🔧)" 탭 추가
+- OBJ 파일을 OpenGL ES 2.0으로 렌더링, 상하좌우 드래그로 회전
+
+#### 파일 구조
+```
+app/src/main/assets/testbear.obj     ← 모델 파일 위치 (drawable 아님!)
+ui/test/
+  ├── ObjParser.kt          # OBJ 파서 (2패스, 서브샘플링)
+  ├── ModelRenderer.kt      # OpenGL ES 2.0 렌더러
+  ├── ModelGLSurfaceView.kt # GLSurfaceView + 터치 드래그
+  └── TestScreen.kt         # Compose 화면
+```
+
+#### ObjParser (`ObjParser.kt`)
+- **2패스 파싱**: Pass1 라인 카운트(v/f) → 서브샘플링 스텝 계산 → Pass2 실제 파싱
+- **서브샘플링**: `step = max(1, faceCount×2 / 60_000)` — 파일 크기에 따라 자동 조정
+- **메모리 효율**: 박싱 없는 `FloatArray` 사용 (100MB 파일 기준 피크 ~20MB)
+- **지원 형식**:
+  - 정점: `v x y z` 또는 `v x y z r g b` (Nomad Sculpt 컬러 포함 포맷)
+  - 면: `f v`, `f v/vt`, `f v//vn`, `f v/vt/vn` (슬래시 혼합 모두 지원)
+  - 팬 삼각분할 (삼각형·쿼드·n각형 모두 처리)
+  - `vn` 없을 시 면 법선 자동 계산 (cross product)
+  - 음수 상대 인덱스 지원
+- **정규화**: 바운딩 박스 중앙 정렬 + ±1 크기로 자동 스케일
+
+#### ModelRenderer (`ModelRenderer.kt`)
+- OpenGL ES 2.0 GLSL 셰이더
+  - Vertex shader: MVP 행렬 × 회전 행렬 적용
+  - Fragment shader: 양면 디퓨즈 라이팅 (front×0.75 + back×0.25 + ambient 0.2)
+- `@Volatile var rotX / rotY` — UI 스레드 → GL 스레드 안전한 전달
+- 웜 브라운 컬러 (0.78, 0.58, 0.40) + `perspectiveM` FOV 50°
+
+#### ModelGLSurfaceView (`ModelGLSurfaceView.kt`)
+- `GLSurfaceView` 서브클래스, `RENDERMODE_CONTINUOUSLY`
+- `onTouchEvent`: ACTION_DOWN/MOVE → `renderer.rotY += dx×0.4f`, `rotX` ±89° 클램프
+
+#### TestScreen (`TestScreen.kt`)
+- `Dispatchers.IO`에서 OBJ 로드 (대용량 파일 대응)
+- 상태: 로딩 중 / 에러 메시지 / 3D 뷰어
+- 하단: "← → 좌우 / ↑ ↓ 상하 드래그하여 회전" + 폴리곤 수 표시
+
+#### 주의사항
+- OBJ 파일은 `res/drawable/`가 아닌 **`app/src/main/assets/`** 에 넣어야 함
+  (`drawable`은 .xml/.png만 허용, 빌드 실패)
+- 100MB 이상 대용량 파일은 로딩에 3~10초 소요 (IO 스레드에서 처리)
+- 목표 폴리곤 수 60,000 삼각형 (서브샘플링으로 자동 조절)
+- 모델 파일 교체: `assets/testbear.obj` 덮어쓰기만 하면 됨
+
+#### 네비게이션
+- `Screen.ModelTest("model_test")` 추가
+- `BottomNavBar`: `Icons.Default.Build` 아이콘, "테스트" 레이블
+- `bottomNavRoutes`에 추가 (바텀바 표시)
+
 ### Phase 39: 프로필 운동 히스토리 달력 UI + 스탯 획득량 표시 ✅ (2026-04-03)
 
 #### 데이터 레이어
@@ -900,6 +956,7 @@ users/{firebaseUid}
 - [x] 프로필 주간 운동 그래프 — 월~일 바 차트
 - [x] 프로필 운동 히스토리 달력 UI — 월 이동 네비게이션, 운동 있는 날 보라색 원, 날짜 탭 시 요약 카드
 - [x] 운동 히스토리 날짜 상세 다이얼로그 — 대표 운동 뱃지, 퀘스트명·운동시간·XP·스탯 획득량 표시
+- [x] 3D OBJ 뷰어 테스트 탭 — OpenGL ES 2.0, 드래그 회전, 100MB 대용량 파일 대응 서브샘플링
 
 ---
 
@@ -952,6 +1009,8 @@ users/{firebaseUid}
 ## Git 커밋 히스토리
 
 ```
+(Phase 40 커밋: 3D OBJ 뷰어 테스트 탭 — assets/ 이동, ObjParser 2패스 재작성, OOM 수정)
+4a9a783 docs: HandOFF.md 업데이트 — Phase 39 반영 (달력 UI + 스탯 획득량)
 04bafce feat: 프로필 운동 히스토리 → 달력 UI + 스탯 획득량 표시
 cbcd550 docs: HandOFF.md 업데이트 — Phase 35~38 반영 (뽑기 티켓, 퀘스트 확장, UI 개선, 홈/프로필 기능)
 88dd542 feat: 홈 보스 진행률 + 프로필 직업 배율 안내 + 주간 운동 그래프
