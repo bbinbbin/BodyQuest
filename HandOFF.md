@@ -850,7 +850,7 @@ users/{firebaseUid}
 11. ~~**보스 진행 데이터 미동기화**~~ — **Phase 24에서 해결**. `bossProgress` 서브컬렉션으로 Firestore 동기화 완료.
 12. ~~**보스 등급 재클리어 시 덮어쓰기**~~ — **Phase 25에서 해결**. 최고 등급 보존 로직 추가 (S > A > B 비교).
 13. ~~**스킨 뽑기 확률**~~ — **Phase 32에서 해결**. `ALL_SKINS.random()` 균일 확률로 15개 중 선택.
-14. **Firestore 보안 규칙** — `inventory/{skinId}` 서브컬렉션 규칙 추가 필요 (현재 미적용 시 push/pull 실패 가능)
+14. ~~**Firestore 보안 규칙**~~ — **Phase 34 이후 해결**. `inventory/{skinId}` 서브컬렉션 보안 규칙 Firebase Console에서 추가 완료 (2026-04-03).
 15. **스킨 착용 미구현** — `UserEntity.equippedSkinId`(DB v12) 및 `UserDao.updateEquippedSkin()` 이미 준비됨. InventoryScreen 장착 버튼은 "구현 중" 다이얼로그만 표시. 착용 후 아바타 표시 방식 결정 후 구현 필요.
 16. **SkinItem.drawableRes 제거** — Phase 32에서 이미지 방식 포기. 혹시 ALL_SKINS를 Room/Firestore에서 skinId로 참조하는 기존 데이터가 있으면 id만 저장되어 있으므로 호환 문제 없음. 스킨 id 변경 시 기존 인벤토리 데이터 orphan 주의.
 

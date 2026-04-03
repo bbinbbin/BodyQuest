@@ -41,7 +41,8 @@ class SyncManager @Inject constructor(
                     xp = cloudUser.xp,
                     level = cloudUser.level,
                     profileImageUrl = cloudUser.profileImageUrl,
-                    updatedAt = cloudUser.updatedAt
+                    updatedAt = cloudUser.updatedAt,
+                    gachaTickets = cloudUser.gachaTickets
                 )
                 userDao.updateUser(updated)
                 pullWorkoutsFromCloud(firebaseUid, localUser.id)

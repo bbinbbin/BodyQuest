@@ -259,7 +259,11 @@ private fun BossContent(
         }
 
         state.challengeResult?.let { result ->
-            ChallengeResultDialog(result = result, onDismiss = onDismissResult)
+            if (result.success && result.ticketsEarned > 0) {
+                TicketRewardDialog(ticketsEarned = result.ticketsEarned, onDismiss = onDismissResult)
+            } else {
+                ChallengeResultDialog(result = result, onDismiss = onDismissResult)
+            }
         }
     }
 }
@@ -670,6 +674,45 @@ private fun ChallengeResultDialog(result: BossResult, onDismiss: () -> Unit) {
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
                     )
                 }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("확인", color = NeonPurple)
+            }
+        }
+    )
+}
+
+@Composable
+private fun TicketRewardDialog(ticketsEarned: Int, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = DarkSurface,
+        title = {
+            Text(
+                text = "보상 획득",
+                style = MaterialTheme.typography.titleMedium,
+                color = XpGold
+            )
+        },
+        text = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                Text(text = "🎫", fontSize = 48.sp)
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "뽑기 티켓 +$ticketsEarned",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = XpGold
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "아바타 탭에서 스킨 뽑기에 사용할 수 있습니다.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextMuted,
+                    textAlign = TextAlign.Center
+                )
             }
         },
         confirmButton = {

@@ -40,6 +40,9 @@ abstract class UserDao {
     @Query("UPDATE users SET equippedSkinId = :skinId WHERE firebaseUid = :uid")
     abstract suspend fun updateEquippedSkin(uid: String, skinId: String?)
 
+    @Query("UPDATE users SET gachaTickets = :tickets, updatedAt = :updatedAt WHERE firebaseUid = :uid")
+    abstract suspend fun updateGachaTickets(uid: String, tickets: Int, updatedAt: Long)
+
     @Transaction
     open suspend fun applyWorkoutRewards(
         userId: Long,

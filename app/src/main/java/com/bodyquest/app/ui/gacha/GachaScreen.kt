@@ -46,6 +46,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.collectAsState
 import com.bodyquest.app.domain.model.ALL_SKINS
 import com.bodyquest.app.domain.model.SkinItem
 import com.bodyquest.app.ui.theme.DarkBackground
@@ -62,6 +63,7 @@ private enum class GachaPhase { IDLE, SPINNING, REVEALED }
 
 @Composable
 fun GachaScreen(viewModel: GachaViewModel, onBack: () -> Unit) {
+    val ticketCount by viewModel.ticketCount.collectAsState()
     var phase by remember { mutableStateOf(GachaPhase.IDLE) }
     var showFlash by remember { mutableStateOf(false) }
     var revealVisible by remember { mutableStateOf(false) }
@@ -116,7 +118,14 @@ fun GachaScreen(viewModel: GachaViewModel, onBack: () -> Unit) {
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary
                     )
-                    Spacer(Modifier.height(40.dp))
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = "🎫 보유 티켓: ${ticketCount}장",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = if (ticketCount > 0) XpGold else TextMuted
+                    )
+                    Spacer(Modifier.height(28.dp))
                 }
             }
 
@@ -134,18 +143,24 @@ fun GachaScreen(viewModel: GachaViewModel, onBack: () -> Unit) {
                 GachaPhase.IDLE -> {
                     Button(
                         onClick = {
-                            drawnSkin = ALL_SKINS.random()
-                            phase = GachaPhase.SPINNING
-                            animTrigger++
+                            if (viewModel.consumeTicket()) {
+                                drawnSkin = ALL_SKINS.random()
+                                phase = GachaPhase.SPINNING
+                                animTrigger++
+                            }
                         },
+                        enabled = ticketCount > 0,
                         modifier = Modifier
                             .fillMaxWidth(0.65f)
                             .height(52.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = NeonPurple),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = NeonPurple,
+                            disabledContainerColor = NeonPurple.copy(alpha = 0.3f)
+                        ),
                         shape = RoundedCornerShape(14.dp)
                     ) {
                         Text(
-                            text = "✨ 뽑기",
+                            text = if (ticketCount > 0) "✨ 뽑기 (1장 사용)" else "티켓이 없습니다",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )

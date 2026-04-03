@@ -20,5 +20,6 @@ data class UserEntity(
     val authProvider: String? = null,  // "EMAIL" | "GOOGLE"
     val profileImageUrl: String? = null,
     val updatedAt: Long = System.currentTimeMillis(),
-    val equippedSkinId: String? = null
+    val equippedSkinId: String? = null,
+    val gachaTickets: Int = 0
 )

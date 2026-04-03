@@ -16,9 +16,10 @@ class LocalBossRepository(
     override fun getProgressForUser(userId: String): Flow<List<BossProgressEntity>> =
         bossProgressDao.getProgressForUser(userId)
 
-    override suspend fun recordClear(userId: String, bossId: Int, performance: String): String {
+    override suspend fun recordClear(userId: String, bossId: Int, performance: String): ClearResult {
         val existing = bossProgressDao.getProgress(userId, bossId)
-        val bestPerformance = if (existing != null) {
+        val previousPerformance = existing?.performance?.ifEmpty { null }
+        val bestPerformance = if (existing != null && existing.performance.isNotEmpty()) {
             betterPerformance(existing.performance, performance)
         } else {
             performance
@@ -31,7 +32,7 @@ class LocalBossRepository(
                 performance = bestPerformance
             )
         )
-        return bestPerformance
+        return ClearResult(previousPerformance, bestPerformance)
     }
 
     private fun performanceRank(performance: String): Int = when (performance) {

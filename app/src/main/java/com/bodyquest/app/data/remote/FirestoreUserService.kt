@@ -59,7 +59,8 @@ class FirestoreUserService @Inject constructor(
             "email" to user.email,
             "authProvider" to user.authProvider,
             "profileImageUrl" to user.profileImageUrl,
-            "equippedSkinId" to user.equippedSkinId
+            "equippedSkinId" to user.equippedSkinId,
+            "gachaTickets" to user.gachaTickets
         )
         firestore.collection("users").document(uid).set(data).await()
     }
@@ -82,7 +83,8 @@ class FirestoreUserService @Inject constructor(
             authProvider = doc.getString("authProvider"),
             profileImageUrl = doc.getString("profileImageUrl"),
             updatedAt = doc.getLong("updatedAt") ?: 0,
-            equippedSkinId = doc.getString("equippedSkinId")
+            equippedSkinId = doc.getString("equippedSkinId"),
+            gachaTickets = (doc.getLong("gachaTickets") ?: 0).toInt()
         )
     }
 

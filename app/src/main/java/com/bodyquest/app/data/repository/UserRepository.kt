@@ -19,4 +19,5 @@ interface UserRepository {
     suspend fun deleteUserByFirebaseUid(uid: String)
     suspend fun updateProfileImageUrl(firebaseUid: String, url: String)
     suspend fun updateEquippedSkin(firebaseUid: String, skinId: String?)
+    suspend fun updateGachaTickets(firebaseUid: String, tickets: Int)
 }

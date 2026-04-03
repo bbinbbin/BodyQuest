@@ -182,18 +182,34 @@ class BossViewModel @Inject constructor(
         val result = current.battleResult ?: return
 
         viewModelScope.launch {
+            var ticketsEarned = 0
             if (result.success) {
                 val uid = authRepository.currentUserId
                 if (uid != null) {
-                    val bestPerformance = bossRepository.recordClear(uid, result.bossId, result.performance)
-                    // Push to Firestore
+                    val clearResult = bossRepository.recordClear(uid, result.bossId, result.performance)
+
+                    // 등급별 티켓 지급 (S=3, A=2, B=1), 재도전 시 차이분만 추가
+                    val newTickets = performanceToTickets(clearResult.bestPerformance)
+                    val oldTickets = clearResult.previousPerformance?.let { performanceToTickets(it) } ?: 0
+                    ticketsEarned = maxOf(0, newTickets - oldTickets)
+
+                    if (ticketsEarned > 0) {
+                        val user = userRepository.getUserOnce(uid)
+                        if (user != null) {
+                            userRepository.updateGachaTickets(uid, user.gachaTickets + ticketsEarned)
+                            val updatedUser = userRepository.getUserOnce(uid)
+                            if (updatedUser != null) syncManager.pushUserToCloud(updatedUser)
+                        }
+                    }
+
+                    // Push boss progress to Firestore
                     syncManager.pushBossProgressToCloud(
                         uid,
                         BossProgressEntity(
                             bossId = result.bossId,
                             userId = uid,
                             isCleared = true,
-                            performance = bestPerformance
+                            performance = clearResult.bestPerformance
                         )
                     )
                 }
@@ -206,10 +222,19 @@ class BossViewModel @Inject constructor(
                     isBattleComplete = false,
                     battleLogs = emptyList(),
                     battleResult = null,
-                    challengeResult = if (result.success) null else result
+                    challengeResult = if (result.success) {
+                        if (ticketsEarned > 0) result.copy(ticketsEarned = ticketsEarned) else null
+                    } else result
                 )
             )
         }
+    }
+
+    private fun performanceToTickets(performance: String): Int = when (performance) {
+        "압도적인 승리" -> 3  // S
+        "안정적인 승리" -> 2  // A
+        "간신히 승리"   -> 1  // B
+        else            -> 0
     }
 
     fun dismissResult() {
