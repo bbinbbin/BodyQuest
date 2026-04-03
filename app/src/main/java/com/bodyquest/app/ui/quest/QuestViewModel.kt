@@ -46,7 +46,7 @@ class QuestViewModel @Inject constructor(
                     )
                 )
             } catch (e: Exception) {
-                _uiState.value = UiState.Error(e.message ?: "퀘스트를 불러올 수 없습니다")
+                _uiState.value = UiState.Error(e.message ?: "퀘스트를 불러올 수 없습니다.")
             }
         }
     }
@@ -67,7 +67,7 @@ class QuestViewModel @Inject constructor(
                         _uiState.value = UiState.Success(state.copy(quests = quests))
                     }
             } catch (e: Exception) {
-                _uiState.value = UiState.Error(e.message ?: "퀘스트를 불러올 수 없습니다")
+                _uiState.value = UiState.Error(e.message ?: "퀘스트를 불러올 수 없습니다.")
             }
         }
     }

@@ -417,7 +417,7 @@ private suspend fun launchGoogleSignIn(context: android.content.Context, viewMod
         // User cancelled
     } catch (e: Exception) {
         Log.e("LoginScreen", "Google Sign-In failed", e)
-        viewModel.signInWithGoogleError(e.message ?: "Google 로그인에 실패했습니다")
+        viewModel.signInWithGoogleError(e.message ?: "Google 로그인에 실패했습니다.")
     }
 }
 

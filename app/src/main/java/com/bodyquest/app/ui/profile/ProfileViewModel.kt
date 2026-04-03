@@ -80,7 +80,7 @@ class ProfileViewModel @Inject constructor(
             try {
                 val firebaseUid = authRepository.currentUserId
                 if (firebaseUid == null) {
-                    _uiState.value = UiState.Error("로그인이 필요합니다")
+                    _uiState.value = UiState.Error("로그인이 필요합니다.")
                     return@launch
                 }
 
@@ -103,7 +103,7 @@ class ProfileViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                _uiState.value = UiState.Error(e.message ?: "데이터를 불러올 수 없습니다")
+                _uiState.value = UiState.Error(e.message ?: "데이터를 불러올 수 없습니다.")
             }
         }
     }
@@ -175,12 +175,12 @@ class ProfileViewModel @Inject constructor(
                     _deleteState.value = DeleteState.Success
                 } else {
                     _deleteState.value = DeleteState.Error(
-                        result.exceptionOrNull()?.message ?: "계정 삭제에 실패했습니다"
+                        result.exceptionOrNull()?.message ?: "계정 삭제에 실패했습니다."
                     )
                 }
             } catch (e: Exception) {
                 _deleteState.value = DeleteState.Error(
-                    e.message ?: "계정 삭제에 실패했습니다"
+                    e.message ?: "계정 삭제에 실패했습니다."
                 )
             }
         }

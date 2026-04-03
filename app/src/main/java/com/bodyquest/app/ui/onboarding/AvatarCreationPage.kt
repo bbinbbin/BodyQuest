@@ -52,13 +52,13 @@ fun AvatarCreationPage(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "캐릭터를 만들어보세요",
+            text = "캐릭터를 만들어보세요.",
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "닉네임과 아바타를 선택하세요",
+            text = "닉네임과 아바타를 선택하세요.",
             style = MaterialTheme.typography.bodyMedium,
             color = TextSecondary
         )

@@ -51,7 +51,7 @@ fun ErrorScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "오류가 발생했습니다",
+            text = "오류가 발생했습니다.",
             style = MaterialTheme.typography.titleMedium,
             color = NeonRed
         )

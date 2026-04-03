@@ -119,7 +119,7 @@ fun QuestTreeScreen(
         when (state.treeLevel) {
             TreeLevel.BODY_PART -> {
                 Text(
-                    text = "운동 부위를 선택하세요",
+                    text = "운동 부위를 선택하세요.",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground
                 )
@@ -156,7 +156,7 @@ fun QuestTreeScreen(
 
             TreeLevel.QUEST_LIST -> {
                 Text(
-                    text = "퀘스트를 선택하세요",
+                    text = "퀘스트를 선택하세요.",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground
                 )

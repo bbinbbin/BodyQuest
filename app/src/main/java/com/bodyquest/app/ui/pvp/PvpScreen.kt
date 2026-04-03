@@ -43,7 +43,7 @@ fun PvpScreen() {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "다른 모험가와 스탯으로 대결!",
+            text = "다른 모험가와 스탯으로 대결.",
             style = MaterialTheme.typography.bodyMedium,
             color = TextSecondary
         )

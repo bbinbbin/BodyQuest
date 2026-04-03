@@ -69,7 +69,7 @@ fun SplashScreen(
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            text = "운동을 퀘스트로, 몸을 레전드로",
+            text = "운동을 퀘스트로, 몸을 레전드로.",
             style = MaterialTheme.typography.titleMedium,
             color = TextSecondary,
             textAlign = TextAlign.Center

@@ -25,7 +25,7 @@ class FirebaseAuthRepository @Inject constructor(
     override suspend fun signInWithEmail(email: String, password: String): AuthResult {
         return try {
             val result = firebaseAuth.signInWithEmailAndPassword(email, password).await()
-            val user = result.user ?: return AuthResult.Error("로그인에 실패했습니다")
+            val user = result.user ?: return AuthResult.Error("로그인에 실패했습니다.")
             AuthResult.Success(uid = user.uid, email = user.email, isNewUser = false)
         } catch (e: Exception) {
             AuthResult.Error(mapFirebaseError(e))
@@ -35,7 +35,7 @@ class FirebaseAuthRepository @Inject constructor(
     override suspend fun signUpWithEmail(email: String, password: String): AuthResult {
         return try {
             val result = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
-            val user = result.user ?: return AuthResult.Error("회원가입에 실패했습니다")
+            val user = result.user ?: return AuthResult.Error("회원가입에 실패했습니다.")
             AuthResult.Success(uid = user.uid, email = user.email, isNewUser = true)
         } catch (e: Exception) {
             AuthResult.Error(mapFirebaseError(e))
@@ -46,7 +46,7 @@ class FirebaseAuthRepository @Inject constructor(
         return try {
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             val result = firebaseAuth.signInWithCredential(credential).await()
-            val user = result.user ?: return AuthResult.Error("Google 로그인에 실패했습니다")
+            val user = result.user ?: return AuthResult.Error("Google 로그인에 실패했습니다.")
             val isNew = result.additionalUserInfo?.isNewUser ?: false
             AuthResult.Success(uid = user.uid, email = user.email, isNewUser = isNew)
         } catch (e: Exception) {

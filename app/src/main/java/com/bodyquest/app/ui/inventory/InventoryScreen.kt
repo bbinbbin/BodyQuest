@@ -143,13 +143,13 @@ fun InventoryScreen(viewModel: InventoryViewModel, onBack: () -> Unit) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(text = "🎁", fontSize = 48.sp)
                     Text(
-                        text = "아직 획득한 스킨이 없습니다",
+                        text = "아직 획득한 스킨이 없습니다.",
                         style = MaterialTheme.typography.bodyLarge,
                         color = TextMuted,
                         modifier = Modifier.padding(top = 12.dp)
                     )
                     Text(
-                        text = "스킨 뽑기로 스킨을 획득해보세요!",
+                        text = "스킨 뽑기로 스킨을 획득해보세요.",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextMuted,
                         modifier = Modifier.padding(top = 4.dp)

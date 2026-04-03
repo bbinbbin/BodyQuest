@@ -69,14 +69,14 @@ fun JobSelectionPage(
     ) {
         // 상단 타이틀
         Text(
-            text = "당신의 성장 방식을 선택하세요",
+            text = "당신의 성장 방식을 선택하세요.",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = "운동 스타일에 따라 성장 방향이 달라집니다",
+            text = "운동 스타일에 따라 성장 방향이 달라집니다.",
             style = MaterialTheme.typography.bodyMedium,
             color = TextSecondary
         )
@@ -194,7 +194,7 @@ fun JobSelectionPage(
 
         // 하단 안내 문구
         Text(
-            text = "직업은 이후에도 변경할 수 있습니다",
+            text = "직업은 이후에도 변경할 수 있습니다.",
             style = MaterialTheme.typography.labelSmall,
             color = TextMuted
         )

@@ -78,7 +78,7 @@ class HomeViewModel @Inject constructor(
             try {
                 val uid = authRepository.currentUserId
                 if (uid == null) {
-                    _uiState.value = UiState.Error("로그인이 필요합니다")
+                    _uiState.value = UiState.Error("로그인이 필요합니다.")
                     return@launch
                 }
                 userRepository.getUser(uid).collectLatest { user ->
@@ -98,7 +98,7 @@ class HomeViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                _uiState.value = UiState.Error(e.message ?: "데이터를 불러올 수 없습니다")
+                _uiState.value = UiState.Error(e.message ?: "데이터를 불러올 수 없습니다.")
             }
         }
     }

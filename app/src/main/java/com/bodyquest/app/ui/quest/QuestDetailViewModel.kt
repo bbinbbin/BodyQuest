@@ -27,10 +27,10 @@ class QuestDetailViewModel @Inject constructor(
                 if (quest != null) {
                     _uiState.value = UiState.Success(quest)
                 } else {
-                    _uiState.value = UiState.Error("퀘스트를 찾을 수 없습니다")
+                    _uiState.value = UiState.Error("퀘스트를 찾을 수 없습니다.")
                 }
             } catch (e: Exception) {
-                _uiState.value = UiState.Error(e.message ?: "퀘스트를 불러올 수 없습니다")
+                _uiState.value = UiState.Error(e.message ?: "퀘스트를 불러올 수 없습니다.")
             }
         }
     }

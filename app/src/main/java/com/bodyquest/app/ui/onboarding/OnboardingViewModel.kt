@@ -81,7 +81,7 @@ class OnboardingViewModel @Inject constructor(
                 if (taken) {
                     _state.value = _state.value.copy(
                         isSaving = false,
-                        nicknameError = "이미 사용 중인 닉네임입니다"
+                        nicknameError = "이미 사용 중인 닉네임입니다."
                     )
                     return@launch
                 }
@@ -112,7 +112,7 @@ class OnboardingViewModel @Inject constructor(
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
                     isSaving = false,
-                    error = e.message ?: "프로필 생성에 실패했습니다"
+                    error = e.message ?: "프로필 생성에 실패했습니다."
                 )
             }
         }

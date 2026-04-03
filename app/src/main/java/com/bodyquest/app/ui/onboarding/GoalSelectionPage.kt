@@ -36,7 +36,7 @@ fun GoalSelectionPage(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "목표를 선택하세요",
+            text = "목표를 선택하세요.",
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onBackground
         )

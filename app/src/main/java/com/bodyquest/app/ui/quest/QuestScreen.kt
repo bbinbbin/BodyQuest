@@ -74,7 +74,7 @@ fun QuestScreen(
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "운동 종류를 선택하세요",
+            text = "운동 종류를 선택하세요.",
             style = MaterialTheme.typography.bodyMedium,
             color = TextSecondary
         )

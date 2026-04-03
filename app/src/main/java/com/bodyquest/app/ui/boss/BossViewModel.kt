@@ -64,7 +64,7 @@ class BossViewModel @Inject constructor(
             try {
                 val uid = authRepository.currentUserId
                 if (uid == null) {
-                    _uiState.value = UiState.Error("로그인이 필요합니다")
+                    _uiState.value = UiState.Error("로그인이 필요합니다.")
                     return@launch
                 }
                 val user = userRepository.getUserOnce(uid)
@@ -81,7 +81,7 @@ class BossViewModel @Inject constructor(
                     _uiState.value = UiState.Success(newState)
                 }
             } catch (e: Exception) {
-                _uiState.value = UiState.Error(e.message ?: "보스 데이터를 불러올 수 없습니다")
+                _uiState.value = UiState.Error(e.message ?: "보스 데이터를 불러올 수 없습니다.")
             }
         }
     }
