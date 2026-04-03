@@ -42,6 +42,13 @@ val seedQuests = listOf(
         difficulty = 2, durationMinutes = 30, sets = 4, repsPerSet = 10,
         xpReward = 60, statType = "STRENGTH", statReward = 4
     ),
+    QuestEntity(
+        id = "str_back_advanced",
+        category = "STRENGTH", bodyPart = "등", specificArea = "등 전체",
+        name = "등 고급 루틴", description = "데드리프트 + 턱걸이 + 시티드 로우",
+        difficulty = 3, durationMinutes = 45, sets = 5, repsPerSet = 8,
+        xpReward = 100, statType = "STRENGTH", statReward = 6
+    ),
 
     // ── STRENGTH: 하체 ──
     QuestEntity(
@@ -58,6 +65,13 @@ val seedQuests = listOf(
         difficulty = 2, durationMinutes = 35, sets = 4, repsPerSet = 10,
         xpReward = 60, statType = "STRENGTH", statReward = 4
     ),
+    QuestEntity(
+        id = "str_legs_advanced",
+        category = "STRENGTH", bodyPart = "하체", specificArea = "하체 전체",
+        name = "하체 고급 루틴", description = "고중량 스쿼트 + 런지 + 레그컬",
+        difficulty = 3, durationMinutes = 50, sets = 5, repsPerSet = 8,
+        xpReward = 100, statType = "STRENGTH", statReward = 6
+    ),
 
     // ── STRENGTH: 어깨 ──
     QuestEntity(
@@ -67,6 +81,20 @@ val seedQuests = listOf(
         difficulty = 1, durationMinutes = 15, sets = 3, repsPerSet = 12,
         xpReward = 30, statType = "STRENGTH", statReward = 2
     ),
+    QuestEntity(
+        id = "str_shoulder_intermediate",
+        category = "STRENGTH", bodyPart = "어깨", specificArea = "어깨 전체",
+        name = "어깨 중급 루틴", description = "오버헤드 프레스 + 사이드 레터럴 레이즈",
+        difficulty = 2, durationMinutes = 30, sets = 4, repsPerSet = 10,
+        xpReward = 60, statType = "STRENGTH", statReward = 4
+    ),
+    QuestEntity(
+        id = "str_shoulder_advanced",
+        category = "STRENGTH", bodyPart = "어깨", specificArea = "어깨 전체",
+        name = "어깨 고급 루틴", description = "밀리터리 프레스 + 페이스풀 + 슈러그",
+        difficulty = 3, durationMinutes = 45, sets = 5, repsPerSet = 8,
+        xpReward = 100, statType = "STRENGTH", statReward = 6
+    ),
 
     // ── STRENGTH: 팔 ──
     QuestEntity(
@@ -75,6 +103,43 @@ val seedQuests = listOf(
         name = "팔 기초 루틴", description = "바이셉 컬 + 트라이셉 익스텐션",
         difficulty = 1, durationMinutes = 15, sets = 3, repsPerSet = 12,
         xpReward = 30, statType = "STRENGTH", statReward = 2
+    ),
+    QuestEntity(
+        id = "str_arms_intermediate",
+        category = "STRENGTH", bodyPart = "팔", specificArea = "팔 전체",
+        name = "팔 중급 루틴", description = "해머 컬 + 스컬크러셔 + 딥스",
+        difficulty = 2, durationMinutes = 30, sets = 4, repsPerSet = 10,
+        xpReward = 60, statType = "STRENGTH", statReward = 4
+    ),
+    QuestEntity(
+        id = "str_arms_advanced",
+        category = "STRENGTH", bodyPart = "팔", specificArea = "팔 전체",
+        name = "팔 고급 루틴", description = "바벨 컬 + 클로즈그립 벤치 + 케이블 컬",
+        difficulty = 3, durationMinutes = 40, sets = 5, repsPerSet = 8,
+        xpReward = 100, statType = "STRENGTH", statReward = 6
+    ),
+
+    // ── STRENGTH: 코어 ──
+    QuestEntity(
+        id = "str_core_beginner",
+        category = "STRENGTH", bodyPart = "코어", specificArea = "복근 전체",
+        name = "코어 기초 루틴", description = "크런치 + 플랭크 기초",
+        difficulty = 1, durationMinutes = 15, sets = 3, repsPerSet = 15,
+        xpReward = 30, statType = "STRENGTH", statReward = 2
+    ),
+    QuestEntity(
+        id = "str_core_intermediate",
+        category = "STRENGTH", bodyPart = "코어", specificArea = "복근 전체",
+        name = "코어 중급 루틴", description = "레그레이즈 + 사이드 플랭크 + 마운틴클라이머",
+        difficulty = 2, durationMinutes = 25, sets = 4, repsPerSet = 12,
+        xpReward = 60, statType = "STRENGTH", statReward = 4
+    ),
+    QuestEntity(
+        id = "str_core_advanced",
+        category = "STRENGTH", bodyPart = "코어", specificArea = "복근 전체",
+        name = "코어 고급 루틴", description = "행잉 레그레이즈 + 드래곤 플래그 + Ab 롤아웃",
+        difficulty = 3, durationMinutes = 35, sets = 5, repsPerSet = 10,
+        xpReward = 100, statType = "STRENGTH", statReward = 6
     ),
 
     // ── ENDURANCE ──
@@ -112,6 +177,98 @@ val seedQuests = listOf(
         name = "사이클링", description = "30분 자전거 타기",
         difficulty = 2, durationMinutes = 30, sets = 1, repsPerSet = 0,
         xpReward = 50, statType = "ENDURANCE", statReward = 4
+    ),
+
+    // ── ENDURANCE: 줄넘기 ──
+    QuestEntity(
+        id = "end_jumprope_beginner",
+        category = "ENDURANCE", bodyPart = "줄넘기", specificArea = null,
+        name = "줄넘기 기초", description = "기본 줄넘기 10분",
+        difficulty = 1, durationMinutes = 10, sets = 3, repsPerSet = 100,
+        xpReward = 30, statType = "ENDURANCE", statReward = 2
+    ),
+    QuestEntity(
+        id = "end_jumprope_intermediate",
+        category = "ENDURANCE", bodyPart = "줄넘기", specificArea = null,
+        name = "줄넘기 인터벌", description = "더블언더 + 일반 줄넘기 교차 반복",
+        difficulty = 2, durationMinutes = 20, sets = 5, repsPerSet = 80,
+        xpReward = 60, statType = "ENDURANCE", statReward = 4
+    ),
+    QuestEntity(
+        id = "end_jumprope_advanced",
+        category = "ENDURANCE", bodyPart = "줄넘기", specificArea = null,
+        name = "줄넘기 고강도", description = "더블언더 + 크로스오버 + 스프린트 줄넘기",
+        difficulty = 3, durationMinutes = 30, sets = 6, repsPerSet = 100,
+        xpReward = 100, statType = "ENDURANCE", statReward = 6
+    ),
+
+    // ── BALANCE: 요가 ──
+    QuestEntity(
+        id = "bal_yoga_beginner",
+        category = "BALANCE", bodyPart = "요가", specificArea = null,
+        name = "입문 요가", description = "기본 자세와 호흡법 익히기",
+        difficulty = 1, durationMinutes = 20, sets = 1, repsPerSet = 0,
+        xpReward = 30, statType = "ENDURANCE", statReward = 2
+    ),
+    QuestEntity(
+        id = "bal_yoga_intermediate",
+        category = "BALANCE", bodyPart = "요가", specificArea = null,
+        name = "빈야사 요가", description = "흐름을 따라 연결되는 동적 요가",
+        difficulty = 2, durationMinutes = 40, sets = 1, repsPerSet = 0,
+        xpReward = 60, statType = "ENDURANCE", statReward = 4
+    ),
+    QuestEntity(
+        id = "bal_yoga_advanced",
+        category = "BALANCE", bodyPart = "요가", specificArea = null,
+        name = "파워 요가", description = "고강도 체중 지탱 자세 중심 요가",
+        difficulty = 3, durationMinutes = 60, sets = 1, repsPerSet = 0,
+        xpReward = 100, statType = "ENDURANCE", statReward = 6
+    ),
+
+    // ── BALANCE: 스트레칭 ──
+    QuestEntity(
+        id = "bal_stretch_beginner",
+        category = "BALANCE", bodyPart = "스트레칭", specificArea = null,
+        name = "기본 스트레칭", description = "전신 정적 스트레칭",
+        difficulty = 1, durationMinutes = 15, sets = 1, repsPerSet = 0,
+        xpReward = 20, statType = "ENDURANCE", statReward = 2
+    ),
+    QuestEntity(
+        id = "bal_stretch_intermediate",
+        category = "BALANCE", bodyPart = "스트레칭", specificArea = null,
+        name = "동적 스트레칭", description = "관절 가동 범위를 넓히는 동적 스트레칭",
+        difficulty = 2, durationMinutes = 25, sets = 1, repsPerSet = 0,
+        xpReward = 50, statType = "ENDURANCE", statReward = 4
+    ),
+    QuestEntity(
+        id = "bal_stretch_advanced",
+        category = "BALANCE", bodyPart = "스트레칭", specificArea = null,
+        name = "딥 스트레칭", description = "유연성 한계를 넓히는 고급 스트레칭",
+        difficulty = 3, durationMinutes = 40, sets = 1, repsPerSet = 0,
+        xpReward = 80, statType = "ENDURANCE", statReward = 6
+    ),
+
+    // ── BALANCE: 필라테스 ──
+    QuestEntity(
+        id = "bal_pilates_beginner",
+        category = "BALANCE", bodyPart = "필라테스", specificArea = null,
+        name = "입문 필라테스", description = "코어 안정화 중심 기초 필라테스",
+        difficulty = 1, durationMinutes = 20, sets = 1, repsPerSet = 0,
+        xpReward = 30, statType = "STRENGTH", statReward = 2
+    ),
+    QuestEntity(
+        id = "bal_pilates_intermediate",
+        category = "BALANCE", bodyPart = "필라테스", specificArea = null,
+        name = "중급 필라테스", description = "밸런스 + 코어 강화 필라테스",
+        difficulty = 2, durationMinutes = 35, sets = 1, repsPerSet = 0,
+        xpReward = 60, statType = "STRENGTH", statReward = 4
+    ),
+    QuestEntity(
+        id = "bal_pilates_advanced",
+        category = "BALANCE", bodyPart = "필라테스", specificArea = null,
+        name = "고급 필라테스", description = "고난이도 코어 + 전신 밸런스 필라테스",
+        difficulty = 3, durationMinutes = 50, sets = 1, repsPerSet = 0,
+        xpReward = 100, statType = "STRENGTH", statReward = 6
     ),
 )
 

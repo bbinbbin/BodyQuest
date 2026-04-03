@@ -235,7 +235,7 @@ abstract class BodyQuestDatabase : RoomDatabase() {
                             val questCursor = db.query("SELECT COUNT(*) FROM quests")
                             val questCount = if (questCursor.moveToFirst()) questCursor.getInt(0) else 0
                             questCursor.close()
-                            if (questCount == 0) insertSeedQuests(db)
+                            if (questCount < seedQuests.size) insertSeedQuests(db)
 
                             val bossCursor = db.query("SELECT COUNT(*) FROM bosses")
                             val bossCount = if (bossCursor.moveToFirst()) bossCursor.getInt(0) else 0

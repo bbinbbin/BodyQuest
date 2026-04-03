@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bodyquest.app.ui.theme.NeonBlue
+import com.bodyquest.app.ui.theme.NeonGreen
 import com.bodyquest.app.ui.theme.NeonRed
 import com.bodyquest.app.ui.theme.TextSecondary
 
@@ -42,9 +43,16 @@ private val workoutTypes = listOf(
     WorkoutType(
         category = "ENDURANCE",
         displayName = "유산소운동",
-        description = "러닝, 사이클 등 유산소 위주\n심폐 지구력 향상",
+        description = "러닝, 사이클, 줄넘기 등\n심폐 지구력 향상",
         icon = "🏃",
         color = NeonBlue
+    ),
+    WorkoutType(
+        category = "BALANCE",
+        displayName = "균형운동",
+        description = "요가, 스트레칭, 필라테스\n유연성과 균형감각 향상",
+        icon = "🧘",
+        color = NeonGreen
     )
 )
 
