@@ -31,7 +31,11 @@ import com.bodyquest.app.ui.common.ErrorScreen
 import com.bodyquest.app.ui.common.LoadingScreen
 import com.bodyquest.app.ui.common.UiState
 import com.bodyquest.app.ui.theme.DarkSurfaceVariant
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import com.bodyquest.app.ui.theme.NeonBlue
+import com.bodyquest.app.ui.theme.NeonGreen
 import com.bodyquest.app.ui.theme.NeonPurple
 import com.bodyquest.app.ui.theme.NeonRed
 import com.bodyquest.app.ui.theme.TextMuted
@@ -65,6 +69,7 @@ fun QuestTreeScreen(
     val state = (uiState as UiState.Success).data
     val (categoryDisplayName, categoryColor) = when (category) {
         "ENDURANCE" -> "유산소운동" to NeonBlue
+        "BALANCE" -> "균형운동" to NeonGreen
         else -> "근력운동" to NeonRed
     }
 
@@ -206,27 +211,21 @@ fun QuestTreeScreen(
                                 color = TextSecondary
                             )
                             Spacer(modifier = Modifier.height(8.dp))
-                            Row {
-                                Text(
-                                    text = "${quest.durationMinutes}분",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = TextMuted
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                if (quest.sets > 1) {
-                                    Text(
-                                        text = "${quest.sets}세트 x ${quest.repsPerSet}회",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = TextMuted
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                }
-                                Text(
-                                    text = "+${quest.xpReward} XP",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = NeonPurple
-                                )
-                            }
+                            Text(
+                                text = buildAnnotatedString {
+                                    withStyle(SpanStyle(color = TextMuted)) {
+                                        append("${quest.durationMinutes}분")
+                                        if (quest.sets > 1) {
+                                            append(" · ${quest.sets}세트 x ${quest.repsPerSet}회")
+                                        }
+                                        append(" · ")
+                                    }
+                                    withStyle(SpanStyle(color = NeonPurple)) {
+                                        append("+ ${quest.xpReward} XP")
+                                    }
+                                },
+                                style = MaterialTheme.typography.labelMedium
+                            )
                         }
                     }
                 }

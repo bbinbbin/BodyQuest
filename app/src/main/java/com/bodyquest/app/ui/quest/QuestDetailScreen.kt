@@ -136,8 +136,8 @@ fun QuestDetailScreen(
                 if (q.sets > 1) {
                     DetailRow("세트", "${q.sets}세트 x ${q.repsPerSet}회")
                 }
-                DetailRow("XP 보상", "+${q.xpReward} XP")
-                DetailRow("스탯 보상", "+${q.statReward} ${q.statType}")
+                DetailRow("XP 보상", "+ ${q.xpReward} XP")
+                DetailRow("스탯 보상", "+ ${q.statReward} ${q.statType}")
             }
         }
 
