@@ -257,7 +257,7 @@ fun BodyQuestNavGraph() {
                 )
             }
             composable(Screen.ModelTest.route) {
-                TestScreen()
+                TestScreen(onBack = { navController.popBackStack() })
             }
         }
     }

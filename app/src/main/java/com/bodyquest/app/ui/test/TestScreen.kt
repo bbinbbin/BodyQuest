@@ -7,7 +7,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,24 +34,39 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 @Composable
-fun TestScreen() {
+fun TestScreen(onBack: () -> Unit = {}) {
     val context = LocalContext.current
     var model by remember { mutableStateOf<ObjModel?>(null) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
+    var loadingFileName by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        val result = withContext(Dispatchers.IO) {
-            runCatching { ObjParser.parse(context, "testbear.obj") }
-        }
-        result.fold(
-            onSuccess = { m ->
-                if (m != null) model = m
-                else errorMsg = "OBJ 파싱 실패\nassets/testbear.obj 파일을 확인하세요."
-            },
-            onFailure = { e ->
-                errorMsg = "로딩 오류: ${e.message}"
+        withContext(Dispatchers.IO) {
+            val glbFile = context.assets.list("")?.firstOrNull { it.endsWith(".glb") }
+
+            if (glbFile != null) {
+                loadingFileName = glbFile
+                val glbResult = runCatching { GlbParser.parse(context, glbFile) }
+                val glbModel = glbResult.getOrNull()
+                if (glbModel != null) {
+                    model = glbModel
+                    return@withContext
+                }
             }
-        )
+
+            // GLB 없거나 파싱 실패 시 OBJ fallback
+            loadingFileName = "testbear.obj"
+            val result = runCatching { ObjParser.parse(context, "testbear.obj") }
+            result.fold(
+                onSuccess = { m ->
+                    if (m != null) model = m
+                    else errorMsg = "파싱 실패\nassets/${loadingFileName} 파일을 확인하세요."
+                },
+                onFailure = { e ->
+                    errorMsg = "로딩 오류: ${e.message}"
+                }
+            )
+        }
     }
 
     Box(
@@ -68,7 +88,7 @@ fun TestScreen() {
                 CircularProgressIndicator(color = NeonPurple)
                 Spacer(modifier = Modifier.height(14.dp))
                 Text(
-                    text = "모델 로딩 중...\n(대용량 파일은 수 초 소요될 수 있습니다)",
+                    text = "${if (loadingFileName.isNotEmpty()) "$loadingFileName\n" else ""}모델 로딩 중...\n(대용량 파일은 수 초 소요될 수 있습니다)",
                     style = MaterialTheme.typography.labelMedium,
                     color = TextMuted,
                     textAlign = TextAlign.Center
@@ -103,6 +123,20 @@ fun TestScreen() {
                     )
                 }
             }
+        }
+
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .statusBarsPadding()
+                .padding(4.dp)
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "뒤로가기",
+                tint = TextMuted
+            )
         }
     }
 }

@@ -1,7 +1,7 @@
 
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-04-03 (Phase 40: 3D OBJ 뷰어 테스트 탭 — OpenGL ES 2.0)
+> 마지막 업데이트: 2026-04-05 (Phase 41: GLB 파일 지원 + 테스트 탭 뒤로가기 버튼)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -721,6 +721,53 @@ users/{firebaseUid}
 - **퀘스트 상세 보상 표시**: `+60` → `+ 60` 공백 추가
 - **운동 카테고리 띄어쓰기**: "근력운동" → "근력 운동", "유산소운동" → "유산소 운동", "균형운동" → "균형 운동"
 
+### Phase 41: GLB 파일 지원 + 테스트 탭 뒤로가기 버튼 ✅ (2026-04-05)
+
+#### 개요
+- 기존 OBJ 전용 테스트 탭에 GLB(glTF 2.0 Binary) 파일 지원 추가
+- assets에 .glb 파일이 있으면 GLB 우선 로드, 없으면 OBJ fallback
+- 테스트 탭 좌상단 뒤로가기 버튼 추가
+
+#### GlbParser (`GlbParser.kt`)
+- 추가 라이브러리 없이 `org.json` + `java.nio.ByteBuffer`만 사용
+- **GLB 포맷 파싱 순서**:
+  1. `readBytes()` → `ByteBuffer(LITTLE_ENDIAN)`
+  2. GLB 헤더 magic(0x46546C67) 검증
+  3. JSON chunk (0x4E4F534A) → JSONObject
+  4. BIN chunk (0x004E4942) → sliced ByteBuffer
+  5. accessors[], bufferViews[], meshes[], nodes[] 파싱
+  6. `computeWorldMatrices()`: BFS로 씬 그래프 순회 → 노드별 월드 변환 행렬 계산
+  7. 각 노드의 모든 primitive 처리 (primitive별로 INDEX 배열 분리)
+  8. 전체 AABB로 정규화
+  9. step = max(1, totalTris / 120,000) 서브샘플링
+  10. `ObjModel` 반환
+- **posCache**: 같은 POSITION accessor를 공유하는 primitive들(Nomad Sculpt 패치 구조) 처리
+  - `HashMap<posAccIdx, FloatArray>` — 월드 변환 및 AABB 갱신을 1회만 수행
+  - primitive마다 별도 INDEX 배열 → 각각 `MeshData`로 추가
+- **노드 계층**: `nodeLocalMatrix()` (matrix 배열 16개 또는 IDENTITY), `matMul4()` 4×4 column-major 행렬 곱
+- **구멍 없는 렌더링**: "삼각형 수 가장 많은 primitive만 선택" 버그 수정 → 모든 primitive 렌더링
+- **TARGET_TRIANGLES = 120,000** (ObjParser의 60,000보다 2배 — GLB는 이미 최적화된 포맷)
+
+#### TestScreen 변경 사항
+- `onBack: () -> Unit = {}` 파라미터 추가
+- `loadingFileName` 상태 변수 → 로딩 중 파일명 표시
+- **GLB 우선 로딩**: `assets.list("")?.firstOrNull { it.endsWith(".glb") }` → GlbParser → 실패 시 OBJ fallback
+- **뒤로가기 버튼**: `IconButton(Icons.AutoMirrored.Filled.ArrowBack)` → `Box`의 `when` 블록 이후에 선언 (AndroidView 위에 렌더링되도록 z-order 보장)
+- `BodyQuestNavGraph`: `TestScreen(onBack = { navController.popBackStack() })`
+
+#### 파일 구조
+```
+app/src/main/assets/           ← 모델 파일 위치 (drawable 아님!)
+  ├── testbear.obj             ← OBJ fallback용
+  └── *.glb                   ← GLB 자동 감지 (첫 번째 .glb 파일 사용)
+ui/test/
+  ├── ObjParser.kt             # OBJ 파서 (2패스, 서브샘플링)
+  ├── GlbParser.kt             # GLB 파서 (glTF 2.0 Binary)
+  ├── ModelRenderer.kt         # OpenGL ES 2.0 렌더러
+  ├── ModelGLSurfaceView.kt    # GLSurfaceView + 터치 드래그
+  └── TestScreen.kt            # Compose 화면 (GLB 우선 + 뒤로가기)
+```
+
 ### Phase 40: 3D OBJ 뷰어 테스트 탭 ✅ (2026-04-03)
 
 #### 개요
@@ -957,6 +1004,8 @@ ui/test/
 - [x] 프로필 운동 히스토리 달력 UI — 월 이동 네비게이션, 운동 있는 날 보라색 원, 날짜 탭 시 요약 카드
 - [x] 운동 히스토리 날짜 상세 다이얼로그 — 대표 운동 뱃지, 퀘스트명·운동시간·XP·스탯 획득량 표시
 - [x] 3D OBJ 뷰어 테스트 탭 — OpenGL ES 2.0, 드래그 회전, 100MB 대용량 파일 대응 서브샘플링
+- [x] GLB(glTF 2.0 Binary) 파일 지원 — assets에 .glb 있으면 우선 로드, GlbParser (org.json + ByteBuffer), Nomad Sculpt 다중 primitive/노드 계층 지원
+- [x] 테스트 탭 뒤로가기 버튼 — 좌상단 ArrowBack IconButton, AndroidView 위에 z-order 보장
 
 ---
 
