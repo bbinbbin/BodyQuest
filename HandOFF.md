@@ -1,7 +1,7 @@
 
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-04-06 (Phase 50: 코드 품질/보안 점검 + STRENGTH 개별 운동 + 세트 테이블 UI)
+> 마지막 업데이트: 2026-04-06 (Phase 51: 여성 스킨 시스템 전면 재설계 — TOP/BOTTOM 슬롯 + 결과 이미지 룩업)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -797,6 +797,97 @@ ui/test/
 - **MIGRATION_3_4 빈 마이그레이션 추가**: v3→v4 안전 경로 제공
 - **UserDao 중복 메서드 정리**: `getUserByFirebaseUid()` 제거 → `getUserOnce()`로 통합 (SyncManager, LoginViewModel 호출부 수정)
 
+### Phase 48: 여성 아바타 교체 + 여성 전용 스킨 시스템 구축 ✅ (2026-04-06)
+
+#### 아바타 변경
+- `avatar_female.png` 파일로 여성 아바타 교체 (기존 `female.png` 삭제)
+- `AvatarScreen`: `avatarIndex == 1`일 때 `R.drawable.avatar_female` 사용
+
+#### SkinItem 구조 변경
+- `SkinItem`에 `avatarFilter: Int?` 필드 추가 (`null`=공통, `0`=남성, `1`=여성)
+- 기존 텍스트 스킨 15개 전부 제거
+- 여성 전용 이미지 스킨 3종으로 교체:
+  - `skin_f_white_tshirt` — 흰색 티셔츠 (TOP)
+  - `skin_f_blue_bra` — 파란 스포츠브라 (TOP)
+  - `skin_f_yellow_pants` — 노란 트레이닝바지 (BOTTOM)
+
+#### 뽑기 풀 필터링
+- `GachaViewModel`: `avatarIndex: StateFlow<Int>` 추가 (유저 아바타 인덱스 실시간 관찰)
+- `GachaScreen`: `avatarFilter == null || avatarFilter == avatarIndex` 조건으로 스킨 풀 필터링
+- 뽑기 풀 비었을 때 크래시 방지: `skinPool.isEmpty()` 체크 후 버튼 비활성화 + 안내 문구
+
+#### 스킨 이미지 리소스
+- drawable 파일명 소문자 변환 (Android 리소스 규칙)
+- 스킨 이미지: `skin_f_*.png` (뽑기 결과 카드/인벤토리 미리보기용)
+- 결과 이미지: `result_f_*.png` (아바타 착용 상태 최종 렌더)
+
+### Phase 49: 스킨 착용 시스템 구현 ✅ (2026-04-06)
+
+#### InventoryViewModel
+- `equippedTopId: StateFlow<String?>` — TOP 슬롯 실시간 관찰
+- `equippedBottomId: StateFlow<String?>` — BOTTOM 슬롯 실시간 관찰
+- `isEquipped(skin, topId, bottomId)` — 카테고리별 장착 여부 판정
+- `equipSkin(skin)` / `unequipSkin(skin)` — 카테고리에 맞는 슬롯에 저장, Firestore push
+
+#### InventoryScreen
+- 장착 중인 스킨 카드: 보라색 2dp 테두리 + "장착중" 뱃지 + 이름 색상 강조
+- 다이얼로그: 장착 중이면 "해제하기", 아니면 "장착하기"
+- `showComingSoon` 임시 다이얼로그 제거
+
+### Phase 50: 여성 스킨 시스템 전면 재설계 — TOP/BOTTOM + 결과 이미지 룩업 (DB v15) ✅ (2026-04-06)
+
+#### 설계 변경
+- **기존**: 스킨 PNG를 아바타 위에 오버레이 (이미지 크기/배경 문제로 실패)
+- **변경**: 스킨 조합별 미리 렌더링된 결과 이미지를 룩업 테이블로 교체
+
+#### 결과 이미지 5종 (모두 1536×2754 동일 크기)
+| 파일 | 조합 |
+|------|------|
+| `result_f_white_tshirt.png` | 흰색 티셔츠만 |
+| `result_f_blue_bra.png` | 파란 스포츠브라만 |
+| `result_f_yellow_pants.png` | 노란 트레이닝바지만 |
+| `result_f_white_tshirt_yellow_pants.png` | 흰티 + 노란바지 |
+| `result_f_blue_bra_yellow_pants.png` | 파란브라 + 노란바지 |
+
+#### DB v14 → v15
+- `UserEntity`: `equippedBottomId: String? = null` 필드 추가 (BOTTOM 슬롯)
+- `MIGRATION_14_15`: `ALTER TABLE users ADD COLUMN equippedBottomId TEXT`
+- `UserDao`: `updateEquippedBottom(uid, skinId)` 쿼리 추가
+- `UserRepository` / `LocalUserRepository`: `updateEquippedBottom()` 메서드 추가
+- `FirestoreUserService`: `equippedBottomId` push/pull 포함
+
+#### AvatarScreen 결과 이미지 룩업
+```kotlin
+fun femaleAvatarRes(topId: String?, bottomId: String?): Int = when {
+    topId == "skin_f_white_tshirt" && bottomId == "skin_f_yellow_pants" -> result_f_white_tshirt_yellow_pants
+    topId == "skin_f_blue_bra"    && bottomId == "skin_f_yellow_pants" -> result_f_blue_bra_yellow_pants
+    topId == "skin_f_white_tshirt" -> result_f_white_tshirt
+    topId == "skin_f_blue_bra"     -> result_f_blue_bra
+    bottomId == "skin_f_yellow_pants" -> result_f_yellow_pants
+    else -> avatar_female
+}
+```
+
+#### 스킨 이미지 후처리
+- rembg(u2net)로 스킨 단품 이미지 3종 검정 배경 제거 (투명 60~70%)
+- 원본 파일: `drawable/Skin/Female/` 폴더에 보관
+
+#### 스킨 파일 위치
+```
+drawable/
+  avatar_female.png                         ← 기본 여성 아바타 (1536×2754)
+  skin_f_white_tshirt.png                   ← 스킨 단품 (뽑기/인벤토리 미리보기)
+  skin_f_blue_bra.png
+  skin_f_yellow_pants.png
+  result_f_white_tshirt.png                 ← 착용 결과 이미지 (AvatarScreen 표시)
+  result_f_blue_bra.png
+  result_f_yellow_pants.png
+  result_f_white_tshirt_yellow_pants.png
+  result_f_blue_bra_yellow_pants.png
+  Skin/Female/                              ← 원본 한글 파일명 보관
+    흰색티셔츠.png / 흰색티셔츠_결과.png 등
+```
+
 ### Phase 43: 추천 퀘스트 하루 고정 + UI 수정 ✅ (2026-04-06)
 - **추천 퀘스트 하루 고정**: `LocalDate.now().toEpochDay()` 기반 시드로 `shuffled(dailyRandom)` — 같은 날 같은 추천
 - **스플래시 캐치프레이즈 마침표 제거**: "운동을 퀘스트로, 몸을 레전드로." → 마침표 제거
@@ -1087,6 +1178,13 @@ ui/test/
 - [x] 운동 가이드 카드 — 진행 화면 상단 플레이스홀더 + ON/OFF 토글
 - [x] 운동 목록 마지막 수행일 — "N일 전" 표시 + 시간/XP 동시 표시
 - [x] 운동 목록 썸네일 — 난이도별 색상 아이콘 플레이스홀더 (이미지 준비 시 교체)
+- [x] 여성 아바타 교체 — `avatar_female.png` 적용, `avatarIndex==1`에 반영
+- [x] 스킨 시스템 재구축 — 여성 전용 3종 (흰색 티셔츠/파란 스포츠브라/노란 트레이닝바지), `avatarFilter` 필드로 성별 필터링
+- [x] 뽑기 풀 필터링 — `avatarIndex` 기반, 풀 비었을 때 크래시 방지
+- [x] 스킨 장착 시스템 — TOP/BOTTOM 슬롯 분리 (DB v15 `equippedBottomId`), 카테고리별 equip/unequip
+- [x] 인벤토리 장착 UI — 장착 중 카드 보라 테두리/뱃지, 장착하기↔해제하기 다이얼로그
+- [x] 아바타 스킨 표시 — 오버레이 대신 조합별 결과 이미지 룩업 (5종 조합)
+- [x] 스킨 이미지 배경 제거 — rembg로 단품 스킨 3종 검정 배경 투명화
 
 ---
 
@@ -1099,9 +1197,9 @@ ui/test/
 - [ ] **인바디 데이터 입력** — 프로필에서 인바디 수치 기록 → 스탯 반영
 
 ### 중간 우선순위
-- [ ] **스킨 착용 시스템** — 인벤토리 장착 버튼 현재 "구현 중" 알림만 표시. 실제 착용 로직 및 아바타 반영 필요
+- [ ] **스킨 추가** — 현재 여성 전용 3종만 존재. 남성 스킨 및 추가 여성 스킨 제작 필요. 새 스킨 추가 시 `ALL_SKINS`, `femaleAvatarRes()` 룩업 테이블, 결과 이미지 모두 추가 필요
+- [ ] **스킨 조합 확장** — 현재 결과 이미지가 없는 조합(파란브라+흰티 동시 착용 불가 등) 처리 및 신규 조합 결과 이미지 제작
 - [ ] **스킨 확률 테이블** — 현재 `ALL_SKINS.random()` 균일 확률. 희귀도별 가중 확률 도입 가능
-- [ ] **2D 아바타 시스템** — 현재 단일 PNG 이미지, 스킨 착용 시각적 표현 방식 미정
 - [ ] **PvP 대전** — 스탯 기반 1:1 비교 대결
 - [ ] **알림/리마인더** — 운동 시간 알림
 - [ ] **운동 중 실제 센서 연동** — Google Fit / Health Connect API
@@ -1122,21 +1220,30 @@ ui/test/
 5. **릴리즈 서명** — signing config 미설정, Play Store 배포 전 keystore 생성 필요
 6. **DB 마이그레이션 주의** — ALTER TABLE에 `DEFAULT NULL` 쓰면 Room 스키마 검증 실패. `DEFAULT` 절 없이 컬럼 추가해야 함
 7. **Firestore 닉네임 중복 체크** — 네트워크/권한 오류 시 건너뜀 (false 반환). Firestore 보안 규칙에서 users 읽기가 인증된 유저 전체에게 열려있어야 동작
-8. **아바타 이미지** — 현재 남성/여성 단일 PNG 표시. 스킨 착용 시스템 구현 시 AvatarScreen 수정 필요
+8. **아바타 이미지** — 여성: `avatar_female.png` + 조합별 결과 이미지 룩업. 남성: `avatar_male.png` 단일 이미지 (남성 스킨 미구현)
 9. **avatarIndex 하위 호환** — 기존 DB에 0~7 이모지 인덱스로 저장된 유저는 0이면 남성, 1이면 여성으로 표시되고 2~7은 여성 이미지로 fallback됨 (신규 유저만 정확히 동작)
 10. **프로필 사진 Base64 저장** — Firestore 문서 1MB 제한 내에서 동작 (512x512 JPEG ≈ 50~100KB → Base64 ≈ 70~130KB). 고해상도 사진이나 다수 필드 추가 시 문서 크기 주의. 향후 Firebase Storage 사용 시 URL 방식으로 전환 가능 (profileImageUrl 컬럼 재활용)
 11. ~~**보스 진행 데이터 미동기화**~~ — **Phase 24에서 해결**. `bossProgress` 서브컬렉션으로 Firestore 동기화 완료.
 12. ~~**보스 등급 재클리어 시 덮어쓰기**~~ — **Phase 25에서 해결**. 최고 등급 보존 로직 추가 (S > A > B 비교).
 13. ~~**스킨 뽑기 확률**~~ — **Phase 32에서 해결**. `ALL_SKINS.random()` 균일 확률로 15개 중 선택.
 14. ~~**Firestore 보안 규칙**~~ — **Phase 34 이후 해결**. `inventory/{skinId}` 서브컬렉션 보안 규칙 Firebase Console에서 추가 완료 (2026-04-03).
-15. **스킨 착용 미구현** — `UserEntity.equippedSkinId`(DB v12) 및 `UserDao.updateEquippedSkin()` 이미 준비됨. InventoryScreen 장착 버튼은 "구현 중" 다이얼로그만 표시. 착용 후 아바타 표시 방식 결정 후 구현 필요.
-16. **SkinItem.drawableRes 제거** — Phase 32에서 이미지 방식 포기. 혹시 ALL_SKINS를 Room/Firestore에서 skinId로 참조하는 기존 데이터가 있으면 id만 저장되어 있으므로 호환 문제 없음. 스킨 id 변경 시 기존 인벤토리 데이터 orphan 주의.
+15. ~~**스킨 착용 미구현**~~ — **Phase 49~50에서 해결**. TOP/BOTTOM 슬롯 분리(DB v15), 결과 이미지 룩업 방식으로 구현 완료.
+16. **스킨 ID 변경 시 인벤토리 orphan** — `skin_inventory` 테이블의 `skinId`가 `ALL_SKINS`에 없으면 인벤토리에서 미표시. 스킨 id 변경 시 기존 데이터 정리 필요.
+17. **새 스킨/조합 추가 절차** — `ALL_SKINS`에 스킨 추가 → 결과 이미지 drawable 추가 → `AvatarScreen.femaleAvatarRes()` 룩업 테이블 업데이트 → `GachaScreen/InventoryScreen.skinDrawableRes()` 업데이트 3곳 모두 수정 필요.
 
 ---
 
 ## Git 커밋 히스토리
 
 ```
+fee5cd4 chore: 구 스킨/아바타 이미지 삭제 + DB 스키마 및 Skin 원본 파일 추가
+6f1f7c0 fix: 스킨 이미지 검정 배경 제거 — rembg 처리 (흰티 62.8%, 파란브라 69.4%, 노란바지 60.5% 투명)
+a7ddaed feat: 여성 스킨 시스템 전면 재설계 — TOP/BOTTOM 슬롯 + 결과 이미지 룩업 (DB v15)
+0c3883c feat: 스킨 장착 시스템 구현 — 인벤토리에서 장착 시 아바타에 이미지 오버레이
+649b6b4 fix: 스킨 풀 비었을 때 뽑기 크래시 수정 — skinPool 비어있으면 버튼 비활성화
+4fdc057 refactor: 기존 텍스트 스킨 15개 제거 — 여성 전용 이미지 스킨 3종만 유지
+8285d79 feat: 여성 아바타 교체 + 여성 전용 이미지 스킨 3종 추가
+06fba9e docs: HandOFF.md 업데이트 — Phase 42~47 반영
 (Phase 40 커밋: 3D OBJ 뷰어 테스트 탭 — assets/ 이동, ObjParser 2패스 재작성, OOM 수정)
 4a9a783 docs: HandOFF.md 업데이트 — Phase 39 반영 (달력 UI + 스탯 획득량)
 04bafce feat: 프로필 운동 히스토리 → 달력 UI + 스탯 획득량 표시
