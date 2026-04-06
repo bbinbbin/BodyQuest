@@ -27,11 +27,16 @@ data class WorkoutState(
     val elapsedSeconds: Int = 0,
     val currentSet: Int = 1,
     val completedSets: Int = 0,
+    val totalSets: Int = 0,         // 사용자 설정 세트 수 (STRENGTH)
     val isRunning: Boolean = false,
     val isCompleted: Boolean = false,
     val heartRate: Int = 0,
     val caloriesBurned: Int = 0,
-    val rewardError: String? = null
+    val rewardError: String? = null,
+    val weightInput: String = "",
+    val repsInput: String = "",
+    val setsInput: String = "",
+    val isStrengthSetup: Boolean = false  // STRENGTH 설정 단계 여부
 )
 
 data class WorkoutCompleteState(
@@ -82,7 +87,11 @@ class WorkoutViewModel @Inject constructor(
 
             _state.value = WorkoutState(
                 quest = quest,
-                workoutId = workoutId
+                workoutId = workoutId,
+                totalSets = quest.sets,
+                isStrengthSetup = quest.category == "STRENGTH",
+                setsInput = quest.sets.toString(),
+                repsInput = quest.repsPerSet.toString()
             )
         }
     }
@@ -105,22 +114,52 @@ class WorkoutViewModel @Inject constructor(
         startHeartRateSimulation()
     }
 
+    fun updateWeightInput(value: String) {
+        _state.value = _state.value.copy(weightInput = value)
+    }
+
+    fun updateRepsInput(value: String) {
+        _state.value = _state.value.copy(repsInput = value)
+    }
+
+    fun updateSetsInput(value: String) {
+        _state.value = _state.value.copy(setsInput = value)
+    }
+
+    fun confirmStrengthSetup() {
+        val s = _state.value
+        val sets = s.setsInput.toIntOrNull() ?: return
+        val reps = s.repsInput.toIntOrNull() ?: return
+        if (sets <= 0 || reps <= 0) return
+        _state.value = s.copy(
+            totalSets = sets,
+            isStrengthSetup = false
+        )
+        startWorkout()
+    }
+
     fun completeSet() {
         val s = _state.value
         val quest = s.quest ?: return
+
+        val isStrength = quest.category == "STRENGTH"
+        val reps = if (isStrength) (s.repsInput.toIntOrNull() ?: quest.repsPerSet) else quest.repsPerSet
+        val weight = if (isStrength) (s.weightInput.toDoubleOrNull() ?: 0.0) else 0.0
+        val targetSets = if (isStrength) s.totalSets else quest.sets
 
         viewModelScope.launch {
             val set = WorkoutSetEntity(
                 workoutId = s.workoutId,
                 setNumber = s.currentSet,
-                reps = quest.repsPerSet,
+                reps = reps,
+                weight = weight,
                 completed = true,
                 completedAt = System.currentTimeMillis()
             )
             workoutRepository.insertWorkoutSet(set)
 
             val newCompleted = s.completedSets + 1
-            if (newCompleted >= quest.sets) {
+            if (newCompleted >= targetSets) {
                 finishWorkout()
             } else {
                 _state.value = s.copy(

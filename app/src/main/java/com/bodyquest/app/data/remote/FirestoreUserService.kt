@@ -90,6 +90,7 @@ class FirestoreUserService @Inject constructor(
             mapOf(
                 "setNumber" to set.setNumber,
                 "reps" to set.reps,
+                "weight" to set.weight,
                 "completed" to set.completed,
                 "completedAt" to set.completedAt
             )
@@ -184,6 +185,7 @@ class FirestoreUserService @Inject constructor(
                     workoutId = 0, // will be set by SyncManager
                     setNumber = (s["setNumber"] as? Long ?: 0).toInt(),
                     reps = (s["reps"] as? Long ?: 0).toInt(),
+                    weight = (s["weight"] as? Number)?.toDouble() ?: 0.0,
                     completed = s["completed"] as? Boolean ?: false,
                     completedAt = s["completedAt"] as? Long
                 )

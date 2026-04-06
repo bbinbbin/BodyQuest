@@ -134,7 +134,11 @@ fun QuestDetailScreen(
                 // Details
                 DetailRow("예상 시간", "${q.durationMinutes}분")
                 if (q.sets > 1) {
-                    DetailRow("세트", "${q.sets}세트 x ${q.repsPerSet}회")
+                    if (q.category == "STRENGTH") {
+                        DetailRow("추천 세트", "${q.sets}세트 x ${q.repsPerSet}회")
+                    } else {
+                        DetailRow("세트", "${q.sets}세트 x ${q.repsPerSet}회")
+                    }
                 }
                 DetailRow("XP 보상", "+ ${q.xpReward} XP")
                 if (q.statType == "BALANCE") {
@@ -164,7 +168,7 @@ fun QuestDetailScreen(
             colors = ButtonDefaults.buttonColors(containerColor = NeonPurple)
         ) {
             Text(
-                text = "운동 시작!",
+                text = "운동 시작",
                 style = MaterialTheme.typography.titleMedium
             )
         }

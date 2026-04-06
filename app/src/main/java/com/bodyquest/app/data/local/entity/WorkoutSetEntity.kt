@@ -20,6 +20,7 @@ data class WorkoutSetEntity(
     val workoutId: Long,
     val setNumber: Int,
     val reps: Int,
+    val weight: Double = 0.0,
     val completed: Boolean = false,
     val completedAt: Long? = null
 )
