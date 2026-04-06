@@ -6,6 +6,7 @@ import com.bodyquest.app.data.remote.SyncManager
 import com.bodyquest.app.data.repository.SkinInventoryRepository
 import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.domain.model.ALL_SKINS
+import com.bodyquest.app.domain.model.SkinCategory
 import com.bodyquest.app.domain.model.SkinItem
 import com.bodyquest.app.util.AppLogger
 import com.google.firebase.auth.FirebaseAuth
@@ -44,7 +45,8 @@ class InventoryViewModel @Inject constructor(
         }
     }
 
-    val equippedSkinId: StateFlow<String?> = run {
+    /** TOP 슬롯에 장착된 스킨 ID (equippedSkinId) */
+    val equippedTopId: StateFlow<String?> = run {
         if (uid != null) {
             userRepository.getUser(uid)
                 .map { it?.equippedSkinId }
@@ -54,29 +56,53 @@ class InventoryViewModel @Inject constructor(
         }
     }
 
-    fun equipSkin(skinId: String) {
-        val uid = uid ?: return
-        viewModelScope.launch {
-            userRepository.updateEquippedSkin(uid, skinId)
-            try {
-                val user = userRepository.getUserOnce(uid)
-                if (user != null) syncManager.pushUserToCloud(user)
-            } catch (e: Exception) {
-                AppLogger.w("InventoryViewModel", "장착 클라우드 push 실패", e)
-            }
+    /** BOTTOM 슬롯에 장착된 스킨 ID (equippedBottomId) */
+    val equippedBottomId: StateFlow<String?> = run {
+        if (uid != null) {
+            userRepository.getUser(uid)
+                .map { it?.equippedBottomId }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+        } else {
+            flowOf(null).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
         }
     }
 
-    fun unequipSkin() {
+    fun isEquipped(skin: SkinItem, topId: String?, bottomId: String?): Boolean = when (skin.category) {
+        SkinCategory.TOP -> skin.id == topId
+        SkinCategory.BOTTOM -> skin.id == bottomId
+        else -> false
+    }
+
+    fun equipSkin(skin: SkinItem) {
         val uid = uid ?: return
         viewModelScope.launch {
-            userRepository.updateEquippedSkin(uid, null)
-            try {
-                val user = userRepository.getUserOnce(uid)
-                if (user != null) syncManager.pushUserToCloud(user)
-            } catch (e: Exception) {
-                AppLogger.w("InventoryViewModel", "해제 클라우드 push 실패", e)
+            when (skin.category) {
+                SkinCategory.TOP -> userRepository.updateEquippedSkin(uid, skin.id)
+                SkinCategory.BOTTOM -> userRepository.updateEquippedBottom(uid, skin.id)
+                else -> userRepository.updateEquippedSkin(uid, skin.id)
             }
+            pushToCloud(uid)
+        }
+    }
+
+    fun unequipSkin(skin: SkinItem) {
+        val uid = uid ?: return
+        viewModelScope.launch {
+            when (skin.category) {
+                SkinCategory.TOP -> userRepository.updateEquippedSkin(uid, null)
+                SkinCategory.BOTTOM -> userRepository.updateEquippedBottom(uid, null)
+                else -> userRepository.updateEquippedSkin(uid, null)
+            }
+            pushToCloud(uid)
+        }
+    }
+
+    private suspend fun pushToCloud(uid: String) {
+        try {
+            val user = userRepository.getUserOnce(uid)
+            if (user != null) syncManager.pushUserToCloud(user)
+        } catch (e: Exception) {
+            AppLogger.w("InventoryViewModel", "장착 클라우드 push 실패", e)
         }
     }
 }

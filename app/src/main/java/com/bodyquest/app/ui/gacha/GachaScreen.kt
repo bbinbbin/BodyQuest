@@ -63,11 +63,11 @@ import com.bodyquest.app.ui.theme.TextSecondary
 import com.bodyquest.app.ui.theme.XpGold
 import kotlinx.coroutines.delay
 
-/** 스킨 ID → drawable 리소스 매핑 (이미지 스킨만) */
+/** 스킨 ID → drawable 리소스 매핑 (뽑기 결과 카드 미리보기용) */
 private fun skinDrawableRes(skinId: String): Int? = when (skinId) {
-    "skin_black_t" -> R.drawable.black_t
-    "skin_a" -> R.drawable.skin_a
-    "skin_hood_t" -> R.drawable.hood_t
+    "skin_f_white_tshirt"  -> R.drawable.skin_f_white_tshirt
+    "skin_f_blue_bra"      -> R.drawable.skin_f_blue_bra
+    "skin_f_yellow_pants"  -> R.drawable.skin_f_yellow_pants
     else -> null
 }
 

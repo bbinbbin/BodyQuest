@@ -35,11 +35,21 @@ import com.bodyquest.app.ui.home.HomeViewModel
 import com.bodyquest.app.ui.theme.DarkSurfaceVariant
 import com.bodyquest.app.ui.theme.TextSecondary
 
-private fun skinDrawableRes(skinId: String?): Int? = when (skinId) {
-    "skin_black_t" -> R.drawable.black_t
-    "skin_a" -> R.drawable.skin_a
-    "skin_hood_t" -> R.drawable.hood_t
-    else -> null
+/**
+ * TOP + BOTTOM 조합에 따라 미리 렌더링된 결과 이미지를 반환.
+ * null → 기본 아바타 표시.
+ */
+private fun femaleAvatarRes(topId: String?, bottomId: String?): Int {
+    return when {
+        topId == "skin_f_white_tshirt" && bottomId == "skin_f_yellow_pants" ->
+            R.drawable.result_f_white_tshirt_yellow_pants
+        topId == "skin_f_blue_bra"    && bottomId == "skin_f_yellow_pants" ->
+            R.drawable.result_f_blue_bra_yellow_pants
+        topId == "skin_f_white_tshirt" -> R.drawable.result_f_white_tshirt
+        topId == "skin_f_blue_bra"     -> R.drawable.result_f_blue_bra
+        bottomId == "skin_f_yellow_pants" -> R.drawable.result_f_yellow_pants
+        else -> R.drawable.avatar_female
+    }
 }
 
 @Composable
@@ -75,24 +85,17 @@ fun AvatarScreen(
                         .weight(1f)
                         .background(DarkSurfaceVariant)
                 ) {
-                    // 기본 아바타
-                    val avatarRes = if (user.avatarIndex == 0) R.drawable.avatar_male else R.drawable.female
+                    val avatarRes = if (user.avatarIndex == 0) {
+                        R.drawable.avatar_male
+                    } else {
+                        femaleAvatarRes(user.equippedSkinId, user.equippedBottomId)
+                    }
                     Image(
                         painter = painterResource(avatarRes),
                         contentDescription = null,
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.fillMaxSize()
                     )
-                    // 장착된 스킨 오버레이 (배경 제거 + 동일 캔버스 크기)
-                    val equippedRes = skinDrawableRes(user.equippedSkinId)
-                    if (equippedRes != null) {
-                        Image(
-                            painter = painterResource(equippedRes),
-                            contentDescription = null,
-                            contentScale = ContentScale.Fit,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
                 }
 
                 Surface(

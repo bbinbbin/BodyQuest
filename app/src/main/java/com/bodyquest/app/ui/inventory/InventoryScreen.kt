@@ -58,9 +58,9 @@ import com.bodyquest.app.ui.theme.TextPrimary
 import com.bodyquest.app.ui.theme.TextSecondary
 
 private fun skinDrawableRes(skinId: String): Int? = when (skinId) {
-    "skin_black_t" -> R.drawable.black_t
-    "skin_a" -> R.drawable.skin_a
-    "skin_hood_t" -> R.drawable.hood_t
+    "skin_f_white_tshirt" -> R.drawable.skin_f_white_tshirt
+    "skin_f_blue_bra"     -> R.drawable.skin_f_blue_bra
+    "skin_f_yellow_pants" -> R.drawable.skin_f_yellow_pants
     else -> null
 }
 
@@ -68,13 +68,14 @@ private fun skinDrawableRes(skinId: String): Int? = when (skinId) {
 @Composable
 fun InventoryScreen(viewModel: InventoryViewModel, onBack: () -> Unit) {
     val inventory by viewModel.inventory.collectAsState()
-    val equippedSkinId by viewModel.equippedSkinId.collectAsState()
+    val equippedTopId by viewModel.equippedTopId.collectAsState()
+    val equippedBottomId by viewModel.equippedBottomId.collectAsState()
 
     var dialogSkin by remember { mutableStateOf<SkinItem?>(null) }
 
     // 장착/해제 다이얼로그
     dialogSkin?.let { skin ->
-        val isEquipped = skin.id == equippedSkinId
+        val isEquipped = viewModel.isEquipped(skin, equippedTopId, equippedBottomId)
         AlertDialog(
             onDismissRequest = { dialogSkin = null },
             containerColor = DarkSurfaceVariant,
@@ -89,7 +90,7 @@ fun InventoryScreen(viewModel: InventoryViewModel, onBack: () -> Unit) {
             },
             confirmButton = {
                 TextButton(onClick = {
-                    if (isEquipped) viewModel.unequipSkin() else viewModel.equipSkin(skin.id)
+                    if (isEquipped) viewModel.unequipSkin(skin) else viewModel.equipSkin(skin)
                     dialogSkin = null
                 }) {
                     Text(
@@ -158,7 +159,7 @@ fun InventoryScreen(viewModel: InventoryViewModel, onBack: () -> Unit) {
                     SkinCard(
                         skin = skin,
                         count = count,
-                        isEquipped = skin.id == equippedSkinId,
+                        isEquipped = viewModel.isEquipped(skin, equippedTopId, equippedBottomId),
                         onClick = { dialogSkin = skin }
                     )
                 }

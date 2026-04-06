@@ -20,6 +20,7 @@ data class UserEntity(
     val authProvider: String? = null,  // "EMAIL" | "GOOGLE"
     val profileImageUrl: String? = null,
     val updatedAt: Long = System.currentTimeMillis(),
-    val equippedSkinId: String? = null,
+    val equippedSkinId: String? = null,    // TOP 슬롯
+    val equippedBottomId: String? = null,  // BOTTOM 슬롯
     val gachaTickets: Int = 0
 )
