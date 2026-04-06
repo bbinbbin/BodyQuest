@@ -1,7 +1,7 @@
 
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-04-05 (Phase 41: GLB 파일 지원 + 테스트 탭 뒤로가기 버튼)
+> 마지막 업데이트: 2026-04-06 (Phase 50: 코드 품질/보안 점검 + STRENGTH 개별 운동 + 세트 테이블 UI)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -62,8 +62,8 @@ app/src/main/java/com/bodyquest/app/
 │
 ├── data/
 │   ├── local/
-│   │   ├── BodyQuestDatabase.kt # Room DB (v13), exportSchema=true, Migration(1,2)~Migration(12,13)
-│   │   ├── SeedData.kt          # 퀘스트 ~20개 + 보스 150개(3타입×50) 프로그래매틱 생성
+│   │   ├── BodyQuestDatabase.kt # Room DB (v14), exportSchema=true, Migration(1,2)~Migration(13,14)
+│   │   ├── SeedData.kt          # STRENGTH 개별운동 29개 + ENDURANCE 8개 + BALANCE 9개 + 보스 150개
 │   │   ├── dao/
 │   │   │   ├── UserDao.kt       # abstract class, getUser(uid), @Transaction applyWorkoutRewards(), updateProfileImageUrl()
 │   │   │   ├── QuestDao.kt      # 카테고리/부위/난이도 필터링
@@ -768,6 +768,79 @@ ui/test/
   └── TestScreen.kt            # Compose 화면 (GLB 우선 + 뒤로가기)
 ```
 
+### Phase 42: 코드 품질/보안 전면 점검 ✅ (2026-04-06)
+
+#### Phase 1: 데이터 안전 + 크래시 방지
+- **SkinInventory Race Condition 수정**: `addOrIncrement()`의 읽기→쓰기 패턴을 원자적 `UPDATE` 쿼리(`incrementCount`)로 교체
+- **Base64 이미지 크기 제한**: `ImageUtil.compressAndResize()`에서 JPEG 품질을 단계적 하향하며 500KB 이하로 압축
+- **GlbParser indices 범위 검증**: `triIdx * 3 + 2 >= indices.size` 체크 추가
+
+#### Phase 2: 안정성 + 동시성
+- **WorkoutViewModel 보상 실패 알림**: `rewardError` 상태 추가, catch 블록에 `Log.e()` + UI 에러 배너
+- **BossViewModel 상태 원자성**: 모든 `_uiState.value = ...` → `_uiState.update {}` 원자적 업데이트 (5곳)
+- **SimpleDateFormat 스레드 안전성**: ProfileViewModel 필드 → `loadCalendarData()` 내 로컬 변수로 이동
+- **GachaViewModel**: `collect()` → `collectLatest()` 변경
+- **OnboardingViewModel 닉네임 중복 체크**: 네트워크 실패 시 에러 메시지 표시 + 저장 중단
+- **N+1 쿼리 최적화**: `QuestDao.getQuestsByIds()` 배치 쿼리 추가, ProfileViewModel에서 Map 캐시 사용
+
+#### Phase 3: 보안
+- **AppLogger 유틸 추가** (`util/AppLogger.kt`): `BuildConfig.DEBUG` 조건으로 릴리스 빌드 로그 비활성화
+- **프로덕션 로그 민감 정보 제거**: HomeViewModel(UID/URI), FirebaseAuthRepository(스택트레이스), LoginScreen, SyncManager 전부 `AppLogger` 교체
+- **백업 규칙 완성**: `backup_rules.xml` + `data_extraction_rules.xml`에서 DB/SharedPreferences 백업 제외
+- **Firestore deleteUser 배치 처리**: `WriteBatch` + `chunked(500)` 적용
+- **ProfileViewModel Firestore 삭제 실패 로깅**: 빈 catch → `AppLogger.e()` 추가
+- `buildFeatures { buildConfig = true }` 추가 (AGP 8.x 대응)
+
+#### Phase 4: 코드 품질
+- **빈 catch 블록 로깅 추가**: GachaViewModel(2곳), ObjParser, GlbParser에 `AppLogger.w()` 추가
+- **FK 누락 TODO 코멘트**: BossProgressEntity, SkinInventoryEntity에 향후 v14 FK 추가 TODO
+- **MIGRATION_3_4 빈 마이그레이션 추가**: v3→v4 안전 경로 제공
+- **UserDao 중복 메서드 정리**: `getUserByFirebaseUid()` 제거 → `getUserOnce()`로 통합 (SyncManager, LoginViewModel 호출부 수정)
+
+### Phase 43: 추천 퀘스트 하루 고정 + UI 수정 ✅ (2026-04-06)
+- **추천 퀘스트 하루 고정**: `LocalDate.now().toEpochDay()` 기반 시드로 `shuffled(dailyRandom)` — 같은 날 같은 추천
+- **스플래시 캐치프레이즈 마침표 제거**: "운동을 퀘스트로, 몸을 레전드로." → 마침표 제거
+
+### Phase 44: BALANCE 퀘스트 양쪽 스탯 보상 ✅ (2026-04-06)
+- **StatType enum에 BALANCE 추가**: `BALANCE("균형", NeonGreen)`
+- **SeedData**: BALANCE 퀘스트 9개 모두 `statType = "BALANCE"`로 통일 (기존 ENDURANCE/STRENGTH 혼재 → 통일)
+- **UserDao**: `updateRewardsBalance()` 양쪽 스탯 동시 UPDATE 쿼리, `applyWorkoutRewards`에 `newStatValueSecond` 파라미터 추가
+- **WorkoutViewModel**: BALANCE일 때 `statReward`를 근력/지구력 절반씩 분배 (홀수 시 근력 +1)
+- **WorkoutCompleteScreen**: BALANCE → "근력 +N / 지구력 +N" 양쪽 표시
+- **QuestDetailScreen**: BALANCE → "근력 +N / 지구력 +N" 표시, STRENGTH/ENDURANCE → 한국어 스탯명
+- **BodyQuestDatabase onOpen**: 기존 BALANCE 퀘스트 statType 자동 마이그레이션
+
+### Phase 45: STRENGTH 퀘스트 개별 운동으로 교체 ✅ (2026-04-06)
+- 기존 18개 "루틴" → **29개 개별 운동**으로 변경
+  - 가슴 5개: 푸시업, 벤치프레스, 인클라인 프레스, 덤벨 플라이, 딥스
+  - 등 5개: 풀업, 바벨 로우, 랫풀다운, 시티드 로우, 데드리프트
+  - 하체 5개: 스쿼트, 레그프레스, 런지, 레그컬, 불가리안 스플릿 스쿼트
+  - 어깨 5개: 숄더프레스, 사이드 레터럴 레이즈, 프론트 레이즈, 페이스풀, 밀리터리 프레스
+  - 팔 4개: 바이셉 컬, 트라이셉 익스텐션, 해머 컬, 클로즈그립 벤치프레스
+  - 코어 5개: 플랭크, 크런치, 레그레이즈, 바이시클 크런치, 행잉 레그레이즈
+- **onOpen**: 기존 루틴 데이터(`_beginner` ID 패턴) 감지 시 자동으로 삭제 후 새 데이터 삽입
+
+### Phase 46: STRENGTH 운동 세트/무게/횟수 설정 UI ✅ (2026-04-06)
+- **WorkoutSetEntity**: `weight: Double = 0.0` 필드 추가
+- **DB v13 → v14**: `MIGRATION_13_14` — `workout_sets`에 `weight` 컬럼 추가
+- **STRENGTH 운동 진행 화면**: 세트 테이블 뷰로 전면 개편
+  - 전체 세트를 한 화면에 테이블로 표시
+  - 세트별 개별 무게(kg)/횟수 입력 가능
+  - 세트별 개별 체크(✓) 버튼으로 완료 처리
+  - +/− 버튼으로 세트 추가/삭제
+  - 첫 세트 체크 시 타이머 자동 시작, 모든 세트 체크 시 자동 운동 종료
+- **운동 가이드 카드**: 진행 화면 상단에 가이드 카드 + ON/OFF 토글 (플레이스홀더, 나중에 GIF 교체)
+- **QuestDetailScreen**: STRENGTH "세트" → "추천 세트" 표시, "운동 시작!" → "운동 시작" 느낌표 제거
+- **Firestore 동기화**: push/pull에 weight 필드 추가
+- ENDURANCE/BALANCE는 기존 타이머 UI 유지
+
+### Phase 47: 운동 목록 마지막 수행일 + 썸네일 ✅ (2026-04-06)
+- **WorkoutDao**: `getLastCompletionTimes(userId)` — 퀘스트별 마지막 수행 시간 배치 쿼리
+- **QuestViewModel**: `lastDoneMap: Map<String, Long>` 로드 (AuthRepository, UserRepository, WorkoutRepository 주입)
+- **QuestTreeScreen**: 운동 항목에 난이도별 색상 아이콘 + "N일 전" / "오늘" / "어제" 마지막 수행일 표시
+- 수행일과 시간/XP 정보 동시 표시
+- 운동 이미지는 플레이스홀더 (디자이너 이미지 준비 시 교체 예정)
+
 ### Phase 40: 3D OBJ 뷰어 테스트 탭 ✅ (2026-04-03)
 
 #### 개요
@@ -952,7 +1025,7 @@ ui/test/
 - [x] 스플래시 화면
 - [x] Hilt DI
 - [x] Sealed UI State (Loading/Error/Success)
-- [x] DB 인덱스/FK/마이그레이션 (v13, gachaTickets 컬럼 추가)
+- [x] DB 인덱스/FK/마이그레이션 (v14, workout_sets.weight 컬럼 추가)
 - [x] 네트워크 보안 설정
 - [x] Repository 추상화 (interface + Local)
 - [x] EncryptedSharedPreferences
@@ -1006,21 +1079,27 @@ ui/test/
 - [x] 3D OBJ 뷰어 테스트 탭 — OpenGL ES 2.0, 드래그 회전, 100MB 대용량 파일 대응 서브샘플링
 - [x] GLB(glTF 2.0 Binary) 파일 지원 — assets에 .glb 있으면 우선 로드, GlbParser (org.json + ByteBuffer), Nomad Sculpt 다중 primitive/노드 계층 지원
 - [x] 테스트 탭 뒤로가기 버튼 — 좌상단 ArrowBack IconButton, AndroidView 위에 z-order 보장
+- [x] 코드 품질/보안 전면 점검 — Race Condition 수정, 원자적 상태 업데이트, AppLogger, 백업 규칙, Firestore 배치 삭제
+- [x] 추천 퀘스트 하루 고정 — 날짜 기반 시드로 동일 추천 유지
+- [x] BALANCE 양쪽 스탯 보상 — statReward를 근력/지구력 절반씩 분배
+- [x] STRENGTH 개별 운동 교체 — 18개 루틴 → 29개 개별 운동 (벤치프레스, 스쿼트 등)
+- [x] STRENGTH 세트 테이블 UI — 세트별 무게/횟수 입력, 개별 체크, +/− 세트 추가/삭제
+- [x] 운동 가이드 카드 — 진행 화면 상단 플레이스홀더 + ON/OFF 토글
+- [x] 운동 목록 마지막 수행일 — "N일 전" 표시 + 시간/XP 동시 표시
+- [x] 운동 목록 썸네일 — 난이도별 색상 아이콘 플레이스홀더 (이미지 준비 시 교체)
 
 ---
 
 ## 미구현 / 다음 작업 후보
 
 ### 높은 우선순위
-- [x] ~~**프로필 화면**~~ — **Phase 34에서 구현 완료**.
-- [x] ~~**퀘스트 데이터 확장**~~ — **Phase 36에서 구현 완료**. 15개→36개 + BALANCE 카테고리
+- [ ] **운동 이미지 적용** — 29개 STRENGTH 운동별 일러스트/GIF 이미지 (ChatGPT 생성 프롬프트 준비 완료, 바탕화면 `운동_이미지_생성_프롬프트.md`)
+  - 이미지 준비 후 drawable에 넣고 QuestTreeScreen 썸네일 + WorkoutScreen 가이드에 적용
+  - `ExerciseImages.kt` 매핑 파일 재생성 필요
 - [ ] **인바디 데이터 입력** — 프로필에서 인바디 수치 기록 → 스탯 반영
 
 ### 중간 우선순위
 - [ ] **스킨 착용 시스템** — 인벤토리 장착 버튼 현재 "구현 중" 알림만 표시. 실제 착용 로직 및 아바타 반영 필요
-  - `UserEntity.equippedSkinId` 컬럼은 DB v12에 이미 존재 (재활용 가능)
-  - `UserDao.updateEquippedSkin()` 쿼리도 존재
-  - 텍스트 기반 스킨이므로 아바타에 착용 표시 방식(뱃지/오버레이 텍스트 등) 결정 필요
 - [ ] **스킨 확률 테이블** — 현재 `ALL_SKINS.random()` 균일 확률. 희귀도별 가중 확률 도입 가능
 - [ ] **2D 아바타 시스템** — 현재 단일 PNG 이미지, 스킨 착용 시각적 표현 방식 미정
 - [ ] **PvP 대전** — 스탯 기반 1:1 비교 대결
