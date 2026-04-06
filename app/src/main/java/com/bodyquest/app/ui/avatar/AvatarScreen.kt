@@ -35,6 +35,13 @@ import com.bodyquest.app.ui.home.HomeViewModel
 import com.bodyquest.app.ui.theme.DarkSurfaceVariant
 import com.bodyquest.app.ui.theme.TextSecondary
 
+private fun skinDrawableRes(skinId: String?): Int? = when (skinId) {
+    "skin_black_t" -> R.drawable.black_t
+    "skin_a" -> R.drawable.skin_a
+    "skin_hood_t" -> R.drawable.hood_t
+    else -> null
+}
+
 @Composable
 fun AvatarScreen(
     viewModel: HomeViewModel,
@@ -75,6 +82,16 @@ fun AvatarScreen(
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.fillMaxSize()
                     )
+                    // 장착된 스킨 오버레이
+                    val equippedRes = skinDrawableRes(user.equippedSkinId)
+                    if (equippedRes != null) {
+                        Image(
+                            painter = painterResource(equippedRes),
+                            contentDescription = null,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
 
                 Surface(

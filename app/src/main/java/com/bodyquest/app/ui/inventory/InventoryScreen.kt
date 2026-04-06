@@ -68,12 +68,13 @@ private fun skinDrawableRes(skinId: String): Int? = when (skinId) {
 @Composable
 fun InventoryScreen(viewModel: InventoryViewModel, onBack: () -> Unit) {
     val inventory by viewModel.inventory.collectAsState()
+    val equippedSkinId by viewModel.equippedSkinId.collectAsState()
 
     var dialogSkin by remember { mutableStateOf<SkinItem?>(null) }
-    var showComingSoon by remember { mutableStateOf(false) }
 
-    // 장착 다이얼로그
+    // 장착/해제 다이얼로그
     dialogSkin?.let { skin ->
+        val isEquipped = skin.id == equippedSkinId
         AlertDialog(
             onDismissRequest = { dialogSkin = null },
             containerColor = DarkSurfaceVariant,
@@ -82,17 +83,17 @@ fun InventoryScreen(viewModel: InventoryViewModel, onBack: () -> Unit) {
             },
             text = {
                 Text(
-                    text = "${skin.category.emoji} ${skin.category.displayName} 스킨입니다.",
+                    text = if (isEquipped) "현재 장착 중인 스킨입니다." else "${skin.category.displayName} 스킨입니다.",
                     color = TextSecondary
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
+                    if (isEquipped) viewModel.unequipSkin() else viewModel.equipSkin(skin.id)
                     dialogSkin = null
-                    showComingSoon = true
                 }) {
                     Text(
-                        text = "장착하기",
+                        text = if (isEquipped) "해제하기" else "장착하기",
                         color = NeonPurple,
                         fontWeight = FontWeight.Bold
                     )
@@ -101,28 +102,6 @@ fun InventoryScreen(viewModel: InventoryViewModel, onBack: () -> Unit) {
             dismissButton = {
                 TextButton(onClick = { dialogSkin = null }) {
                     Text(text = "취소", color = TextMuted)
-                }
-            }
-        )
-    }
-
-    // 구현 중 다이얼로그
-    if (showComingSoon) {
-        AlertDialog(
-            onDismissRequest = { showComingSoon = false },
-            containerColor = DarkSurfaceVariant,
-            title = {
-                Text(text = "알림", fontWeight = FontWeight.Bold, color = TextPrimary)
-            },
-            text = {
-                Text(
-                    text = "구현 중입니다. 곧 찾아뵙겠습니다.",
-                    color = TextSecondary
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { showComingSoon = false }) {
-                    Text(text = "확인", color = NeonPurple, fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -179,6 +158,7 @@ fun InventoryScreen(viewModel: InventoryViewModel, onBack: () -> Unit) {
                     SkinCard(
                         skin = skin,
                         count = count,
+                        isEquipped = skin.id == equippedSkinId,
                         onClick = { dialogSkin = skin }
                     )
                 }
@@ -191,12 +171,16 @@ fun InventoryScreen(viewModel: InventoryViewModel, onBack: () -> Unit) {
 private fun SkinCard(
     skin: SkinItem,
     count: Int,
+    isEquipped: Boolean,
     onClick: () -> Unit
 ) {
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = DarkSurfaceVariant,
-        border = BorderStroke(1.dp, skin.category.color.copy(alpha = 0.4f)),
+        border = BorderStroke(
+            if (isEquipped) 2.dp else 1.dp,
+            if (isEquipped) NeonPurple else skin.category.color.copy(alpha = 0.4f)
+        ),
         tonalElevation = 2.dp,
         modifier = Modifier.clickable(onClick = onClick)
     ) {
@@ -271,11 +255,25 @@ private fun SkinCard(
                 Text(
                     text = skin.name,
                     style = MaterialTheme.typography.labelMedium,
-                    color = TextSecondary,
+                    color = if (isEquipped) TextPrimary else TextSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
+                if (isEquipped) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = NeonPurple.copy(alpha = 0.2f)
+                    ) {
+                        Text(
+                            text = "장착중",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = NeonPurple,
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                        )
+                    }
+                }
             }
         }
     }
