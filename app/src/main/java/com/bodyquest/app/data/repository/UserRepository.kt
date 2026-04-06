@@ -13,7 +13,8 @@ interface UserRepository {
         newXp: Int,
         newLevel: Int,
         statType: String,
-        newStatValue: Int
+        newStatValue: Int,
+        newStatValueSecond: Int = 0
     )
     suspend fun deleteUserByFirebaseUid(uid: String)
     suspend fun updateProfileImageUrl(firebaseUid: String, url: String)

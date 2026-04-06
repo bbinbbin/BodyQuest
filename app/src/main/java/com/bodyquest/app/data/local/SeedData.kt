@@ -208,21 +208,21 @@ val seedQuests = listOf(
         category = "BALANCE", bodyPart = "요가", specificArea = null,
         name = "입문 요가", description = "기본 자세와 호흡법 익히기",
         difficulty = 1, durationMinutes = 20, sets = 1, repsPerSet = 0,
-        xpReward = 30, statType = "ENDURANCE", statReward = 2
+        xpReward = 30, statType = "BALANCE", statReward = 2
     ),
     QuestEntity(
         id = "bal_yoga_intermediate",
         category = "BALANCE", bodyPart = "요가", specificArea = null,
         name = "빈야사 요가", description = "흐름을 따라 연결되는 동적 요가",
         difficulty = 2, durationMinutes = 40, sets = 1, repsPerSet = 0,
-        xpReward = 60, statType = "ENDURANCE", statReward = 4
+        xpReward = 60, statType = "BALANCE", statReward = 4
     ),
     QuestEntity(
         id = "bal_yoga_advanced",
         category = "BALANCE", bodyPart = "요가", specificArea = null,
         name = "파워 요가", description = "고강도 체중 지탱 자세 중심 요가",
         difficulty = 3, durationMinutes = 60, sets = 1, repsPerSet = 0,
-        xpReward = 100, statType = "ENDURANCE", statReward = 6
+        xpReward = 100, statType = "BALANCE", statReward = 6
     ),
 
     // ── BALANCE: 스트레칭 ──
@@ -231,21 +231,21 @@ val seedQuests = listOf(
         category = "BALANCE", bodyPart = "스트레칭", specificArea = null,
         name = "기본 스트레칭", description = "전신 정적 스트레칭",
         difficulty = 1, durationMinutes = 15, sets = 1, repsPerSet = 0,
-        xpReward = 20, statType = "ENDURANCE", statReward = 2
+        xpReward = 20, statType = "BALANCE", statReward = 2
     ),
     QuestEntity(
         id = "bal_stretch_intermediate",
         category = "BALANCE", bodyPart = "스트레칭", specificArea = null,
         name = "동적 스트레칭", description = "관절 가동 범위를 넓히는 동적 스트레칭",
         difficulty = 2, durationMinutes = 25, sets = 1, repsPerSet = 0,
-        xpReward = 50, statType = "ENDURANCE", statReward = 4
+        xpReward = 50, statType = "BALANCE", statReward = 4
     ),
     QuestEntity(
         id = "bal_stretch_advanced",
         category = "BALANCE", bodyPart = "스트레칭", specificArea = null,
         name = "딥 스트레칭", description = "유연성 한계를 넓히는 고급 스트레칭",
         difficulty = 3, durationMinutes = 40, sets = 1, repsPerSet = 0,
-        xpReward = 80, statType = "ENDURANCE", statReward = 6
+        xpReward = 80, statType = "BALANCE", statReward = 6
     ),
 
     // ── BALANCE: 필라테스 ──
@@ -254,21 +254,21 @@ val seedQuests = listOf(
         category = "BALANCE", bodyPart = "필라테스", specificArea = null,
         name = "입문 필라테스", description = "코어 안정화 중심 기초 필라테스",
         difficulty = 1, durationMinutes = 20, sets = 1, repsPerSet = 0,
-        xpReward = 30, statType = "STRENGTH", statReward = 2
+        xpReward = 30, statType = "BALANCE", statReward = 2
     ),
     QuestEntity(
         id = "bal_pilates_intermediate",
         category = "BALANCE", bodyPart = "필라테스", specificArea = null,
         name = "중급 필라테스", description = "밸런스 + 코어 강화 필라테스",
         difficulty = 2, durationMinutes = 35, sets = 1, repsPerSet = 0,
-        xpReward = 60, statType = "STRENGTH", statReward = 4
+        xpReward = 60, statType = "BALANCE", statReward = 4
     ),
     QuestEntity(
         id = "bal_pilates_advanced",
         category = "BALANCE", bodyPart = "필라테스", specificArea = null,
         name = "고급 필라테스", description = "고난이도 코어 + 전신 밸런스 필라테스",
         difficulty = 3, durationMinutes = 50, sets = 1, repsPerSet = 0,
-        xpReward = 100, statType = "STRENGTH", statReward = 6
+        xpReward = 100, statType = "BALANCE", statReward = 6
     ),
 )
 

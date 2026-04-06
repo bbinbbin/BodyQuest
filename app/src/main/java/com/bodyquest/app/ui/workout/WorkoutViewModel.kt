@@ -178,10 +178,27 @@ class WorkoutViewModel @Inject constructor(
                     val actualStatReward = (quest.statReward * statMultiplier).roundToInt()
 
                     // Calculate new stat value
-                    val newStatValue = when (quest.statType) {
-                        "STRENGTH" -> user.strengthStat + actualStatReward
-                        "ENDURANCE" -> user.enduranceStat + actualStatReward
-                        else -> 0
+                    val newStatValue: Int
+                    val newStatValueSecond: Int
+                    when (quest.statType) {
+                        "STRENGTH" -> {
+                            newStatValue = user.strengthStat + actualStatReward
+                            newStatValueSecond = 0
+                        }
+                        "ENDURANCE" -> {
+                            newStatValue = user.enduranceStat + actualStatReward
+                            newStatValueSecond = 0
+                        }
+                        "BALANCE" -> {
+                            val half = actualStatReward / 2
+                            val remainder = actualStatReward % 2
+                            newStatValue = user.strengthStat + half + remainder
+                            newStatValueSecond = user.enduranceStat + half
+                        }
+                        else -> {
+                            newStatValue = 0
+                            newStatValueSecond = 0
+                        }
                     }
 
                     // Apply all rewards atomically in a single transaction
@@ -190,7 +207,8 @@ class WorkoutViewModel @Inject constructor(
                         newXp = remainingXp,
                         newLevel = newLevel,
                         statType = quest.statType,
-                        newStatValue = newStatValue
+                        newStatValue = newStatValue,
+                        newStatValueSecond = newStatValueSecond
                     )
 
                     _completeState.value = WorkoutCompleteState(

@@ -242,6 +242,9 @@ abstract class BodyQuestDatabase : RoomDatabase() {
                             questCursor.close()
                             if (questCount < seedQuests.size) insertSeedQuests(db)
 
+                            // BALANCE 카테고리 퀘스트의 statType을 BALANCE로 통일
+                            db.execSQL("UPDATE quests SET statType = 'BALANCE' WHERE category = 'BALANCE'")
+
                             val bossCursor = db.query("SELECT COUNT(*) FROM bosses")
                             val bossCount = if (bossCursor.moveToFirst()) bossCursor.getInt(0) else 0
                             bossCursor.close()

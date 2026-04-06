@@ -31,6 +31,9 @@ abstract class UserDao {
     @Query("UPDATE users SET xp = :xp, level = :level, enduranceStat = :statValue WHERE id = :userId")
     abstract suspend fun updateRewardsEndurance(userId: Long, xp: Int, level: Int, statValue: Int)
 
+    @Query("UPDATE users SET xp = :xp, level = :level, strengthStat = :newStr, enduranceStat = :newEnd WHERE id = :userId")
+    abstract suspend fun updateRewardsBalance(userId: Long, xp: Int, level: Int, newStr: Int, newEnd: Int)
+
     @Query("UPDATE users SET profileImageUrl = :url, updatedAt = :updatedAt WHERE firebaseUid = :uid")
     abstract suspend fun updateProfileImageUrl(uid: String, url: String, updatedAt: Long)
 
@@ -46,11 +49,13 @@ abstract class UserDao {
         newXp: Int,
         newLevel: Int,
         statType: String,
-        newStatValue: Int
+        newStatValue: Int,
+        newStatValueSecond: Int = 0
     ) {
         when (statType) {
             "STRENGTH" -> updateRewardsStrength(userId, newXp, newLevel, newStatValue)
             "ENDURANCE" -> updateRewardsEndurance(userId, newXp, newLevel, newStatValue)
+            "BALANCE" -> updateRewardsBalance(userId, newXp, newLevel, newStatValue, newStatValueSecond)
         }
     }
 }

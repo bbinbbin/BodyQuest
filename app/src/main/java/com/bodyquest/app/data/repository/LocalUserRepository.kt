@@ -18,8 +18,9 @@ class LocalUserRepository(private val userDao: UserDao) : UserRepository {
         newXp: Int,
         newLevel: Int,
         statType: String,
-        newStatValue: Int
-    ) = userDao.applyWorkoutRewards(userId, newXp, newLevel, statType, newStatValue)
+        newStatValue: Int,
+        newStatValueSecond: Int
+    ) = userDao.applyWorkoutRewards(userId, newXp, newLevel, statType, newStatValue, newStatValueSecond)
 
     override suspend fun deleteUserByFirebaseUid(uid: String) =
         userDao.deleteUserByFirebaseUid(uid)

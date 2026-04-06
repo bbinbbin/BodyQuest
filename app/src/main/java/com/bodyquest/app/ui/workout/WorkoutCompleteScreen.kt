@@ -198,61 +198,117 @@ fun WorkoutCompleteScreen(
                 }
 
                 // Stat reward
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = statType.displayName,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextMuted,
-                        modifier = Modifier.width(80.dp)
-                    )
-                    if (state.statReward != state.baseStatReward) {
-                        // 직업 효과 적용됨 — 기본 → 최종 표시
+                if (statType == StatType.BALANCE) {
+                    // BALANCE: 양쪽 스탯 표시
+                    val half = state.statReward / 2
+                    val remainder = state.statReward % 2
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "균형",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextMuted,
+                            modifier = Modifier.width(80.dp)
+                        )
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "+${state.baseStatReward}",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "  →  ",
+                                text = "근력 +${half + remainder}",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = NeonRed
                             )
+                            Text(
+                                text = "  /  ",
+                                color = TextMuted
+                            )
+                            Text(
+                                text = "지구력 +$half",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = NeonBlue
+                            )
+                        }
+                    }
+                    if (state.statReward != state.baseStatReward) {
+                        Row(
+                            modifier = Modifier.padding(start = 80.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = NeonGreen.copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    text = "직업 효과",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = NeonGreen,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = statType.displayName,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextMuted,
+                            modifier = Modifier.width(80.dp)
+                        )
+                        if (state.statReward != state.baseStatReward) {
+                            // 직업 효과 적용됨 — 기본 → 최종 표시
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "+${state.baseStatReward}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "  →  ",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "+${state.statReward}",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = statType.color
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = statType.color.copy(alpha = 0.15f)
+                                ) {
+                                    Text(
+                                        text = "직업 효과",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = statType.color,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+                        } else {
+                            // 직업 효과 없음 — 최종값만 표시
                             Text(
                                 text = "+${state.statReward}",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = statType.color
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = statType.color.copy(alpha = 0.15f)
-                            ) {
-                                Text(
-                                    text = "직업 효과",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = statType.color,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
                         }
-                    } else {
-                        // 직업 효과 없음 — 최종값만 표시
-                        Text(
-                            text = "+${state.statReward}",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = statType.color
-                        )
                     }
                 }
 

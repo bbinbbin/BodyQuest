@@ -137,7 +137,18 @@ fun QuestDetailScreen(
                     DetailRow("세트", "${q.sets}세트 x ${q.repsPerSet}회")
                 }
                 DetailRow("XP 보상", "+ ${q.xpReward} XP")
-                DetailRow("스탯 보상", "+ ${q.statReward} ${q.statType}")
+                if (q.statType == "BALANCE") {
+                    val half = q.statReward / 2
+                    val remainder = q.statReward % 2
+                    DetailRow("스탯 보상", "근력 +${half + remainder} / 지구력 +$half")
+                } else {
+                    val statName = when (q.statType) {
+                        "STRENGTH" -> "근력"
+                        "ENDURANCE" -> "지구력"
+                        else -> q.statType
+                    }
+                    DetailRow("스탯 보상", "+ ${q.statReward} $statName")
+                }
             }
         }
 

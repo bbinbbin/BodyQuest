@@ -2,6 +2,7 @@ package com.bodyquest.app.domain.model
 
 import androidx.compose.ui.graphics.Color
 import com.bodyquest.app.ui.theme.NeonBlue
+import com.bodyquest.app.ui.theme.NeonGreen
 import com.bodyquest.app.ui.theme.NeonRed
 
 enum class StatType(
@@ -9,5 +10,6 @@ enum class StatType(
     val color: Color
 ) {
     STRENGTH("근력", NeonRed),
-    ENDURANCE("지구력", NeonBlue)
+    ENDURANCE("지구력", NeonBlue),
+    BALANCE("균형", NeonGreen)
 }
