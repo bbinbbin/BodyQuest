@@ -17,6 +17,9 @@ class LocalQuestRepository(private val questDao: QuestDao) : QuestRepository {
     override suspend fun getQuestById(questId: String): QuestEntity? =
         questDao.getQuestById(questId)
 
+    override suspend fun getQuestsByIds(questIds: List<String>): List<QuestEntity> =
+        questDao.getQuestsByIds(questIds)
+
     override suspend fun getBodyParts(category: String): List<String> =
         questDao.getBodyParts(category)
 }

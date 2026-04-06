@@ -76,7 +76,11 @@ class OnboardingViewModel @Inject constructor(
                 val taken = try {
                     firestoreService.isNicknameTaken(s.nickname.trim())
                 } catch (_: Exception) {
-                    false // 네트워크/권한 오류 시 중복 체크 건너뜀
+                    _state.value = _state.value.copy(
+                        isSaving = false,
+                        error = "네트워크 연결을 확인해주세요."
+                    )
+                    return@launch
                 }
                 if (taken) {
                     _state.value = _state.value.copy(

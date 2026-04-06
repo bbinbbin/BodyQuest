@@ -12,6 +12,7 @@ import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.data.repository.WorkoutRepository
 import com.bodyquest.app.util.XpCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
+import android.util.Log
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +30,8 @@ data class WorkoutState(
     val isRunning: Boolean = false,
     val isCompleted: Boolean = false,
     val heartRate: Int = 0,
-    val caloriesBurned: Int = 0
+    val caloriesBurned: Int = 0,
+    val rewardError: String? = null
 )
 
 data class WorkoutCompleteState(
@@ -223,12 +225,13 @@ class WorkoutViewModel @Inject constructor(
                     completedSets = quest.sets,
                     caloriesBurned = caloriesBurned
                 )
-            } catch (_: Exception) {
-                // Still mark as completed even if reward saving fails
+            } catch (e: Exception) {
+                Log.e("WorkoutViewModel", "보상 저장 실패", e)
                 _state.value = s.copy(
                     isRunning = false,
                     isCompleted = true,
-                    completedSets = quest.sets
+                    completedSets = quest.sets,
+                    rewardError = "운동은 완료되었으나 보상 저장에 실패했습니다."
                 )
             }
         }

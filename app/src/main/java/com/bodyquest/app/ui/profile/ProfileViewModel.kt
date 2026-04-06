@@ -78,7 +78,6 @@ class ProfileViewModel @Inject constructor(
 
     private var loadJob: Job? = null
     private var subJobs = mutableListOf<Job>()
-    private val dateKeyFormat = SimpleDateFormat("yyyy-MM-dd", Locale.KOREA)
 
     init {
         loadData()
@@ -153,9 +152,12 @@ class ProfileViewModel @Inject constructor(
         val job = viewModelScope.launch {
             try {
                 workoutRepository.getCompletedWorkoutsSince(userId, sixMonthsAgo).collectLatest { workouts ->
+                    val dateKeyFormat = SimpleDateFormat("yyyy-MM-dd", Locale.KOREA)
+                    val questIds = workouts.map { it.questId }.distinct()
+                    val questMap = questRepository.getQuestsByIds(questIds).associateBy { it.id }
                     val grouped = mutableMapOf<String, MutableList<WorkoutHistoryItem>>()
                     for (workout in workouts) {
-                        val quest = questRepository.getQuestById(workout.questId)
+                        val quest = questMap[workout.questId]
                         val statType = quest?.statType ?: "STRENGTH"
                         val statMultiplier = when (userJob) {
                             "STRENGTH" -> if (statType == "STRENGTH") 2.0f else 1.0f

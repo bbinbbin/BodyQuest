@@ -21,6 +21,9 @@ interface QuestDao {
     @Query("SELECT * FROM quests WHERE id = :questId")
     suspend fun getQuestById(questId: String): QuestEntity?
 
+    @Query("SELECT * FROM quests WHERE id IN (:questIds)")
+    suspend fun getQuestsByIds(questIds: List<String>): List<QuestEntity>
+
     @Query("SELECT DISTINCT bodyPart FROM quests WHERE category = :category AND bodyPart IS NOT NULL")
     suspend fun getBodyParts(category: String): List<String>
 

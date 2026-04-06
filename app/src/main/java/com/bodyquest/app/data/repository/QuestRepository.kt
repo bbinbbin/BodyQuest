@@ -8,5 +8,6 @@ interface QuestRepository {
     fun getQuestsByBodyPart(category: String, bodyPart: String): Flow<List<QuestEntity>>
     fun getQuestsByFilter(category: String, bodyPart: String, difficulty: Int): Flow<List<QuestEntity>>
     suspend fun getQuestById(questId: String): QuestEntity?
+    suspend fun getQuestsByIds(questIds: List<String>): List<QuestEntity>
     suspend fun getBodyParts(category: String): List<String>
 }

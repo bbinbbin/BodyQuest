@@ -9,6 +9,7 @@ import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -30,7 +31,7 @@ class GachaViewModel @Inject constructor(
     private fun loadTickets() {
         val uid = auth.currentUser?.uid ?: return
         viewModelScope.launch {
-            userRepository.getUser(uid).collect { user ->
+            userRepository.getUser(uid).collectLatest { user ->
                 _ticketCount.value = user?.gachaTickets ?: 0
             }
         }

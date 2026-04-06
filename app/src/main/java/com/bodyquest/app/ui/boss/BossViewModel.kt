@@ -17,6 +17,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -156,24 +157,33 @@ class BossViewModel @Inject constructor(
             performance = performance
         )
 
-        _uiState.value = UiState.Success(
-            current.copy(
-                battleLogs = emptyList(),
-                isBattleActive = true,
-                isBattleComplete = false,
-                battleResult = result,
-                challengeResult = null
-            )
-        )
+        _uiState.update { state ->
+            if (state is UiState.Success) UiState.Success(
+                state.data.copy(
+                    battleLogs = emptyList(),
+                    isBattleActive = true,
+                    isBattleComplete = false,
+                    battleResult = result,
+                    challengeResult = null
+                )
+            ) else state
+        }
 
         viewModelScope.launch {
             for (log in logs) {
-                val s = (_uiState.value as? UiState.Success)?.data ?: break
-                _uiState.value = UiState.Success(s.copy(battleLogs = s.battleLogs + log))
+                if (_uiState.value !is UiState.Success) break
+                _uiState.update { state ->
+                    if (state is UiState.Success) UiState.Success(
+                        state.data.copy(battleLogs = state.data.battleLogs + log)
+                    ) else state
+                }
                 delay(700L)
             }
-            val s = (_uiState.value as? UiState.Success)?.data ?: return@launch
-            _uiState.value = UiState.Success(s.copy(isBattleComplete = true))
+            _uiState.update { state ->
+                if (state is UiState.Success) UiState.Success(
+                    state.data.copy(isBattleComplete = true)
+                ) else state
+            }
         }
     }
 
@@ -215,18 +225,20 @@ class BossViewModel @Inject constructor(
                 }
             }
 
-            val s = (_uiState.value as? UiState.Success)?.data ?: return@launch
-            _uiState.value = UiState.Success(
-                s.copy(
-                    isBattleActive = false,
-                    isBattleComplete = false,
-                    battleLogs = emptyList(),
-                    battleResult = null,
-                    challengeResult = if (result.success) {
-                        if (ticketsEarned > 0) result.copy(ticketsEarned = ticketsEarned) else null
-                    } else result
-                )
-            )
+            val finalResult = if (result.success) {
+                if (ticketsEarned > 0) result.copy(ticketsEarned = ticketsEarned) else null
+            } else result
+            _uiState.update { state ->
+                if (state is UiState.Success) UiState.Success(
+                    state.data.copy(
+                        isBattleActive = false,
+                        isBattleComplete = false,
+                        battleLogs = emptyList(),
+                        battleResult = null,
+                        challengeResult = finalResult
+                    )
+                ) else state
+            }
         }
     }
 
@@ -238,7 +250,10 @@ class BossViewModel @Inject constructor(
     }
 
     fun dismissResult() {
-        val current = (_uiState.value as? UiState.Success)?.data ?: return
-        _uiState.value = UiState.Success(current.copy(challengeResult = null))
+        _uiState.update { state ->
+            if (state is UiState.Success) UiState.Success(
+                state.data.copy(challengeResult = null)
+            ) else state
+        }
     }
 }

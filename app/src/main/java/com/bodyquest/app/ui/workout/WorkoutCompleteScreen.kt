@@ -51,6 +51,7 @@ fun WorkoutCompleteScreen(
     onGoHome: () -> Unit
 ) {
     val state by viewModel.completeState.collectAsState()
+    val workoutState by viewModel.state.collectAsState()
 
     LaunchedEffect(workoutId) {
         if (state.questName.isEmpty()) {
@@ -139,6 +140,23 @@ fun WorkoutCompleteScreen(
                         color = NeonGreen
                     )
                 }
+            }
+        }
+
+        // 보상 저장 실패 경고
+        workoutState.rewardError?.let { error ->
+            Spacer(modifier = Modifier.height(12.dp))
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = NeonRed.copy(alpha = 0.15f)
+            ) {
+                Text(
+                    text = error,
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = NeonRed
+                )
             }
         }
 
