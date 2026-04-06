@@ -21,23 +21,27 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.roundToInt
 
+data class SetRowData(
+    val setNumber: Int,
+    val weight: String = "",
+    val reps: String = "",
+    val completed: Boolean = false
+)
+
 data class WorkoutState(
     val quest: QuestEntity? = null,
     val workoutId: Long = 0,
     val elapsedSeconds: Int = 0,
     val currentSet: Int = 1,
     val completedSets: Int = 0,
-    val totalSets: Int = 0,         // 사용자 설정 세트 수 (STRENGTH)
+    val totalSets: Int = 0,
     val isRunning: Boolean = false,
     val isCompleted: Boolean = false,
     val heartRate: Int = 0,
     val caloriesBurned: Int = 0,
     val rewardError: String? = null,
-    val weightInput: String = "",
-    val repsInput: String = "",
-    val setsInput: String = "",
-    val isStrengthSetup: Boolean = false,  // STRENGTH 설정 단계 여부
-    val showGuide: Boolean = true          // 운동 가이드 표시 여부
+    val setRows: List<SetRowData> = emptyList(),  // STRENGTH: 세트 테이블
+    val showGuide: Boolean = true
 )
 
 data class WorkoutCompleteState(
@@ -86,13 +90,18 @@ class WorkoutViewModel @Inject constructor(
             )
             val workoutId = workoutRepository.startWorkout(workout)
 
+            val isStrength = quest.category == "STRENGTH"
+            val initialRows = if (isStrength) {
+                (1..quest.sets).map { i ->
+                    SetRowData(setNumber = i, reps = quest.repsPerSet.toString())
+                }
+            } else emptyList()
+
             _state.value = WorkoutState(
                 quest = quest,
                 workoutId = workoutId,
                 totalSets = quest.sets,
-                isStrengthSetup = quest.category == "STRENGTH",
-                setsInput = quest.sets.toString(),
-                repsInput = quest.repsPerSet.toString()
+                setRows = initialRows
             )
         }
     }
@@ -115,47 +124,87 @@ class WorkoutViewModel @Inject constructor(
         startHeartRateSimulation()
     }
 
-    fun updateWeightInput(value: String) {
-        _state.value = _state.value.copy(weightInput = value)
-    }
-
-    fun updateRepsInput(value: String) {
-        _state.value = _state.value.copy(repsInput = value)
-    }
-
     fun toggleGuide() {
         _state.value = _state.value.copy(showGuide = !_state.value.showGuide)
     }
 
-    fun updateSetsInput(value: String) {
-        _state.value = _state.value.copy(setsInput = value)
-    }
+    // ── STRENGTH 세트 테이블 관리 ──
 
-    fun confirmStrengthSetup() {
+    fun updateSetWeight(setIndex: Int, value: String) {
         val s = _state.value
-        val sets = s.setsInput.toIntOrNull() ?: return
-        val reps = s.repsInput.toIntOrNull() ?: return
-        if (sets <= 0 || reps <= 0) return
-        _state.value = s.copy(
-            totalSets = sets,
-            isStrengthSetup = false
-        )
-        startWorkout()
+        val rows = s.setRows.toMutableList()
+        if (setIndex in rows.indices) {
+            rows[setIndex] = rows[setIndex].copy(weight = value)
+            _state.value = s.copy(setRows = rows)
+        }
     }
 
-    fun completeSet() {
+    fun updateSetReps(setIndex: Int, value: String) {
+        val s = _state.value
+        val rows = s.setRows.toMutableList()
+        if (setIndex in rows.indices) {
+            rows[setIndex] = rows[setIndex].copy(reps = value)
+            _state.value = s.copy(setRows = rows)
+        }
+    }
+
+    fun addSet() {
+        val s = _state.value
+        val lastRow = s.setRows.lastOrNull()
+        val newRow = SetRowData(
+            setNumber = s.setRows.size + 1,
+            weight = lastRow?.weight ?: "",
+            reps = lastRow?.reps ?: ""
+        )
+        _state.value = s.copy(
+            setRows = s.setRows + newRow,
+            totalSets = s.totalSets + 1
+        )
+    }
+
+    fun removeSet() {
+        val s = _state.value
+        if (s.setRows.size <= 1) return
+        val uncompleted = s.setRows.filter { !it.completed }
+        if (uncompleted.isEmpty()) return
+        // 마지막 미완료 세트 제거
+        val lastUncompleted = s.setRows.indexOfLast { !it.completed }
+        val rows = s.setRows.toMutableList()
+        rows.removeAt(lastUncompleted)
+        // 번호 재정렬
+        val renumbered = rows.mapIndexed { i, r -> r.copy(setNumber = i + 1) }
+        _state.value = s.copy(
+            setRows = renumbered,
+            totalSets = renumbered.size
+        )
+    }
+
+    fun completeSetRow(setIndex: Int) {
         val s = _state.value
         val quest = s.quest ?: return
+        val rows = s.setRows.toMutableList()
+        if (setIndex !in rows.indices || rows[setIndex].completed) return
 
-        val isStrength = quest.category == "STRENGTH"
-        val reps = if (isStrength) (s.repsInput.toIntOrNull() ?: quest.repsPerSet) else quest.repsPerSet
-        val weight = if (isStrength) (s.weightInput.toDoubleOrNull() ?: 0.0) else 0.0
-        val targetSets = if (isStrength) s.totalSets else quest.sets
+        val row = rows[setIndex]
+        val reps = row.reps.toIntOrNull() ?: quest.repsPerSet
+        val weight = row.weight.toDoubleOrNull() ?: 0.0
+
+        rows[setIndex] = row.copy(completed = true)
+        val newCompleted = rows.count { it.completed }
+
+        if (!s.isRunning) {
+            // 첫 세트 체크 시 타이머 시작
+            _state.value = s.copy(setRows = rows, completedSets = newCompleted, isRunning = true)
+            startTimer()
+            startHeartRateSimulation()
+        } else {
+            _state.value = s.copy(setRows = rows, completedSets = newCompleted)
+        }
 
         viewModelScope.launch {
             val set = WorkoutSetEntity(
                 workoutId = s.workoutId,
-                setNumber = s.currentSet,
+                setNumber = row.setNumber,
                 reps = reps,
                 weight = weight,
                 completed = true,
@@ -163,8 +212,29 @@ class WorkoutViewModel @Inject constructor(
             )
             workoutRepository.insertWorkoutSet(set)
 
+            if (newCompleted >= rows.size) {
+                finishWorkout()
+            }
+        }
+    }
+
+    fun completeSet() {
+        // ENDURANCE/BALANCE용 기존 로직
+        val s = _state.value
+        val quest = s.quest ?: return
+
+        viewModelScope.launch {
+            val set = WorkoutSetEntity(
+                workoutId = s.workoutId,
+                setNumber = s.currentSet,
+                reps = quest.repsPerSet,
+                completed = true,
+                completedAt = System.currentTimeMillis()
+            )
+            workoutRepository.insertWorkoutSet(set)
+
             val newCompleted = s.completedSets + 1
-            if (newCompleted >= targetSets) {
+            if (newCompleted >= quest.sets) {
                 finishWorkout()
             } else {
                 _state.value = s.copy(

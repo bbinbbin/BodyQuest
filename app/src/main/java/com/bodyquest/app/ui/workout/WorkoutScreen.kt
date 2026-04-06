@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -124,53 +125,8 @@ fun WorkoutScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        if (isStrength && state.isStrengthSetup) {
-            // ── STRENGTH 설정 단계: 세트/무게/횟수 초기 설정 ──
-            Text(
-                text = "운동 설정",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            OutlinedTextField(
-                value = state.setsInput,
-                onValueChange = { viewModel.updateSetsInput(it) },
-                label = { Text("세트 수") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                colors = strengthTextFieldColors()
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = state.weightInput,
-                onValueChange = { viewModel.updateWeightInput(it) },
-                label = { Text("무게 (kg)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                colors = strengthTextFieldColors()
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = state.repsInput,
-                onValueChange = { viewModel.updateRepsInput(it) },
-                label = { Text("횟수") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                colors = strengthTextFieldColors()
-            )
-
-        } else if (isStrength) {
-            // ── STRENGTH 진행 단계: 세트 완료만 누르기 ──
+        if (isStrength) {
+            // ── STRENGTH: 테이블 뷰 ──
 
             // 운동 가이드 카드
             if (state.showGuide) {
@@ -180,7 +136,7 @@ fun WorkoutScreen(
                     color = DarkSurfaceVariant
                 ) {
                     Column(
-                        modifier = Modifier.padding(20.dp),
+                        modifier = Modifier.padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Row(
@@ -188,100 +144,145 @@ fun WorkoutScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "운동 가이드",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = TextMuted
-                            )
+                            Text("운동 가이드", style = MaterialTheme.typography.labelMedium, color = TextMuted)
                             IconButton(onClick = { viewModel.toggleGuide() }) {
+                                Icon(Icons.Default.VisibilityOff, "가이드 숨기기", tint = TextMuted, modifier = Modifier.size(20.dp))
+                            }
+                        }
+                        Icon(Icons.Default.FitnessCenter, null, tint = NeonPurple.copy(alpha = 0.6f), modifier = Modifier.size(64.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(quest.description, style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            } else {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    IconButton(onClick = { viewModel.toggleGuide() }) {
+                        Icon(Icons.Default.Visibility, "가이드 보기", tint = TextMuted, modifier = Modifier.size(20.dp))
+                    }
+                }
+            }
+
+            // 세트 +/- 컨트롤
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { viewModel.removeSet() }) {
+                    Text("−", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextMuted)
+                }
+                Text(
+                    text = "세트",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                IconButton(onClick = { viewModel.addSet() }) {
+                    Text("+", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = NeonPurple)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 세트 테이블 헤더
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("", modifier = Modifier.width(36.dp)) // 번호 자리
+                Text("kg", modifier = Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium, color = TextMuted)
+                Text("횟수", modifier = Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium, color = TextMuted)
+                Text("", modifier = Modifier.width(48.dp)) // 체크 자리
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // 세트 행들
+            state.setRows.forEachIndexed { index, row ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp, horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 세트 번호
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (row.completed) NeonPurple.copy(alpha = 0.2f) else DarkSurfaceVariant,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "${row.setNumber}",
+                                fontWeight = FontWeight.Bold,
+                                color = if (row.completed) NeonPurple else TextMuted
+                            )
+                        }
+                    }
+
+                    // 무게 입력
+                    OutlinedTextField(
+                        value = row.weight,
+                        onValueChange = { viewModel.updateSetWeight(index, it) },
+                        modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
+                        enabled = !row.completed,
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        ),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        colors = strengthTextFieldColors()
+                    )
+
+                    // 횟수 입력
+                    OutlinedTextField(
+                        value = row.reps,
+                        onValueChange = { viewModel.updateSetReps(index, it) },
+                        modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
+                        enabled = !row.completed,
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        ),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = strengthTextFieldColors()
+                    )
+
+                    // 체크 버튼
+                    IconButton(
+                        onClick = { viewModel.completeSetRow(index) },
+                        enabled = !row.completed,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = if (row.completed) NeonPurple else DarkSurfaceVariant,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
                                 Icon(
-                                    imageVector = Icons.Default.VisibilityOff,
-                                    contentDescription = "가이드 숨기기",
-                                    tint = TextMuted,
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "세트 완료",
+                                    tint = if (row.completed) MaterialTheme.colorScheme.onPrimary else TextMuted,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
-                        // 플레이스홀더: 나중에 GIF/애니메이션으로 교체
-                        Icon(
-                            imageVector = Icons.Default.FitnessCenter,
-                            contentDescription = null,
-                            tint = NeonPurple.copy(alpha = 0.6f),
-                            modifier = Modifier.size(80.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = quest.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = quest.description,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextMuted
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-            } else {
-                // 가이드 숨김 — 작은 토글 버튼
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    IconButton(onClick = { viewModel.toggleGuide() }) {
-                        Icon(
-                            imageVector = Icons.Default.Visibility,
-                            contentDescription = "가이드 보기",
-                            tint = TextMuted,
-                            modifier = Modifier.size(20.dp)
-                        )
                     }
                 }
             }
 
-            Text(
-                text = "세트 ${state.completedSets + 1} / ${state.totalSets}",
-                fontSize = 48.sp,
-                fontWeight = FontWeight.Bold,
-                color = NeonPurple
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            val progress = state.completedSets.toFloat() / state.totalSets
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                color = NeonPurple,
-                trackColor = DarkSurfaceVariant,
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // 설정된 무게 × 횟수 표시
-            val weightText = state.weightInput.toDoubleOrNull()?.let { "${it}kg" } ?: ""
-            val repsText = state.repsInput.toIntOrNull()?.let { "${it}회" } ?: ""
-            if (weightText.isNotEmpty() || repsText.isNotEmpty()) {
-                Text(
-                    text = listOf(weightText, repsText).filter { it.isNotEmpty() }.joinToString(" × "),
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-            }
+            Spacer(modifier = Modifier.height(12.dp))
 
             // 경과 시간
             val minutes = state.elapsedSeconds / 60
             val seconds = state.elapsedSeconds % 60
             Text(
                 text = "%02d:%02d".format(minutes, seconds),
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
                 color = TextMuted
             )
         } else {
@@ -353,22 +354,9 @@ fun WorkoutScreen(
         Spacer(modifier = Modifier.weight(1f))
 
         // Control buttons
-        val targetSets = if (isStrength) state.totalSets else quest.sets
-
-        if (isStrength && state.isStrengthSetup) {
-            // STRENGTH 설정 단계 — 운동 시작 버튼
-            Button(
-                onClick = { viewModel.confirmStrengthSetup() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = NeonGreen)
-            ) {
-                Icon(Icons.Default.PlayArrow, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("운동 시작", style = MaterialTheme.typography.titleMedium)
-            }
+        if (isStrength) {
+            // STRENGTH: 세트별 체크로 완료하므로 취소 버튼만
+            // (빈 상태 — 모든 세트 체크 완료 시 자동으로 finishWorkout 호출됨)
         } else if (!state.isRunning && state.elapsedSeconds == 0) {
             // Not started yet (ENDURANCE/BALANCE)
             Button(
@@ -385,7 +373,7 @@ fun WorkoutScreen(
             }
         } else if (state.isRunning) {
             // Running - show set complete + pause
-            if (targetSets > 1) {
+            if (quest.sets > 1) {
                 Button(
                     onClick = { viewModel.completeSet() },
                     modifier = Modifier
@@ -395,7 +383,7 @@ fun WorkoutScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = NeonPurple)
                 ) {
                     Text(
-                        text = "세트 완료 (${state.completedSets + 1}/${targetSets})",
+                        text = "세트 완료 (${state.completedSets + 1}/${quest.sets})",
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
@@ -418,7 +406,7 @@ fun WorkoutScreen(
                     Text("일시정지", color = TextSecondary)
                 }
 
-                if (targetSets <= 1) {
+                if (quest.sets <= 1) {
                     Button(
                         onClick = { viewModel.completeSet() },
                         modifier = Modifier
