@@ -228,19 +228,19 @@ fun QuestTreeScreen(
                                         style = MaterialTheme.typography.bodySmall,
                                         color = TextMuted
                                     )
-                                } else {
-                                    Text(
-                                        text = buildAnnotatedString {
-                                            withStyle(SpanStyle(color = TextMuted)) {
-                                                append("${quest.durationMinutes}분 · ")
-                                            }
-                                            withStyle(SpanStyle(color = NeonPurple)) {
-                                                append("+ ${quest.xpReward} XP")
-                                            }
-                                        },
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
                                 }
+                                Text(
+                                    text = buildAnnotatedString {
+                                        withStyle(SpanStyle(color = TextMuted)) {
+                                            append("${quest.durationMinutes}분 · ")
+                                        }
+                                        withStyle(SpanStyle(color = NeonPurple)) {
+                                            append("+ ${quest.xpReward} XP")
+                                        }
+                                    },
+                                    style = MaterialTheme.typography.bodySmall
+                                )
                             }
                         }
                     }
