@@ -6,140 +6,188 @@ import com.bodyquest.app.data.local.entity.QuestEntity
 val seedQuests = listOf(
     // ── STRENGTH: 가슴 ──
     QuestEntity(
-        id = "str_chest_beginner",
-        category = "STRENGTH", bodyPart = "가슴", specificArea = "가슴 전체",
-        name = "가슴 기초 루틴", description = "푸시업 위주의 기초 가슴 운동",
-        difficulty = 1, durationMinutes = 15, sets = 3, repsPerSet = 12,
+        id = "str_chest_pushup", category = "STRENGTH", bodyPart = "가슴", specificArea = null,
+        name = "푸시업", description = "기본 푸시업으로 가슴 전체 자극",
+        difficulty = 1, durationMinutes = 10, sets = 3, repsPerSet = 15,
         xpReward = 30, statType = "STRENGTH", statReward = 2
     ),
     QuestEntity(
-        id = "str_chest_intermediate",
-        category = "STRENGTH", bodyPart = "가슴", specificArea = "가슴 전체",
-        name = "가슴 중급 루틴", description = "벤치프레스 중심 가슴 운동",
-        difficulty = 2, durationMinutes = 30, sets = 4, repsPerSet = 10,
+        id = "str_chest_bench_press", category = "STRENGTH", bodyPart = "가슴", specificArea = null,
+        name = "벤치프레스", description = "바벨을 이용한 플랫 벤치프레스",
+        difficulty = 2, durationMinutes = 25, sets = 4, repsPerSet = 10,
         xpReward = 60, statType = "STRENGTH", statReward = 4
     ),
     QuestEntity(
-        id = "str_chest_advanced",
-        category = "STRENGTH", bodyPart = "가슴", specificArea = "가슴 전체",
-        name = "가슴 고급 루틴", description = "고중량 벤치프레스 + 플라이",
-        difficulty = 3, durationMinutes = 45, sets = 5, repsPerSet = 8,
-        xpReward = 100, statType = "STRENGTH", statReward = 6
+        id = "str_chest_incline_press", category = "STRENGTH", bodyPart = "가슴", specificArea = null,
+        name = "인클라인 프레스", description = "윗가슴을 집중 자극하는 인클라인 벤치프레스",
+        difficulty = 2, durationMinutes = 25, sets = 4, repsPerSet = 10,
+        xpReward = 60, statType = "STRENGTH", statReward = 4
+    ),
+    QuestEntity(
+        id = "str_chest_dumbbell_fly", category = "STRENGTH", bodyPart = "가슴", specificArea = null,
+        name = "덤벨 플라이", description = "가슴 안쪽을 자극하는 덤벨 플라이",
+        difficulty = 2, durationMinutes = 20, sets = 3, repsPerSet = 12,
+        xpReward = 50, statType = "STRENGTH", statReward = 4
+    ),
+    QuestEntity(
+        id = "str_chest_dips", category = "STRENGTH", bodyPart = "가슴", specificArea = null,
+        name = "딥스", description = "자체 체중을 이용한 가슴 하부 운동",
+        difficulty = 3, durationMinutes = 20, sets = 4, repsPerSet = 10,
+        xpReward = 80, statType = "STRENGTH", statReward = 6
     ),
 
     // ── STRENGTH: 등 ──
     QuestEntity(
-        id = "str_back_beginner",
-        category = "STRENGTH", bodyPart = "등", specificArea = "등 전체",
-        name = "등 기초 루틴", description = "밴드 로우 위주의 기초 등 운동",
-        difficulty = 1, durationMinutes = 15, sets = 3, repsPerSet = 12,
-        xpReward = 30, statType = "STRENGTH", statReward = 2
-    ),
-    QuestEntity(
-        id = "str_back_intermediate",
-        category = "STRENGTH", bodyPart = "등", specificArea = "등 전체",
-        name = "등 중급 루틴", description = "풀업 + 바벨 로우",
-        difficulty = 2, durationMinutes = 30, sets = 4, repsPerSet = 10,
+        id = "str_back_pullup", category = "STRENGTH", bodyPart = "등", specificArea = null,
+        name = "풀업", description = "턱걸이로 등 전체와 이두를 자극",
+        difficulty = 2, durationMinutes = 20, sets = 4, repsPerSet = 8,
         xpReward = 60, statType = "STRENGTH", statReward = 4
     ),
     QuestEntity(
-        id = "str_back_advanced",
-        category = "STRENGTH", bodyPart = "등", specificArea = "등 전체",
-        name = "등 고급 루틴", description = "데드리프트 + 턱걸이 + 시티드 로우",
-        difficulty = 3, durationMinutes = 45, sets = 5, repsPerSet = 8,
+        id = "str_back_barbell_row", category = "STRENGTH", bodyPart = "등", specificArea = null,
+        name = "바벨 로우", description = "바벨을 이용한 벤트오버 로우",
+        difficulty = 2, durationMinutes = 25, sets = 4, repsPerSet = 10,
+        xpReward = 60, statType = "STRENGTH", statReward = 4
+    ),
+    QuestEntity(
+        id = "str_back_lat_pulldown", category = "STRENGTH", bodyPart = "등", specificArea = null,
+        name = "랫풀다운", description = "케이블 머신을 이용한 광배근 운동",
+        difficulty = 1, durationMinutes = 20, sets = 3, repsPerSet = 12,
+        xpReward = 30, statType = "STRENGTH", statReward = 2
+    ),
+    QuestEntity(
+        id = "str_back_seated_row", category = "STRENGTH", bodyPart = "등", specificArea = null,
+        name = "시티드 로우", description = "케이블 시티드 로우로 등 중앙부 자극",
+        difficulty = 1, durationMinutes = 20, sets = 3, repsPerSet = 12,
+        xpReward = 30, statType = "STRENGTH", statReward = 2
+    ),
+    QuestEntity(
+        id = "str_back_deadlift", category = "STRENGTH", bodyPart = "등", specificArea = null,
+        name = "데드리프트", description = "전신 복합 운동의 왕, 바벨 데드리프트",
+        difficulty = 3, durationMinutes = 30, sets = 5, repsPerSet = 5,
         xpReward = 100, statType = "STRENGTH", statReward = 6
     ),
 
     // ── STRENGTH: 하체 ──
     QuestEntity(
-        id = "str_legs_beginner",
-        category = "STRENGTH", bodyPart = "하체", specificArea = "하체 전체",
-        name = "하체 기초 루틴", description = "스쿼트 위주의 기초 하체 운동",
-        difficulty = 1, durationMinutes = 15, sets = 3, repsPerSet = 15,
-        xpReward = 30, statType = "STRENGTH", statReward = 2
-    ),
-    QuestEntity(
-        id = "str_legs_intermediate",
-        category = "STRENGTH", bodyPart = "하체", specificArea = "하체 전체",
-        name = "하체 중급 루틴", description = "바벨 스쿼트 + 레그프레스",
-        difficulty = 2, durationMinutes = 35, sets = 4, repsPerSet = 10,
+        id = "str_legs_squat", category = "STRENGTH", bodyPart = "하체", specificArea = null,
+        name = "스쿼트", description = "하체 운동의 기본, 바벨 백 스쿼트",
+        difficulty = 2, durationMinutes = 25, sets = 4, repsPerSet = 10,
         xpReward = 60, statType = "STRENGTH", statReward = 4
     ),
     QuestEntity(
-        id = "str_legs_advanced",
-        category = "STRENGTH", bodyPart = "하체", specificArea = "하체 전체",
-        name = "하체 고급 루틴", description = "고중량 스쿼트 + 런지 + 레그컬",
-        difficulty = 3, durationMinutes = 50, sets = 5, repsPerSet = 8,
-        xpReward = 100, statType = "STRENGTH", statReward = 6
+        id = "str_legs_leg_press", category = "STRENGTH", bodyPart = "하체", specificArea = null,
+        name = "레그프레스", description = "머신을 이용한 하체 프레스",
+        difficulty = 1, durationMinutes = 20, sets = 3, repsPerSet = 12,
+        xpReward = 30, statType = "STRENGTH", statReward = 2
+    ),
+    QuestEntity(
+        id = "str_legs_lunge", category = "STRENGTH", bodyPart = "하체", specificArea = null,
+        name = "런지", description = "한 발씩 번갈아 실시하는 런지",
+        difficulty = 1, durationMinutes = 15, sets = 3, repsPerSet = 12,
+        xpReward = 30, statType = "STRENGTH", statReward = 2
+    ),
+    QuestEntity(
+        id = "str_legs_leg_curl", category = "STRENGTH", bodyPart = "하체", specificArea = null,
+        name = "레그컬", description = "허벅지 뒤쪽(햄스트링) 집중 운동",
+        difficulty = 1, durationMinutes = 15, sets = 3, repsPerSet = 12,
+        xpReward = 30, statType = "STRENGTH", statReward = 2
+    ),
+    QuestEntity(
+        id = "str_legs_bulgarian_split", category = "STRENGTH", bodyPart = "하체", specificArea = null,
+        name = "불가리안 스플릿 스쿼트", description = "한 발을 뒤에 올린 고강도 스쿼트",
+        difficulty = 3, durationMinutes = 25, sets = 4, repsPerSet = 8,
+        xpReward = 80, statType = "STRENGTH", statReward = 6
     ),
 
     // ── STRENGTH: 어깨 ──
     QuestEntity(
-        id = "str_shoulder_beginner",
-        category = "STRENGTH", bodyPart = "어깨", specificArea = "어깨 전체",
-        name = "어깨 기초 루틴", description = "덤벨 프레스 위주 기초 어깨 운동",
-        difficulty = 1, durationMinutes = 15, sets = 3, repsPerSet = 12,
-        xpReward = 30, statType = "STRENGTH", statReward = 2
-    ),
-    QuestEntity(
-        id = "str_shoulder_intermediate",
-        category = "STRENGTH", bodyPart = "어깨", specificArea = "어깨 전체",
-        name = "어깨 중급 루틴", description = "오버헤드 프레스 + 사이드 레터럴 레이즈",
-        difficulty = 2, durationMinutes = 30, sets = 4, repsPerSet = 10,
+        id = "str_shoulder_press", category = "STRENGTH", bodyPart = "어깨", specificArea = null,
+        name = "숄더프레스", description = "덤벨 또는 바벨 오버헤드 프레스",
+        difficulty = 2, durationMinutes = 20, sets = 4, repsPerSet = 10,
         xpReward = 60, statType = "STRENGTH", statReward = 4
     ),
     QuestEntity(
-        id = "str_shoulder_advanced",
-        category = "STRENGTH", bodyPart = "어깨", specificArea = "어깨 전체",
-        name = "어깨 고급 루틴", description = "밀리터리 프레스 + 페이스풀 + 슈러그",
-        difficulty = 3, durationMinutes = 45, sets = 5, repsPerSet = 8,
-        xpReward = 100, statType = "STRENGTH", statReward = 6
-    ),
-
-    // ── STRENGTH: 팔 ──
-    QuestEntity(
-        id = "str_arms_beginner",
-        category = "STRENGTH", bodyPart = "팔", specificArea = "팔 전체",
-        name = "팔 기초 루틴", description = "바이셉 컬 + 트라이셉 익스텐션",
-        difficulty = 1, durationMinutes = 15, sets = 3, repsPerSet = 12,
-        xpReward = 30, statType = "STRENGTH", statReward = 2
-    ),
-    QuestEntity(
-        id = "str_arms_intermediate",
-        category = "STRENGTH", bodyPart = "팔", specificArea = "팔 전체",
-        name = "팔 중급 루틴", description = "해머 컬 + 스컬크러셔 + 딥스",
-        difficulty = 2, durationMinutes = 30, sets = 4, repsPerSet = 10,
-        xpReward = 60, statType = "STRENGTH", statReward = 4
-    ),
-    QuestEntity(
-        id = "str_arms_advanced",
-        category = "STRENGTH", bodyPart = "팔", specificArea = "팔 전체",
-        name = "팔 고급 루틴", description = "바벨 컬 + 클로즈그립 벤치 + 케이블 컬",
-        difficulty = 3, durationMinutes = 40, sets = 5, repsPerSet = 8,
-        xpReward = 100, statType = "STRENGTH", statReward = 6
-    ),
-
-    // ── STRENGTH: 코어 ──
-    QuestEntity(
-        id = "str_core_beginner",
-        category = "STRENGTH", bodyPart = "코어", specificArea = "복근 전체",
-        name = "코어 기초 루틴", description = "크런치 + 플랭크 기초",
+        id = "str_shoulder_lateral_raise", category = "STRENGTH", bodyPart = "어깨", specificArea = null,
+        name = "사이드 레터럴 레이즈", description = "측면 삼각근을 자극하는 덤벨 레이즈",
         difficulty = 1, durationMinutes = 15, sets = 3, repsPerSet = 15,
         xpReward = 30, statType = "STRENGTH", statReward = 2
     ),
     QuestEntity(
-        id = "str_core_intermediate",
-        category = "STRENGTH", bodyPart = "코어", specificArea = "복근 전체",
-        name = "코어 중급 루틴", description = "레그레이즈 + 사이드 플랭크 + 마운틴클라이머",
-        difficulty = 2, durationMinutes = 25, sets = 4, repsPerSet = 12,
-        xpReward = 60, statType = "STRENGTH", statReward = 4
+        id = "str_shoulder_front_raise", category = "STRENGTH", bodyPart = "어깨", specificArea = null,
+        name = "프론트 레이즈", description = "전면 삼각근을 자극하는 덤벨 레이즈",
+        difficulty = 1, durationMinutes = 15, sets = 3, repsPerSet = 15,
+        xpReward = 30, statType = "STRENGTH", statReward = 2
     ),
     QuestEntity(
-        id = "str_core_advanced",
-        category = "STRENGTH", bodyPart = "코어", specificArea = "복근 전체",
-        name = "코어 고급 루틴", description = "행잉 레그레이즈 + 드래곤 플래그 + Ab 롤아웃",
-        difficulty = 3, durationMinutes = 35, sets = 5, repsPerSet = 10,
-        xpReward = 100, statType = "STRENGTH", statReward = 6
+        id = "str_shoulder_face_pull", category = "STRENGTH", bodyPart = "어깨", specificArea = null,
+        name = "페이스풀", description = "후면 삼각근과 승모근을 자극하는 케이블 운동",
+        difficulty = 2, durationMinutes = 15, sets = 3, repsPerSet = 15,
+        xpReward = 50, statType = "STRENGTH", statReward = 4
+    ),
+    QuestEntity(
+        id = "str_shoulder_military_press", category = "STRENGTH", bodyPart = "어깨", specificArea = null,
+        name = "밀리터리 프레스", description = "스탠딩 바벨 오버헤드 프레스",
+        difficulty = 3, durationMinutes = 25, sets = 4, repsPerSet = 8,
+        xpReward = 80, statType = "STRENGTH", statReward = 6
+    ),
+
+    // ── STRENGTH: 팔 ──
+    QuestEntity(
+        id = "str_arms_bicep_curl", category = "STRENGTH", bodyPart = "팔", specificArea = null,
+        name = "바이셉 컬", description = "이두근을 집중 자극하는 덤벨 컬",
+        difficulty = 1, durationMinutes = 15, sets = 3, repsPerSet = 12,
+        xpReward = 30, statType = "STRENGTH", statReward = 2
+    ),
+    QuestEntity(
+        id = "str_arms_tricep_extension", category = "STRENGTH", bodyPart = "팔", specificArea = null,
+        name = "트라이셉 익스텐션", description = "삼두근을 집중 자극하는 오버헤드 익스텐션",
+        difficulty = 1, durationMinutes = 15, sets = 3, repsPerSet = 12,
+        xpReward = 30, statType = "STRENGTH", statReward = 2
+    ),
+    QuestEntity(
+        id = "str_arms_hammer_curl", category = "STRENGTH", bodyPart = "팔", specificArea = null,
+        name = "해머 컬", description = "이두근과 전완근을 함께 자극하는 컬",
+        difficulty = 2, durationMinutes = 15, sets = 3, repsPerSet = 12,
+        xpReward = 50, statType = "STRENGTH", statReward = 4
+    ),
+    QuestEntity(
+        id = "str_arms_close_grip_bench", category = "STRENGTH", bodyPart = "팔", specificArea = null,
+        name = "클로즈그립 벤치프레스", description = "좁은 그립으로 삼두근을 집중 자극",
+        difficulty = 3, durationMinutes = 20, sets = 4, repsPerSet = 8,
+        xpReward = 80, statType = "STRENGTH", statReward = 6
+    ),
+
+    // ── STRENGTH: 코어 ──
+    QuestEntity(
+        id = "str_core_plank", category = "STRENGTH", bodyPart = "코어", specificArea = null,
+        name = "플랭크", description = "코어 안정화의 기본, 플랭크 버티기",
+        difficulty = 1, durationMinutes = 10, sets = 3, repsPerSet = 1,
+        xpReward = 30, statType = "STRENGTH", statReward = 2
+    ),
+    QuestEntity(
+        id = "str_core_crunch", category = "STRENGTH", bodyPart = "코어", specificArea = null,
+        name = "크런치", description = "상복부를 집중 자극하는 크런치",
+        difficulty = 1, durationMinutes = 10, sets = 3, repsPerSet = 20,
+        xpReward = 30, statType = "STRENGTH", statReward = 2
+    ),
+    QuestEntity(
+        id = "str_core_leg_raise", category = "STRENGTH", bodyPart = "코어", specificArea = null,
+        name = "레그레이즈", description = "하복부를 집중 자극하는 레그레이즈",
+        difficulty = 2, durationMinutes = 15, sets = 3, repsPerSet = 15,
+        xpReward = 50, statType = "STRENGTH", statReward = 4
+    ),
+    QuestEntity(
+        id = "str_core_bicycle_crunch", category = "STRENGTH", bodyPart = "코어", specificArea = null,
+        name = "바이시클 크런치", description = "복사근을 포함한 전체 복근 운동",
+        difficulty = 2, durationMinutes = 15, sets = 3, repsPerSet = 20,
+        xpReward = 50, statType = "STRENGTH", statReward = 4
+    ),
+    QuestEntity(
+        id = "str_core_hanging_leg_raise", category = "STRENGTH", bodyPart = "코어", specificArea = null,
+        name = "행잉 레그레이즈", description = "매달려서 실시하는 고강도 하복부 운동",
+        difficulty = 3, durationMinutes = 15, sets = 4, repsPerSet = 10,
+        xpReward = 80, statType = "STRENGTH", statReward = 6
     ),
 
     // ── ENDURANCE ──

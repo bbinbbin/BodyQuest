@@ -245,6 +245,20 @@ abstract class BodyQuestDatabase : RoomDatabase() {
                             // BALANCE 카테고리 퀘스트의 statType을 BALANCE로 통일
                             db.execSQL("UPDATE quests SET statType = 'BALANCE' WHERE category = 'BALANCE'")
 
+                            // STRENGTH 퀘스트를 개별 운동으로 교체 (기존 루틴 데이터 삭제 후 재삽입)
+                            val strCursor = db.query("SELECT id FROM quests WHERE category = 'STRENGTH' AND id LIKE '%_beginner' LIMIT 1")
+                            val hasOldData = strCursor.moveToFirst()
+                            strCursor.close()
+                            if (hasOldData) {
+                                db.execSQL("DELETE FROM quests WHERE category = 'STRENGTH'")
+                                for (q in seedQuests.filter { it.category == "STRENGTH" }) {
+                                    db.execSQL(
+                                        "INSERT OR IGNORE INTO quests (id, category, bodyPart, specificArea, name, description, difficulty, durationMinutes, sets, repsPerSet, xpReward, statType, statReward) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                                        arrayOf(q.id, q.category, q.bodyPart, q.specificArea, q.name, q.description, q.difficulty, q.durationMinutes, q.sets, q.repsPerSet, q.xpReward, q.statType, q.statReward)
+                                    )
+                                }
+                            }
+
                             val bossCursor = db.query("SELECT COUNT(*) FROM bosses")
                             val bossCount = if (bossCursor.moveToFirst()) bossCursor.getInt(0) else 0
                             bossCursor.close()
