@@ -3,7 +3,6 @@ package com.bodyquest.app.ui.home
 import android.content.Context
 import android.net.Uri
 import android.util.Base64
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bodyquest.app.data.local.entity.QuestEntity
@@ -15,6 +14,7 @@ import com.bodyquest.app.data.repository.QuestRepository
 import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.data.repository.WorkoutRepository
 import com.bodyquest.app.ui.common.UiState
+import com.bodyquest.app.util.AppLogger
 import com.bodyquest.app.util.ImageUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -129,7 +129,7 @@ class HomeViewModel @Inject constructor(
                     updateSuccessState { it.copy(todaysQuests = questInfos) }
                 }
             } catch (e: Exception) {
-                Log.w("HomeViewModel", "오늘의 퀘스트 로딩 실패", e)
+                AppLogger.w("HomeViewModel", "오늘의 퀘스트 로딩 실패", e)
             }
         }
         subJobs.add(job)
@@ -152,7 +152,7 @@ class HomeViewModel @Inject constructor(
                     updateSuccessState { it.copy(recommendedQuests = recommended) }
                 }
             } catch (e: Exception) {
-                Log.w("HomeViewModel", "추천 퀘스트 로딩 실패", e)
+                AppLogger.w("HomeViewModel", "추천 퀘스트 로딩 실패", e)
             }
         }
         subJobs.add(job)
@@ -180,7 +180,7 @@ class HomeViewModel @Inject constructor(
                     updateSuccessState { it.copy(weekWorkoutDays = days) }
                 }
             } catch (e: Exception) {
-                Log.w("HomeViewModel", "주간 운동 로딩 실패", e)
+                AppLogger.w("HomeViewModel", "주간 운동 로딩 실패", e)
             }
         }
         subJobs.add(job)
@@ -198,7 +198,7 @@ class HomeViewModel @Inject constructor(
                     updateSuccessState { it.copy(clearedBossCount = cleared, totalBossCount = total) }
                 }
             } catch (e: Exception) {
-                Log.w("HomeViewModel", "보스 진행률 로딩 실패", e)
+                AppLogger.w("HomeViewModel", "보스 진행률 로딩 실패", e)
             }
         }
         subJobs.add(job)
@@ -214,7 +214,7 @@ class HomeViewModel @Inject constructor(
 
     fun uploadProfileImage(uri: Uri) {
         val uid = authRepository.currentUserId
-        Log.d("ProfileImage", "uploadProfileImage called, uid=$uid, uri=$uri")
+        AppLogger.d("ProfileImage", "uploadProfileImage called")
         if (uid == null) return
         viewModelScope.launch {
             try {
@@ -224,16 +224,16 @@ class HomeViewModel @Inject constructor(
                     val encoded = Base64.encodeToString(b, Base64.NO_WRAP)
                     b to encoded
                 }
-                Log.d("ProfileImage", "Compressed: ${bytes.size} bytes, base64: ${base64.length} chars")
+                AppLogger.d("ProfileImage", "Compressed: ${bytes.size} bytes")
                 userRepository.updateProfileImageUrl(uid, base64)
                 val updatedUser = userRepository.getUserOnce(uid)
                 if (updatedUser != null) {
                     syncManager.pushUserToCloud(updatedUser)
                 }
-                Log.d("ProfileImage", "Profile image saved successfully")
+                AppLogger.d("ProfileImage", "Profile image saved successfully")
                 updateSuccessState { it.copy(isUploadingImage = false) }
             } catch (e: Exception) {
-                Log.e("ProfileImage", "Failed to save profile image", e)
+                AppLogger.e("ProfileImage", "Failed to save profile image", e)
                 updateSuccessState {
                     it.copy(
                         isUploadingImage = false,

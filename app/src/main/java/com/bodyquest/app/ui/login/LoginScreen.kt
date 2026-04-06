@@ -1,7 +1,7 @@
 package com.bodyquest.app.ui.login
 
 import android.app.Activity
-import android.util.Log
+import com.bodyquest.app.util.AppLogger
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -397,7 +397,7 @@ private fun findActivity(context: android.content.Context): Activity? {
 private suspend fun launchGoogleSignIn(context: android.content.Context, viewModel: LoginViewModel) {
     val activity = findActivity(context)
     if (activity == null) {
-        Log.e("LoginScreen", "Activity not found from context")
+        AppLogger.e("LoginScreen", "Activity not found from context")
         return
     }
     try {
@@ -416,7 +416,7 @@ private suspend fun launchGoogleSignIn(context: android.content.Context, viewMod
     } catch (_: GetCredentialCancellationException) {
         // User cancelled
     } catch (e: Exception) {
-        Log.e("LoginScreen", "Google Sign-In failed", e)
+        AppLogger.e("LoginScreen", "Google Sign-In failed: ${e.javaClass.simpleName}")
         viewModel.signInWithGoogleError(e.message ?: "Google 로그인에 실패했습니다.")
     }
 }

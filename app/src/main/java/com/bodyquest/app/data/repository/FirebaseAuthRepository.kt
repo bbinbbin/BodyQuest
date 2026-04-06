@@ -1,7 +1,7 @@
 package com.bodyquest.app.data.repository
 
-import android.util.Log
 import com.bodyquest.app.domain.model.AuthResult
+import com.bodyquest.app.util.AppLogger
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
@@ -77,7 +77,7 @@ class FirebaseAuthRepository @Inject constructor(
     }
 
     private fun mapFirebaseError(e: Exception): String {
-        Log.e("FirebaseAuth", "Firebase error [${e.javaClass.simpleName}]: ${e.message}", e)
+        AppLogger.e("FirebaseAuth", "Auth error: ${e.javaClass.simpleName}")
         return when (e) {
             is FirebaseAuthInvalidUserException -> when (e.errorCode) {
                 "ERROR_USER_NOT_FOUND" -> "가입되지 않은 이메일입니다."

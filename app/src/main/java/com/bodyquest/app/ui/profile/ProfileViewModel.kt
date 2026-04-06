@@ -1,6 +1,5 @@
 package com.bodyquest.app.ui.profile
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bodyquest.app.data.remote.FirestoreUserService
@@ -10,6 +9,7 @@ import com.bodyquest.app.data.repository.QuestRepository
 import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.data.repository.WorkoutRepository
 import com.bodyquest.app.ui.common.UiState
+import com.bodyquest.app.util.AppLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -141,7 +141,7 @@ class ProfileViewModel @Inject constructor(
                     updateSuccessState { it.copy(cumulativeStats = stats) }
                 }
             } catch (e: Exception) {
-                Log.w("ProfileViewModel", "누적 통계 로딩 실패", e)
+                AppLogger.w("ProfileViewModel", "누적 통계 로딩 실패", e)
             }
         }
         subJobs.add(job)
@@ -180,7 +180,7 @@ class ProfileViewModel @Inject constructor(
                     updateSuccessState { it.copy(calendarData = grouped) }
                 }
             } catch (e: Exception) {
-                Log.w("ProfileViewModel", "달력 데이터 로딩 실패", e)
+                AppLogger.w("ProfileViewModel", "달력 데이터 로딩 실패", e)
             }
         }
         subJobs.add(job)
@@ -218,7 +218,7 @@ class ProfileViewModel @Inject constructor(
                     updateSuccessState { it.copy(weeklyStats = stats) }
                 }
             } catch (e: Exception) {
-                Log.w("ProfileViewModel", "주간 통계 로딩 실패", e)
+                AppLogger.w("ProfileViewModel", "주간 통계 로딩 실패", e)
             }
         }
         subJobs.add(job)
@@ -236,7 +236,9 @@ class ProfileViewModel @Inject constructor(
             try {
                 try {
                     firestoreService.deleteUser(uid)
-                } catch (_: Exception) { }
+                } catch (e: Exception) {
+                    AppLogger.e("ProfileViewModel", "Firestore 사용자 데이터 삭제 실패", e)
+                }
 
                 userRepository.deleteUserByFirebaseUid(uid)
 

@@ -9,7 +9,7 @@ import com.bodyquest.app.data.local.entity.SkinInventoryEntity
 import com.bodyquest.app.data.local.entity.UserEntity
 import com.bodyquest.app.data.local.entity.WorkoutEntity
 import com.bodyquest.app.data.local.entity.WorkoutSetEntity
-import android.util.Log
+import com.bodyquest.app.util.AppLogger
 import javax.inject.Inject
 
 class SyncManager @Inject constructor(
@@ -53,7 +53,7 @@ class SyncManager @Inject constructor(
             // 인벤토리도 항상 pull
             pullSkinInventoryFromCloud(firebaseUid)
         } catch (e: Exception) {
-            Log.w("SyncManager", "로그인 동기화 실패", e)
+            AppLogger.w("SyncManager", "로그인 동기화 실패", e)
         }
     }
 
@@ -73,7 +73,7 @@ class SyncManager @Inject constructor(
                 }
             }
         } catch (e: Exception) {
-            Log.w("SyncManager", "운동 기록 pull 실패", e)
+            AppLogger.w("SyncManager", "운동 기록 pull 실패", e)
         }
     }
 
@@ -84,7 +84,7 @@ class SyncManager @Inject constructor(
                 bossProgressDao.upsert(progress)
             }
         } catch (e: Exception) {
-            Log.w("SyncManager", "보스 진행 pull 실패", e)
+            AppLogger.w("SyncManager", "보스 진행 pull 실패", e)
         }
     }
 
@@ -95,7 +95,7 @@ class SyncManager @Inject constructor(
                 skinInventoryDao.upsert(item)
             }
         } catch (e: Exception) {
-            Log.w("SyncManager", "인벤토리 pull 실패", e)
+            AppLogger.w("SyncManager", "인벤토리 pull 실패", e)
         }
     }
 
@@ -103,7 +103,7 @@ class SyncManager @Inject constructor(
         try {
             firestoreService.pushSkinInventory(firebaseUid, item)
         } catch (e: Exception) {
-            Log.w("SyncManager", "인벤토리 push 실패", e)
+            AppLogger.w("SyncManager", "인벤토리 push 실패", e)
         }
     }
 
@@ -111,7 +111,7 @@ class SyncManager @Inject constructor(
         try {
             firestoreService.pushBossProgress(firebaseUid, progress)
         } catch (e: Exception) {
-            Log.w("SyncManager", "보스 진행 push 실패", e)
+            AppLogger.w("SyncManager", "보스 진행 push 실패", e)
         }
     }
 
@@ -119,7 +119,7 @@ class SyncManager @Inject constructor(
         try {
             firestoreService.pushUser(user)
         } catch (e: Exception) {
-            Log.w("SyncManager", "유저 push 실패", e)
+            AppLogger.w("SyncManager", "유저 push 실패", e)
         }
     }
 
@@ -134,7 +134,7 @@ class SyncManager @Inject constructor(
             // Save firestoreId back to local DB
             workoutDao.updateWorkout(workout.copy(firestoreId = firestoreId))
         } catch (e: Exception) {
-            Log.w("SyncManager", "운동 기록 push 실패", e)
+            AppLogger.w("SyncManager", "운동 기록 push 실패", e)
         }
     }
 }

@@ -24,22 +24,15 @@ class FirestoreUserService @Inject constructor(
 
     suspend fun deleteUser(firebaseUid: String) {
         val userRef = firestore.collection("users").document(firebaseUid)
-        // Delete workouts subcollection first
-        val workouts = userRef.collection("workouts").get().await()
-        for (doc in workouts.documents) {
-            doc.reference.delete().await()
+        val subcollections = listOf("workouts", "bossProgress", "inventory")
+        for (name in subcollections) {
+            val docs = userRef.collection(name).get().await().documents
+            docs.chunked(500).forEach { chunk ->
+                val batch = firestore.batch()
+                chunk.forEach { doc -> batch.delete(doc.reference) }
+                batch.commit().await()
+            }
         }
-        // Delete bossProgress subcollection
-        val bossProgress = userRef.collection("bossProgress").get().await()
-        for (doc in bossProgress.documents) {
-            doc.reference.delete().await()
-        }
-        // Delete inventory subcollection
-        val inventory = userRef.collection("inventory").get().await()
-        for (doc in inventory.documents) {
-            doc.reference.delete().await()
-        }
-        // Delete user document
         userRef.delete().await()
     }
 
