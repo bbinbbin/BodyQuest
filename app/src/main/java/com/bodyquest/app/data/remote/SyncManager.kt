@@ -22,7 +22,7 @@ class SyncManager @Inject constructor(
 
     suspend fun syncOnLogin(firebaseUid: String) {
         try {
-            val localUser = userDao.getUserByFirebaseUid(firebaseUid)
+            val localUser = userDao.getUserOnce(firebaseUid)
             val cloudUser = firestoreService.pullUser(firebaseUid)
 
             if (localUser == null && cloudUser != null) {

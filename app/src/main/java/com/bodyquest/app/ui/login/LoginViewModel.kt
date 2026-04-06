@@ -172,7 +172,7 @@ class LoginViewModel @Inject constructor(
     private suspend fun handleAuthSuccess(result: AuthResult.Success) {
         sharedPreferences.edit().putBoolean("has_logged_in", true).commit()
         syncManager.syncOnLogin(result.uid)
-        val existingUser = userRepository.getUserByFirebaseUid(result.uid)
+        val existingUser = userRepository.getUserOnce(result.uid)
         val isNewUser = existingUser == null
         _state.value = _state.value.copy(
             isLoading = false,

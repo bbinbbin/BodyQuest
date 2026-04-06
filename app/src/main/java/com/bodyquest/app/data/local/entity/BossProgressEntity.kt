@@ -2,6 +2,7 @@ package com.bodyquest.app.data.local.entity
 
 import androidx.room.Entity
 
+// TODO: DB v14에서 FK 추가 예정 (userId → users.firebaseUid, bossId → bosses.id)
 @Entity(
     tableName = "boss_progress",
     primaryKeys = ["userId", "bossId"]

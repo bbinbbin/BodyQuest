@@ -3,6 +3,7 @@ package com.bodyquest.app.ui.gacha
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bodyquest.app.data.repository.SkinInventoryRepository
+import com.bodyquest.app.util.AppLogger
 import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.data.remote.SyncManager
 import com.google.firebase.auth.FirebaseAuth
@@ -47,7 +48,9 @@ class GachaViewModel @Inject constructor(
             try {
                 val updatedUser = userRepository.getUserOnce(uid)
                 if (updatedUser != null) syncManager.pushUserToCloud(updatedUser)
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                AppLogger.w("GachaViewModel", "티켓 클라우드 push 실패", e)
+            }
         }
         return true
     }
@@ -61,7 +64,9 @@ class GachaViewModel @Inject constructor(
                 if (item != null) {
                     syncManager.pushSkinInventoryToCloud(uid, item)
                 }
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                AppLogger.w("GachaViewModel", "인벤토리 클라우드 push 실패", e)
+            }
         }
     }
 }

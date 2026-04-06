@@ -1,6 +1,7 @@
 package com.bodyquest.app.ui.test
 
 import android.content.Context
+import com.bodyquest.app.util.AppLogger
 import kotlin.math.sqrt
 
 data class ObjModel(
@@ -95,7 +96,8 @@ object ObjParser {
             val (center, scale) = computeNormalization(posData, posWritten)
             ObjModel(result, outWritten / 6, center, scale)
 
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            AppLogger.w("ObjParser", "OBJ 파싱 실패", e)
             null
         }
     }

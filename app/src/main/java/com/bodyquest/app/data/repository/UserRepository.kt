@@ -15,7 +15,6 @@ interface UserRepository {
         statType: String,
         newStatValue: Int
     )
-    suspend fun getUserByFirebaseUid(uid: String): UserEntity?
     suspend fun deleteUserByFirebaseUid(uid: String)
     suspend fun updateProfileImageUrl(firebaseUid: String, url: String)
     suspend fun updateEquippedSkin(firebaseUid: String, skinId: String?)

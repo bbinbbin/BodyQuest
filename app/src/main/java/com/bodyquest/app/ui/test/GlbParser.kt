@@ -1,6 +1,7 @@
 package com.bodyquest.app.ui.test
 
 import android.content.Context
+import com.bodyquest.app.util.AppLogger
 import org.json.JSONArray
 import org.json.JSONObject
 import java.nio.ByteBuffer
@@ -213,7 +214,8 @@ object GlbParser {
             if (outWritten == 0) return null
             ObjModel(outData.copyOf(outWritten), outWritten / 6, center, scale)
 
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            AppLogger.w("GlbParser", "GLB 파싱 실패", e)
             null
         }
     }
