@@ -36,7 +36,8 @@ data class WorkoutState(
     val weightInput: String = "",
     val repsInput: String = "",
     val setsInput: String = "",
-    val isStrengthSetup: Boolean = false  // STRENGTH 설정 단계 여부
+    val isStrengthSetup: Boolean = false,  // STRENGTH 설정 단계 여부
+    val showGuide: Boolean = true          // 운동 가이드 표시 여부
 )
 
 data class WorkoutCompleteState(
@@ -120,6 +121,10 @@ class WorkoutViewModel @Inject constructor(
 
     fun updateRepsInput(value: String) {
         _state.value = _state.value.copy(repsInput = value)
+    }
+
+    fun toggleGuide() {
+        _state.value = _state.value.copy(showGuide = !_state.value.showGuide)
     }
 
     fun updateSetsInput(value: String) {
