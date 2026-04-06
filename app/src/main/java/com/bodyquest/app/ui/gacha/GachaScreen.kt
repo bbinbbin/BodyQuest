@@ -161,13 +161,13 @@ fun GachaScreen(viewModel: GachaViewModel, onBack: () -> Unit) {
                 GachaPhase.IDLE -> {
                     Button(
                         onClick = {
-                            if (viewModel.consumeTicket()) {
+                            if (skinPool.isNotEmpty() && viewModel.consumeTicket()) {
                                 drawnSkin = skinPool.random()
                                 phase = GachaPhase.SPINNING
                                 animTrigger++
                             }
                         },
-                        enabled = ticketCount > 0,
+                        enabled = ticketCount > 0 && skinPool.isNotEmpty(),
                         modifier = Modifier
                             .fillMaxWidth(0.65f)
                             .height(52.dp),
@@ -178,7 +178,11 @@ fun GachaScreen(viewModel: GachaViewModel, onBack: () -> Unit) {
                         shape = RoundedCornerShape(14.dp)
                     ) {
                         Text(
-                            text = if (ticketCount > 0) "✨ 뽑기 (1장 사용)" else "티켓이 없습니다",
+                            text = when {
+                                skinPool.isEmpty() -> "뽑을 수 있는 스킨이 없습니다"
+                                ticketCount > 0 -> "✨ 뽑기 (1장 사용)"
+                                else -> "티켓이 없습니다"
+                            },
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
