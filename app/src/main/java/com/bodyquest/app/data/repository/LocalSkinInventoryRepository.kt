@@ -15,10 +15,8 @@ class LocalSkinInventoryRepository(
         dao.getItem(userId, skinId)
 
     override suspend fun addOrIncrement(userId: String, skinId: String) {
-        val existing = dao.getItem(userId, skinId)
-        if (existing != null) {
-            dao.upsert(existing.copy(count = existing.count + 1))
-        } else {
+        val updated = dao.incrementCount(skinId, userId)
+        if (updated == 0) {
             dao.upsert(SkinInventoryEntity(skinId = skinId, userId = userId, count = 1))
         }
     }

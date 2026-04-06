@@ -53,8 +53,14 @@ object ImageUtil {
             cropped
         }
 
-        val output = ByteArrayOutputStream()
-        scaled.compress(Bitmap.CompressFormat.JPEG, 80, output)
+        val maxBytes = 500_000 // 500KB — Base64 인코딩 시 ~667KB, Firestore 1MB 문서 제한 내
+        var quality = 80
+        var output: ByteArrayOutputStream
+        do {
+            output = ByteArrayOutputStream()
+            scaled.compress(Bitmap.CompressFormat.JPEG, quality, output)
+            quality -= 10
+        } while (output.size() > maxBytes && quality > 10)
 
         if (scaled !== cropped) scaled.recycle()
         if (cropped !== rotated) cropped.recycle()

@@ -17,4 +17,7 @@ interface SkinInventoryDao {
 
     @Upsert
     suspend fun upsert(item: SkinInventoryEntity)
+
+    @Query("UPDATE skin_inventory SET count = count + 1 WHERE skinId = :skinId AND userId = :userId")
+    suspend fun incrementCount(skinId: String, userId: String): Int
 }

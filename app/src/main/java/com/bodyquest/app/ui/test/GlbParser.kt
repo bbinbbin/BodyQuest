@@ -177,6 +177,7 @@ object GlbParser {
 
                     val ai: Int; val bi: Int; val ci: Int
                     if (indices != null) {
+                        if (triIdx * 3 + 2 >= indices.size) continue
                         ai = indices[triIdx * 3]
                         bi = indices[triIdx * 3 + 1]
                         ci = indices[triIdx * 3 + 2]
