@@ -197,17 +197,17 @@ fun QuestTreeScreen(
                             modifier = Modifier.padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // 썸네일 플레이스홀더 (나중에 GIF로 교체)
+                            // 운동 썸네일 (부위별 아이콘)
                             Surface(
                                 shape = RoundedCornerShape(10.dp),
-                                color = MaterialTheme.colorScheme.background,
+                                color = difficultyColor.copy(alpha = 0.1f),
                                 modifier = Modifier.size(64.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         imageVector = Icons.Default.FitnessCenter,
                                         contentDescription = null,
-                                        tint = difficultyColor.copy(alpha = 0.5f),
+                                        tint = difficultyColor,
                                         modifier = Modifier.size(32.dp)
                                     )
                                 }
