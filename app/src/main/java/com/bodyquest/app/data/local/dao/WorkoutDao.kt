@@ -57,4 +57,12 @@ interface WorkoutDao {
 
     @Query("SELECT * FROM workouts WHERE userId = :userId AND completed = 1 AND startTime >= :startTime ORDER BY startTime DESC")
     fun getCompletedWorkoutsSince(userId: Long, startTime: Long): Flow<List<WorkoutEntity>>
+
+    @Query("SELECT questId, MAX(startTime) as startTime FROM workouts WHERE userId = :userId AND completed = 1 GROUP BY questId")
+    suspend fun getLastCompletionTimes(userId: Long): List<QuestLastDone>
 }
+
+data class QuestLastDone(
+    val questId: String,
+    val startTime: Long
+)

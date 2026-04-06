@@ -3,7 +3,10 @@ package com.bodyquest.app.ui.quest
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bodyquest.app.data.local.entity.QuestEntity
+import com.bodyquest.app.data.repository.AuthRepository
 import com.bodyquest.app.data.repository.QuestRepository
+import com.bodyquest.app.data.repository.UserRepository
+import com.bodyquest.app.data.repository.WorkoutRepository
 import com.bodyquest.app.ui.common.UiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +20,7 @@ data class QuestTreeState(
     val bodyParts: List<String> = emptyList(),
     val selectedBodyPart: String? = null,
     val quests: List<QuestEntity> = emptyList(),
+    val lastDoneMap: Map<String, Long> = emptyMap(),
     val treeLevel: TreeLevel = TreeLevel.BODY_PART
 )
 
@@ -27,7 +31,10 @@ enum class TreeLevel {
 
 @HiltViewModel
 class QuestViewModel @Inject constructor(
-    private val questRepository: QuestRepository
+    private val questRepository: QuestRepository,
+    private val workoutRepository: WorkoutRepository,
+    private val userRepository: UserRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<UiState<QuestTreeState>>(UiState.Loading)
@@ -61,10 +68,15 @@ class QuestViewModel @Inject constructor(
         )
         viewModelScope.launch {
             try {
+                // 마지막 수행일 로드
+                val uid = authRepository.currentUserId
+                val user = if (uid != null) userRepository.getUserOnce(uid) else null
+                val lastDone = if (user != null) workoutRepository.getLastCompletionTimes(user.id) else emptyMap()
+
                 questRepository.getQuestsByBodyPart(current.category, bodyPart)
                     .collectLatest { quests ->
                         val state = (_uiState.value as? UiState.Success)?.data ?: return@collectLatest
-                        _uiState.value = UiState.Success(state.copy(quests = quests))
+                        _uiState.value = UiState.Success(state.copy(quests = quests, lastDoneMap = lastDone))
                     }
             } catch (e: Exception) {
                 _uiState.value = UiState.Error(e.message ?: "퀘스트를 불러올 수 없습니다.")

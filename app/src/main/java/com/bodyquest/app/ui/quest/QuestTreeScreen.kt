@@ -2,6 +2,7 @@ package com.bodyquest.app.ui.quest
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,12 +10,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -163,18 +166,24 @@ fun QuestTreeScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 state.quests.forEach { quest ->
-                    val difficultyLabel = when (quest.difficulty) {
-                        1 -> "초급"
-                        2 -> "중급"
-                        3 -> "고급"
-                        else -> ""
-                    }
                     val difficultyColor = when (quest.difficulty) {
                         1 -> com.bodyquest.app.ui.theme.NeonGreen
                         2 -> com.bodyquest.app.ui.theme.NeonBlue
                         3 -> com.bodyquest.app.ui.theme.NeonRed
                         else -> TextMuted
                     }
+
+                    // 마지막 수행일 계산
+                    val lastDoneTime = state.lastDoneMap[quest.id]
+                    val lastDoneText = if (lastDoneTime != null) {
+                        val days = ((System.currentTimeMillis() - lastDoneTime) / (1000 * 60 * 60 * 24)).toInt()
+                        when {
+                            days == 0 -> "오늘"
+                            days == 1 -> "어제"
+                            days < 30 -> "${days}일 전"
+                            else -> "${days / 30}개월 전"
+                        }
+                    } else null
 
                     Surface(
                         modifier = Modifier
@@ -184,48 +193,55 @@ fun QuestTreeScreen(
                         shape = RoundedCornerShape(12.dp),
                         color = DarkSurfaceVariant
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = quest.name,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = difficultyColor.copy(alpha = 0.15f)
-                                ) {
-                                    Text(
-                                        text = difficultyLabel,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = difficultyColor
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // 썸네일 플레이스홀더 (나중에 GIF로 교체)
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.background,
+                                modifier = Modifier.size(64.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.FitnessCenter,
+                                        contentDescription = null,
+                                        tint = difficultyColor.copy(alpha = 0.5f),
+                                        modifier = Modifier.size(32.dp)
                                     )
                                 }
                             }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = quest.description,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TextSecondary
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = buildAnnotatedString {
-                                    withStyle(SpanStyle(color = TextMuted)) {
-                                        append("${quest.durationMinutes}분")
-                                        if (quest.sets > 1) {
-                                            append(" · ${quest.sets}세트 x ${quest.repsPerSet}회")
-                                        }
-                                        append(" · ")
-                                    }
-                                    withStyle(SpanStyle(color = NeonPurple)) {
-                                        append("+ ${quest.xpReward} XP")
-                                    }
-                                },
-                                style = MaterialTheme.typography.labelMedium
-                            )
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = quest.name,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                if (lastDoneText != null) {
+                                    Text(
+                                        text = lastDoneText,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = TextMuted
+                                    )
+                                } else {
+                                    Text(
+                                        text = buildAnnotatedString {
+                                            withStyle(SpanStyle(color = TextMuted)) {
+                                                append("${quest.durationMinutes}분 · ")
+                                            }
+                                            withStyle(SpanStyle(color = NeonPurple)) {
+                                                append("+ ${quest.xpReward} XP")
+                                            }
+                                        },
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
                         }
                     }
                 }
