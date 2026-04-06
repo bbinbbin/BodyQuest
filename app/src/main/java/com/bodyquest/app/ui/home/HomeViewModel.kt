@@ -138,15 +138,19 @@ class HomeViewModel @Inject constructor(
     private fun loadRecommendedQuests(userJob: String) {
         val job = viewModelScope.launch {
             try {
+                // 날짜 기반 시드로 하루 동안 동일한 추천 유지
+                val todaySeed = java.time.LocalDate.now().toEpochDay()
+                val dailyRandom = kotlin.random.Random(todaySeed)
+
                 val allCategories = listOf("STRENGTH", "ENDURANCE")
-                val otherCategory = allCategories.filter { it != userJob }.random()
+                val otherCategory = allCategories.filter { it != userJob }.random(dailyRandom)
 
                 combine(
                     questRepository.getQuestsByCategory(userJob),
                     questRepository.getQuestsByCategory(otherCategory)
                 ) { jobQuests, otherQuests ->
-                    val mainPicks = jobQuests.shuffled().take(2)
-                    val otherPick = otherQuests.shuffled().take(1)
+                    val mainPicks = jobQuests.shuffled(dailyRandom).take(2)
+                    val otherPick = otherQuests.shuffled(dailyRandom).take(1)
                     mainPicks + otherPick
                 }.collectLatest { recommended ->
                     updateSuccessState { it.copy(recommendedQuests = recommended) }
