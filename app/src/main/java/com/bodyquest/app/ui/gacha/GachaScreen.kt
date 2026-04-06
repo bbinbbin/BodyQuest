@@ -14,6 +14,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,10 +44,13 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.collectAsState
+import com.bodyquest.app.R
 import com.bodyquest.app.domain.model.ALL_SKINS
 import com.bodyquest.app.domain.model.SkinItem
 import com.bodyquest.app.ui.theme.DarkBackground
@@ -59,17 +63,31 @@ import com.bodyquest.app.ui.theme.TextSecondary
 import com.bodyquest.app.ui.theme.XpGold
 import kotlinx.coroutines.delay
 
+/** 스킨 ID → drawable 리소스 매핑 (이미지 스킨만) */
+private fun skinDrawableRes(skinId: String): Int? = when (skinId) {
+    "skin_black_t" -> R.drawable.black_t
+    "skin_a" -> R.drawable.skin_a
+    "skin_hood_t" -> R.drawable.hood_t
+    else -> null
+}
+
 private enum class GachaPhase { IDLE, SPINNING, REVEALED }
 
 @Composable
 fun GachaScreen(viewModel: GachaViewModel, onBack: () -> Unit) {
     val ticketCount by viewModel.ticketCount.collectAsState()
+    val avatarIndex by viewModel.avatarIndex.collectAsState()
     var phase by remember { mutableStateOf(GachaPhase.IDLE) }
     var showFlash by remember { mutableStateOf(false) }
     var revealVisible by remember { mutableStateOf(false) }
     var drawnSkin by remember { mutableStateOf<SkinItem?>(null) }
     // phase가 아닌 별도 트리거로 키를 설정 — phase 변경 시 코루틴이 취소되지 않음
     var animTrigger by remember { mutableStateOf(0) }
+
+    // avatarIndex에 맞는 스킨 풀 (null = 공통, 해당 index = 전용)
+    val skinPool = remember(avatarIndex) {
+        ALL_SKINS.filter { it.avatarFilter == null || it.avatarFilter == avatarIndex }
+    }
 
     LaunchedEffect(animTrigger) {
         if (animTrigger > 0) {
@@ -144,7 +162,7 @@ fun GachaScreen(viewModel: GachaViewModel, onBack: () -> Unit) {
                     Button(
                         onClick = {
                             if (viewModel.consumeTicket()) {
-                                drawnSkin = ALL_SKINS.random()
+                                drawnSkin = skinPool.random()
                                 phase = GachaPhase.SPINNING
                                 animTrigger++
                             }
@@ -322,7 +340,7 @@ private fun SpinningCard() {
     }
 }
 
-// 뽑기 결과 카드: 스킨 텍스트 공개
+// 뽑기 결과 카드: 이미지 스킨이면 이미지, 아니면 이모지+텍스트
 @Composable
 private fun RevealedCard(visible: Boolean, skin: SkinItem?) {
     AnimatedVisibility(
@@ -336,6 +354,7 @@ private fun RevealedCard(visible: Boolean, skin: SkinItem?) {
         ) + fadeIn(tween(200))
     ) {
         if (skin != null) {
+            val drawableRes = skinDrawableRes(skin.id)
             Surface(
                 modifier = Modifier.size(180.dp, 240.dp),
                 shape = RoundedCornerShape(16.dp),
@@ -343,27 +362,63 @@ private fun RevealedCard(visible: Boolean, skin: SkinItem?) {
                 border = BorderStroke(2.dp, skin.category.color)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = skin.category.emoji, fontSize = 56.sp)
-                        Spacer(Modifier.height(12.dp))
-                        Text(
-                            text = skin.name,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
+                    if (drawableRes != null) {
+                        // 이미지 스킨
+                        Image(
+                            painter = painterResource(drawableRes),
+                            contentDescription = skin.name,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize()
                         )
-                        Spacer(Modifier.height(6.dp))
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = skin.category.color.copy(alpha = 0.2f)
+                        // 이름 + 카테고리 배지 (하단 오버레이)
+                        Column(
+                            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = skin.category.displayName,
-                                fontSize = 12.sp,
-                                color = skin.category.color,
+                                text = skin.name,
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
+                                color = TextPrimary
                             )
+                            Spacer(Modifier.height(4.dp))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = skin.category.color.copy(alpha = 0.85f)
+                            ) {
+                                Text(
+                                    text = skin.category.displayName,
+                                    fontSize = 11.sp,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    } else {
+                        // 텍스트/이모지 스킨
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(text = skin.category.emoji, fontSize = 56.sp)
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                text = skin.name,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = skin.category.color.copy(alpha = 0.2f)
+                            ) {
+                                Text(
+                                    text = skin.category.displayName,
+                                    fontSize = 12.sp,
+                                    color = skin.category.color,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
+                                )
+                            }
                         }
                     }
                 }

@@ -25,15 +25,19 @@ class GachaViewModel @Inject constructor(
     private val _ticketCount = MutableStateFlow(0)
     val ticketCount: StateFlow<Int> = _ticketCount
 
+    private val _avatarIndex = MutableStateFlow(0)
+    val avatarIndex: StateFlow<Int> = _avatarIndex
+
     init {
-        loadTickets()
+        loadUserData()
     }
 
-    private fun loadTickets() {
+    private fun loadUserData() {
         val uid = auth.currentUser?.uid ?: return
         viewModelScope.launch {
             userRepository.getUser(uid).collectLatest { user ->
                 _ticketCount.value = user?.gachaTickets ?: 0
+                _avatarIndex.value = user?.avatarIndex ?: 0
             }
         }
     }

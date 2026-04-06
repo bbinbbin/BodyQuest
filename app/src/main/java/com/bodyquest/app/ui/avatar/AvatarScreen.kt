@@ -68,7 +68,7 @@ fun AvatarScreen(
                         .weight(1f)
                         .background(DarkSurfaceVariant)
                 ) {
-                    val avatarRes = if (user.avatarIndex == 0) R.drawable.avatar_male else R.drawable.avatar_female
+                    val avatarRes = if (user.avatarIndex == 0) R.drawable.avatar_male else R.drawable.female
                     Image(
                         painter = painterResource(avatarRes),
                         contentDescription = null,

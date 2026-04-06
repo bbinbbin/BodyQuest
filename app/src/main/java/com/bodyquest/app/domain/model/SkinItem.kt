@@ -13,7 +13,9 @@ enum class SkinCategory(val displayName: String, val emoji: String, val color: C
 data class SkinItem(
     val id: String,
     val name: String,
-    val category: SkinCategory
+    val category: SkinCategory,
+    /** null = 모든 아바타, 0 = 남성 전용, 1 = 여성 전용 */
+    val avatarFilter: Int? = null
 )
 
 val ALL_SKINS = listOf(
@@ -36,5 +38,9 @@ val ALL_SKINS = listOf(
     // 모자
     SkinItem("hat_cap", "기본 캡", SkinCategory.HAT),
     SkinItem("hat_beanie", "비니", SkinCategory.HAT),
-    SkinItem("hat_headband", "헤드밴드", SkinCategory.HAT)
+    SkinItem("hat_headband", "헤드밴드", SkinCategory.HAT),
+    // 여성 전용 이미지 스킨
+    SkinItem("skin_black_t", "블랙 티셔츠", SkinCategory.TOP, avatarFilter = 1),
+    SkinItem("skin_a", "A 스킨", SkinCategory.TOP, avatarFilter = 1),
+    SkinItem("skin_hood_t", "후드 티셔츠", SkinCategory.TOP, avatarFilter = 1)
 )

@@ -1,6 +1,7 @@
 package com.bodyquest.app.ui.inventory
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -39,11 +40,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.bodyquest.app.R
 import com.bodyquest.app.domain.model.SkinItem
 import com.bodyquest.app.ui.theme.DarkBackground
 import com.bodyquest.app.ui.theme.DarkSurface
@@ -52,6 +56,13 @@ import com.bodyquest.app.ui.theme.NeonPurple
 import com.bodyquest.app.ui.theme.TextMuted
 import com.bodyquest.app.ui.theme.TextPrimary
 import com.bodyquest.app.ui.theme.TextSecondary
+
+private fun skinDrawableRes(skinId: String): Int? = when (skinId) {
+    "skin_black_t" -> R.drawable.black_t
+    "skin_a" -> R.drawable.skin_a
+    "skin_hood_t" -> R.drawable.hood_t
+    else -> null
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -190,7 +201,7 @@ private fun SkinCard(
         modifier = Modifier.clickable(onClick = onClick)
     ) {
         Column {
-            // 카테고리 + 이모지 영역
+            // 이미지 또는 이모지 영역
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -201,20 +212,30 @@ private fun SkinCard(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = skin.category.emoji, fontSize = 36.sp)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = skin.category.color.copy(alpha = 0.2f)
-                    ) {
-                        Text(
-                            text = skin.category.displayName,
-                            fontSize = 11.sp,
-                            color = skin.category.color,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                        )
+                val drawableRes = skinDrawableRes(skin.id)
+                if (drawableRes != null) {
+                    Image(
+                        painter = painterResource(drawableRes),
+                        contentDescription = skin.name,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = skin.category.emoji, fontSize = 36.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = skin.category.color.copy(alpha = 0.2f)
+                        ) {
+                            Text(
+                                text = skin.category.displayName,
+                                fontSize = 11.sp,
+                                color = skin.category.color,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            )
+                        }
                     }
                 }
 
