@@ -75,16 +75,24 @@ fun AvatarScreen(
                         .weight(1f)
                         .background(DarkSurfaceVariant)
                 ) {
-                    // 장착된 스킨이 있으면 스킨 이미지, 없으면 기본 아바타
-                    val equippedRes = skinDrawableRes(user.equippedSkinId)
-                    val displayRes = equippedRes
-                        ?: if (user.avatarIndex == 0) R.drawable.avatar_male else R.drawable.female
+                    // 기본 아바타
+                    val avatarRes = if (user.avatarIndex == 0) R.drawable.avatar_male else R.drawable.female
                     Image(
-                        painter = painterResource(displayRes),
+                        painter = painterResource(avatarRes),
                         contentDescription = null,
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.fillMaxSize()
                     )
+                    // 장착된 스킨 오버레이 (배경 제거 + 동일 캔버스 크기)
+                    val equippedRes = skinDrawableRes(user.equippedSkinId)
+                    if (equippedRes != null) {
+                        Image(
+                            painter = painterResource(equippedRes),
+                            contentDescription = null,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
 
                 Surface(
