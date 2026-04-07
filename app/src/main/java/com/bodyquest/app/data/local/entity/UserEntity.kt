@@ -22,5 +22,6 @@ data class UserEntity(
     val updatedAt: Long = System.currentTimeMillis(),
     val equippedSkinId: String? = null,    // TOP 슬롯
     val equippedBottomId: String? = null,  // BOTTOM 슬롯
+    val equippedHatId: String? = null,     // HAT 슬롯
     val gachaTickets: Int = 0
 )

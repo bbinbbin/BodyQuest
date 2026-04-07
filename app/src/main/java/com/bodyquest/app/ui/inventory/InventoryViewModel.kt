@@ -67,9 +67,21 @@ class InventoryViewModel @Inject constructor(
         }
     }
 
-    fun isEquipped(skin: SkinItem, topId: String?, bottomId: String?): Boolean = when (skin.category) {
+    /** HAT 슬롯에 장착된 스킨 ID (equippedHatId) */
+    val equippedHatId: StateFlow<String?> = run {
+        if (uid != null) {
+            userRepository.getUser(uid)
+                .map { it?.equippedHatId }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+        } else {
+            flowOf(null).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+        }
+    }
+
+    fun isEquipped(skin: SkinItem, topId: String?, bottomId: String?, hatId: String?): Boolean = when (skin.category) {
         SkinCategory.TOP -> skin.id == topId
         SkinCategory.BOTTOM -> skin.id == bottomId
+        SkinCategory.HAT -> skin.id == hatId
         else -> false
     }
 
@@ -79,7 +91,8 @@ class InventoryViewModel @Inject constructor(
             when (skin.category) {
                 SkinCategory.TOP -> userRepository.updateEquippedSkin(uid, skin.id)
                 SkinCategory.BOTTOM -> userRepository.updateEquippedBottom(uid, skin.id)
-                else -> userRepository.updateEquippedSkin(uid, skin.id)
+                SkinCategory.HAT -> userRepository.updateEquippedHat(uid, skin.id)
+                else -> {}
             }
             pushToCloud(uid)
         }
@@ -91,7 +104,8 @@ class InventoryViewModel @Inject constructor(
             when (skin.category) {
                 SkinCategory.TOP -> userRepository.updateEquippedSkin(uid, null)
                 SkinCategory.BOTTOM -> userRepository.updateEquippedBottom(uid, null)
-                else -> userRepository.updateEquippedSkin(uid, null)
+                SkinCategory.HAT -> userRepository.updateEquippedHat(uid, null)
+                else -> {}
             }
             pushToCloud(uid)
         }

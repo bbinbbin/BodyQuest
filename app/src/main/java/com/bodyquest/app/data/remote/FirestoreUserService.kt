@@ -54,6 +54,7 @@ class FirestoreUserService @Inject constructor(
             "profileImageUrl" to user.profileImageUrl,
             "equippedSkinId" to user.equippedSkinId,
             "equippedBottomId" to user.equippedBottomId,
+            "equippedHatId" to user.equippedHatId,
             "gachaTickets" to user.gachaTickets
         )
         firestore.collection("users").document(uid).set(data).await()
@@ -79,6 +80,7 @@ class FirestoreUserService @Inject constructor(
             updatedAt = doc.getLong("updatedAt") ?: 0,
             equippedSkinId = doc.getString("equippedSkinId"),
             equippedBottomId = doc.getString("equippedBottomId"),
+            equippedHatId = doc.getString("equippedHatId"),
             gachaTickets = (doc.getLong("gachaTickets") ?: 0).toInt()
         )
     }

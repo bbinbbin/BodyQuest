@@ -36,18 +36,29 @@ import com.bodyquest.app.ui.theme.DarkSurfaceVariant
 import com.bodyquest.app.ui.theme.TextSecondary
 
 /**
- * TOP + BOTTOM 조합에 따라 미리 렌더링된 결과 이미지를 반환.
+ * TOP + BOTTOM + HAT 조합에 따라 미리 렌더링된 결과 이미지를 반환.
  * null → 기본 아바타 표시.
  */
-private fun femaleAvatarRes(topId: String?, bottomId: String?): Int {
+private fun femaleAvatarRes(topId: String?, bottomId: String?, hatId: String?): Int {
+    val hasHat = hatId == "skin_f_headband"
+    val hasPants = bottomId == "skin_f_yellow_pants"
     return when {
-        topId == "skin_f_white_tshirt" && bottomId == "skin_f_yellow_pants" ->
-            R.drawable.result_f_white_tshirt_yellow_pants
-        topId == "skin_f_blue_bra"    && bottomId == "skin_f_yellow_pants" ->
-            R.drawable.result_f_blue_bra_yellow_pants
+        // 헤어밴드 + TOP + BOTTOM
+        hasHat && topId == "skin_f_white_tshirt" && hasPants -> R.drawable.result_f_headband_white_tshirt_yellow_pants
+        hasHat && topId == "skin_f_blue_bra"     && hasPants -> R.drawable.result_f_headband_blue_bra_yellow_pants
+        // 헤어밴드 + TOP (바지 없음)
+        hasHat && topId == "skin_f_blue_bra"     -> R.drawable.result_f_headband_blue_bra
+        hasHat && topId == "skin_f_white_tshirt" -> R.drawable.result_f_headband_white_tshirt
+        // 헤어밴드 + BOTTOM (상의 없음)
+        hasHat && hasPants -> R.drawable.result_f_headband_yellow_pants
+        // 헤어밴드 단독
+        hasHat -> R.drawable.result_f_headband
+        // TOP + BOTTOM (헤어밴드 없음)
+        topId == "skin_f_white_tshirt" && hasPants -> R.drawable.result_f_white_tshirt_yellow_pants
+        topId == "skin_f_blue_bra"     && hasPants -> R.drawable.result_f_blue_bra_yellow_pants
         topId == "skin_f_white_tshirt" -> R.drawable.result_f_white_tshirt
         topId == "skin_f_blue_bra"     -> R.drawable.result_f_blue_bra
-        bottomId == "skin_f_yellow_pants" -> R.drawable.result_f_yellow_pants
+        hasPants -> R.drawable.result_f_yellow_pants
         else -> R.drawable.avatar_female
     }
 }
@@ -88,7 +99,7 @@ fun AvatarScreen(
                     val avatarRes = if (user.avatarIndex == 0) {
                         R.drawable.avatar_male
                     } else {
-                        femaleAvatarRes(user.equippedSkinId, user.equippedBottomId)
+                        femaleAvatarRes(user.equippedSkinId, user.equippedBottomId, user.equippedHatId)
                     }
                     Image(
                         painter = painterResource(avatarRes),

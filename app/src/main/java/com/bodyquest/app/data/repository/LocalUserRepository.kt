@@ -34,6 +34,9 @@ class LocalUserRepository(private val userDao: UserDao) : UserRepository {
     override suspend fun updateEquippedBottom(firebaseUid: String, skinId: String?) =
         userDao.updateEquippedBottom(firebaseUid, skinId)
 
+    override suspend fun updateEquippedHat(firebaseUid: String, skinId: String?) =
+        userDao.updateEquippedHat(firebaseUid, skinId)
+
     override suspend fun updateGachaTickets(firebaseUid: String, tickets: Int) =
         userDao.updateGachaTickets(firebaseUid, tickets, System.currentTimeMillis())
 }

@@ -1,7 +1,7 @@
 
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-04-07 (Phase 52: 운동 GIF 이미지 시스템 — Coil GIF 디코더 + 12개 운동 적용)
+> 마지막 업데이트: 2026-04-07 (Phase 53: 헤어밴드 스킨 추가 — HAT 슬롯 DB v16, 12개 조합 룩업)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -937,6 +937,73 @@ make_exercise_gif.py                ← GIF 생성 도우미 스크립트
 exercise_image_prompts.md           ← 프롬프트 문서
 ```
 
+### Phase 53: 헤어밴드 스킨 추가 — HAT 슬롯 + 12개 조합 룩업 (DB v16) ✅ (2026-04-07)
+
+#### 개요
+- 여성 전용 헤어밴드 스킨 추가 (HAT 카테고리)
+- DB에 HAT 전용 슬롯 추가 (v15 → v16)
+- 결과 이미지: 헤어밴드 포함 조합 6종 추가 → 전체 12개 조합 룩업 완성
+- 스킨 미리보기 이미지 배경 제거 (rembg, 86% 투명)
+
+#### 데이터 레이어
+- **`UserEntity`**: `equippedHatId: String? = null` 필드 추가 (HAT 슬롯)
+- **DB v15 → v16** (`MIGRATION_15_16`): `ALTER TABLE users ADD COLUMN equippedHatId TEXT`
+- **`UserDao`**: `updateEquippedHat(uid, skinId)` 쿼리 추가
+- **`UserRepository` / `LocalUserRepository`**: `updateEquippedHat()` 메서드 추가
+- **`FirestoreUserService`**: push/pull에 `equippedHatId` 필드 포함
+
+#### InventoryViewModel
+- `equippedHatId: StateFlow<String?>` 추가
+- `isEquipped()` — HAT 카테고리 판정 추가
+- `equipSkin()` / `unequipSkin()` — HAT 슬롯 분기 추가
+
+#### SkinItem
+- `ALL_SKINS`에 `SkinItem("skin_f_headband", "헤어밴드", SkinCategory.HAT, avatarFilter = 1)` 추가
+
+#### AvatarScreen — femaleAvatarRes() 확장
+- 파라미터 `(topId, bottomId)` → `(topId, bottomId, hatId)` 3개로 확장
+- 12개 조합 룩업 테이블:
+
+| 헤어밴드 | 상의 | 하의 | 결과 이미지 |
+|---------|------|------|------------|
+| ❌ | ❌ | ❌ | avatar_female |
+| ❌ | 흰티 | ❌ | result_f_white_tshirt |
+| ❌ | 파란브라 | ❌ | result_f_blue_bra |
+| ❌ | ❌ | 바지 | result_f_yellow_pants |
+| ❌ | 흰티 | 바지 | result_f_white_tshirt_yellow_pants |
+| ❌ | 파란브라 | 바지 | result_f_blue_bra_yellow_pants |
+| ✅ | ❌ | ❌ | result_f_headband |
+| ✅ | 흰티 | ❌ | result_f_headband_white_tshirt |
+| ✅ | 파란브라 | ❌ | result_f_headband_blue_bra |
+| ✅ | ❌ | 바지 | result_f_headband_yellow_pants |
+| ✅ | 흰티 | 바지 | result_f_headband_white_tshirt_yellow_pants |
+| ✅ | 파란브라 | 바지 | result_f_headband_blue_bra_yellow_pants |
+
+#### InventoryScreen
+- `equippedHatId` collect 추가
+- `isEquipped()` 호출에 `equippedHatId` 파라미터 추가
+- `skinDrawableRes()`에 `"skin_f_headband" -> R.drawable.skin_f_headband` 추가
+
+#### 이미지 파일
+- `skin_f_headband.png` — 인벤토리 미리보기용, rembg 배경 제거 (86% 투명)
+- `result_f_headband.png` — 헤어밴드 단독
+- `result_f_headband_yellow_pants.png` — 헤어밴드 + 바지
+- `result_f_headband_blue_bra.png` — 헤어밴드 + 파란브라
+- `result_f_headband_blue_bra_yellow_pants.png` — 헤어밴드 + 파란브라 + 바지
+- `result_f_headband_white_tshirt.png` — 헤어밴드 + 흰티
+- `result_f_headband_white_tshirt_yellow_pants.png` — 헤어밴드 + 흰티 + 바지
+
+#### 새 스킨/조합 추가 절차 (업데이트)
+1. `Skin/Female/`에 원본 이미지 저장
+2. 결과 이미지(조합별)를 Gemini 등으로 생성 → `Skin/Female/조합명_결과.png`
+3. rembg로 미리보기 스킨 배경 제거 → `skin_f_*.png`로 drawable 복사
+4. 결과 이미지 → `result_f_*.png`로 drawable 복사
+5. `SkinItem.kt` — `ALL_SKINS`에 추가
+6. `AvatarScreen.femaleAvatarRes()` — 룩업 테이블 확장
+7. `InventoryScreen.skinDrawableRes()` — 미리보기 이미지 추가
+
+---
+
 ### Phase 43: 추천 퀘스트 하루 고정 + UI 수정 ✅ (2026-04-06)
 - **추천 퀘스트 하루 고정**: `LocalDate.now().toEpochDay()` 기반 시드로 `shuffled(dailyRandom)` — 같은 날 같은 추천
 - **스플래시 캐치프레이즈 마침표 제거**: "운동을 퀘스트로, 몸을 레전드로." → 마침표 제거
@@ -1235,6 +1302,10 @@ ui/test/
 - [x] 인벤토리 장착 UI — 장착 중 카드 보라 테두리/뱃지, 장착하기↔해제하기 다이얼로그
 - [x] 아바타 스킨 표시 — 오버레이 대신 조합별 결과 이미지 룩업 (5종 조합)
 - [x] 스킨 이미지 배경 제거 — rembg로 단품 스킨 3종 검정 배경 투명화
+- [x] 헤어밴드 스킨 추가 — HAT 슬롯 (DB v16 `equippedHatId`), `SkinCategory.HAT`, 여성 전용
+- [x] 헤어밴드 결과 이미지 6종 — Gemini AI 합성, drawable 추가
+- [x] femaleAvatarRes() 12개 조합 룩업 — TOP/BOTTOM/HAT 전체 조합 완성
+- [x] 헤어밴드 스킨 미리보기 배경 제거 — rembg 처리 (86% 투명)
 
 ---
 
@@ -1278,7 +1349,8 @@ ui/test/
 14. ~~**Firestore 보안 규칙**~~ — **Phase 34 이후 해결**. `inventory/{skinId}` 서브컬렉션 보안 규칙 Firebase Console에서 추가 완료 (2026-04-03).
 15. ~~**스킨 착용 미구현**~~ — **Phase 49~50에서 해결**. TOP/BOTTOM 슬롯 분리(DB v15), 결과 이미지 룩업 방식으로 구현 완료.
 16. **스킨 ID 변경 시 인벤토리 orphan** — `skin_inventory` 테이블의 `skinId`가 `ALL_SKINS`에 없으면 인벤토리에서 미표시. 스킨 id 변경 시 기존 데이터 정리 필요.
-17. **새 스킨/조합 추가 절차** — `ALL_SKINS`에 스킨 추가 → 결과 이미지 drawable 추가 → `AvatarScreen.femaleAvatarRes()` 룩업 테이블 업데이트 → `GachaScreen/InventoryScreen.skinDrawableRes()` 업데이트 3곳 모두 수정 필요.
+17. **새 스킨/조합 추가 절차** — `ALL_SKINS`에 스킨 추가 → 결과 이미지 drawable 추가 → `AvatarScreen.femaleAvatarRes()` 룩업 테이블 업데이트 → `InventoryScreen.skinDrawableRes()` 업데이트. HAT 슬롯은 `equippedHatId` 사용, TOP은 `equippedSkinId`, BOTTOM은 `equippedBottomId`.
+18. **결과 이미지 생성 방법** — Gemini AI에 단일 결과 이미지 2장(예: 헤어밴드_결과 + 흰티_결과)을 주고 합성 요청. 개별 스킨 PNG는 100% 불투명이라 alpha_composite으로 자동 합성 불가 — 반드시 Gemini 등 AI로 수동 생성 필요.
 
 ---
 

@@ -61,6 +61,7 @@ private fun skinDrawableRes(skinId: String): Int? = when (skinId) {
     "skin_f_white_tshirt" -> R.drawable.skin_f_white_tshirt
     "skin_f_blue_bra"     -> R.drawable.skin_f_blue_bra
     "skin_f_yellow_pants" -> R.drawable.skin_f_yellow_pants
+    "skin_f_headband"     -> R.drawable.skin_f_headband
     else -> null
 }
 
@@ -70,12 +71,13 @@ fun InventoryScreen(viewModel: InventoryViewModel, onBack: () -> Unit) {
     val inventory by viewModel.inventory.collectAsState()
     val equippedTopId by viewModel.equippedTopId.collectAsState()
     val equippedBottomId by viewModel.equippedBottomId.collectAsState()
+    val equippedHatId by viewModel.equippedHatId.collectAsState()
 
     var dialogSkin by remember { mutableStateOf<SkinItem?>(null) }
 
     // 장착/해제 다이얼로그
     dialogSkin?.let { skin ->
-        val isEquipped = viewModel.isEquipped(skin, equippedTopId, equippedBottomId)
+        val isEquipped = viewModel.isEquipped(skin, equippedTopId, equippedBottomId, equippedHatId)
         AlertDialog(
             onDismissRequest = { dialogSkin = null },
             containerColor = DarkSurfaceVariant,
@@ -159,7 +161,7 @@ fun InventoryScreen(viewModel: InventoryViewModel, onBack: () -> Unit) {
                     SkinCard(
                         skin = skin,
                         count = count,
-                        isEquipped = viewModel.isEquipped(skin, equippedTopId, equippedBottomId),
+                        isEquipped = viewModel.isEquipped(skin, equippedTopId, equippedBottomId, equippedHatId),
                         onClick = { dialogSkin = skin }
                     )
                 }
