@@ -23,6 +23,7 @@ rembg_session = None
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 RAW_DIR = os.path.join(BASE_DIR, "images", "raw")
 GIF_DIR = os.path.join(BASE_DIR, "images", "gif")
+ASSET_DIR = os.path.join(BASE_DIR, "app", "src", "main", "assets", "exercise_gif")
 SIZE = (512, 512)
 FRAME_DURATION = 800
 
@@ -258,7 +259,7 @@ def make_gif(ex_id: str) -> bool:
         return False
 
     gif_path = os.path.join(GIF_DIR, f"exercise_{ex_id}.gif")
-    if os.path.exists(gif_path):
+    if is_gif_done(ex_id):
         return True
 
     print("  배경 제거 + GIF 생성 중...")
@@ -301,12 +302,18 @@ def find_image_file(user_input: str) -> str | None:
     return None
 
 
+def is_gif_done(ex_id: str) -> bool:
+    """GIF가 images/gif/ 또는 assets/exercise_gif/ 중 하나에 있으면 완료."""
+    gif_name = f"exercise_{ex_id}.gif"
+    return (os.path.exists(os.path.join(GIF_DIR, gif_name))
+            or os.path.exists(os.path.join(ASSET_DIR, gif_name)))
+
+
 def get_progress():
     """완료된 운동 수 계산."""
     done = 0
     for ex_id, _, _, _ in EXERCISES:
-        gif_path = os.path.join(GIF_DIR, f"exercise_{ex_id}.gif")
-        if os.path.exists(gif_path):
+        if is_gif_done(ex_id):
             done += 1
     return done
 
@@ -334,8 +341,7 @@ def main():
     print("=" * 60)
 
     for i, (ex_id, name, prompt_a, prompt_b) in enumerate(EXERCISES):
-        gif_path = os.path.join(GIF_DIR, f"exercise_{ex_id}.gif")
-        if os.path.exists(gif_path):
+        if is_gif_done(ex_id):
             continue  # 이미 완료된 운동 스킵
 
         a_path = os.path.join(RAW_DIR, f"{ex_id}_a.png")

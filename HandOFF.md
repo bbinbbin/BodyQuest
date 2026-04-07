@@ -1,7 +1,7 @@
 
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-04-07 (Phase 52: 운동 GIF 이미지 시스템 — Coil GIF 디코더 + 12개 운동 적용)
+> 마지막 업데이트: 2026-04-07 (Phase 52: 운동 GIF 이미지 시스템 — Coil GIF 디코더 + 24개 운동 적용)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -912,12 +912,13 @@ drawable/
 - **`QuestTreeScreen`**: 썸네일에 GIF 표시 (AsyncImage), 없으면 FitnessCenter 아이콘 fallback
 - **`WorkoutScreen`**: 가이드 카드에 GIF 120dp 표시, 없으면 아이콘 fallback
 
-#### 현재 완료된 GIF (12/46)
+#### 현재 완료된 GIF (24/46)
 - **가슴 5/5** ✅: 푸시업, 벤치프레스, 인클라인 프레스, 덤벨 플라이, 딥스
 - **등 5/5** ✅: 풀업, 바벨 로우, 랫풀다운, 시티드 로우, 데드리프트
-- **하체 2/5**: 스쿼트, 레그프레스 (런지, 레그컬, 불가리안 스플릿 미완)
-- **어깨 0/5**, **팔 0/4**, **코어 0/5**
-- **ENDURANCE 0/8**, **BALANCE 0/9**
+- **하체 5/5** ✅: 스쿼트, 레그프레스, 런지, 레그컬, 불가리안 스플릿
+- **어깨 5/5** ✅: 숄더프레스, 사이드 레터럴 레이즈, 프론트 레이즈, 페이스풀, 밀리터리 프레스
+- **팔 4/4** ✅: 바이셉 컬, 트라이셉 익스텐션, 해머 컬, 클로즈그립 벤치프레스
+- **코어 0/5**, **ENDURANCE 0/8**, **BALANCE 0/9**
 
 #### 새 GIF 추가 절차
 1. `python make_exercise_gif.py` 실행 → 프롬프트 복사 → ChatGPT 이미지 생성 → 다운로드 → Enter
@@ -1227,7 +1228,7 @@ ui/test/
 - [x] 운동 가이드 카드 — 진행 화면 상단 플레이스홀더 + ON/OFF 토글
 - [x] 운동 목록 마지막 수행일 — "N일 전" 표시 + 시간/XP 동시 표시
 - [x] 운동 목록 썸네일 — GIF 있으면 표시, 없으면 난이도별 색상 아이콘 fallback
-- [x] 운동 GIF 이미지 시스템 — Coil GIF 디코더 + ExerciseImages 매핑 + 12/46개 적용 (가슴 5, 등 5, 하체 2)
+- [x] 운동 GIF 이미지 시스템 — Coil GIF 디코더 + ExerciseImages 매핑 + 24/46개 적용 (가슴 5, 등 5, 하체 5, 어깨 5, 팔 4)
 - [x] 여성 아바타 교체 — `avatar_female.png` 적용, `avatarIndex==1`에 반영
 - [x] 스킨 시스템 재구축 — 여성 전용 3종 (흰색 티셔츠/파란 스포츠브라/노란 트레이닝바지), `avatarFilter` 필드로 성별 필터링
 - [x] 뽑기 풀 필터링 — `avatarIndex` 기반, 풀 비었을 때 크래시 방지
@@ -1241,8 +1242,8 @@ ui/test/
 ## 미구현 / 다음 작업 후보
 
 ### 높은 우선순위
-- [ ] **운동 GIF 나머지 34개 추가** — 현재 12/46 완료. `make_exercise_gif.py`로 이어서 생성 → `assets/exercise_gif/`에 복사 → `ExerciseImages.kt` 매핑 추가
-  - 하체 3개, 어깨 5개, 팔 4개, 코어 5개, ENDURANCE 8개, BALANCE 9개 남음
+- [ ] **운동 GIF 나머지 22개 추가** — 현재 24/46 완료. `make_exercise_gif.py`로 이어서 생성 → `assets/exercise_gif/`에 복사 → `ExerciseImages.kt` 매핑 추가
+  - 코어 5개, ENDURANCE 8개, BALANCE 9개 남음
 - [ ] **인바디 데이터 입력** — 프로필에서 인바디 수치 기록 → 스탯 반영
 
 ### 중간 우선순위

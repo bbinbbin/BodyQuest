@@ -24,6 +24,22 @@ object ExerciseImages {
         // ── STRENGTH: 하체 ──
         "str_legs_squat" to "exercise_str_legs_squat.gif",
         "str_legs_leg_press" to "exercise_str_legs_leg_press.gif",
+        "str_legs_lunge" to "exercise_str_legs_lunge.gif",
+        "str_legs_leg_curl" to "exercise_str_legs_leg_curl.gif",
+        "str_legs_bulgarian_split" to "exercise_str_legs_bulgarian_split.gif",
+
+        // ── STRENGTH: 어깨 ──
+        "str_shoulder_press" to "exercise_str_shoulder_press.gif",
+        "str_shoulder_lateral_raise" to "exercise_str_shoulder_lateral_raise.gif",
+        "str_shoulder_front_raise" to "exercise_str_shoulder_front_raise.gif",
+        "str_shoulder_face_pull" to "exercise_str_shoulder_face_pull.gif",
+        "str_shoulder_military_press" to "exercise_str_shoulder_military_press.gif",
+
+        // ── STRENGTH: 팔 ──
+        "str_arms_bicep_curl" to "exercise_str_arms_bicep_curl.gif",
+        "str_arms_tricep_extension" to "exercise_str_arms_tricep_extension.gif",
+        "str_arms_hammer_curl" to "exercise_str_arms_hammer_curl.gif",
+        "str_arms_close_grip_bench" to "exercise_str_arms_close_grip_bench.gif",
     )
 
     /** 운동 ID로 assets 경로 반환. GIF가 없으면 null. */
