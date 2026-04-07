@@ -1,7 +1,7 @@
 
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-04-06 (Phase 51: 여성 스킨 시스템 전면 재설계 — TOP/BOTTOM 슬롯 + 결과 이미지 룩업)
+> 마지막 업데이트: 2026-04-07 (Phase 52: 운동 GIF 이미지 시스템 — Coil GIF 디코더 + 12개 운동 적용)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -888,6 +888,55 @@ drawable/
     흰색티셔츠.png / 흰색티셔츠_결과.png 등
 ```
 
+### Phase 52: 운동 GIF 이미지 시스템 ✅ (2026-04-07)
+
+#### 개요
+- AI(DALL-E)로 운동별 시작/완료 자세 2장 생성 → rembg 배경 제거 → 2프레임 GIF 합성
+- 해부학적 일러스트 스타일 (타겟 근육 빨간색/주황색 하이라이트, 흰색 배경)
+- Coil GIF 디코더로 앱 내 애니메이션 재생
+
+#### 이미지 생성 파이프라인
+- **`make_exercise_gif.py`**: 대화형 GIF 생성 도우미 스크립트
+  - 운동 하나씩 프롬프트 표시 → 이미지 다운로드 → 배경 제거 + GIF 합성 자동화
+  - Downloads 폴더 최근 파일 자동 감지 (Enter 입력)
+  - 중간 종료 후 재실행 시 완료된 운동 스킵하고 이어서 진행
+- **`exercise_image_prompts.md`**: 46개 운동별 프롬프트 문서 (공통 스타일 + 자세 설명)
+- 이미지 경로: `images/raw/` (원본) → `images/gif/` (합성 결과) → `assets/exercise_gif/` (앱 에셋)
+
+#### 앱 연동
+- **coil-gif 2.6.0** 의존성 추가 (`libs.versions.toml` + `build.gradle.kts`)
+- **`BodyQuestApp`**: `ImageLoaderFactory` 구현, `GifDecoder.Factory()` 등록
+- **`ExerciseImages.kt`** (`domain/model/`): 운동 ID → `file:///android_asset/exercise_gif/` 경로 매핑
+  - `getGifPath(questId)`: GIF 있으면 assets URI 반환, 없으면 null
+  - `hasGif(questId)`: GIF 존재 여부 확인
+- **`QuestTreeScreen`**: 썸네일에 GIF 표시 (AsyncImage), 없으면 FitnessCenter 아이콘 fallback
+- **`WorkoutScreen`**: 가이드 카드에 GIF 120dp 표시, 없으면 아이콘 fallback
+
+#### 현재 완료된 GIF (12/46)
+- **가슴 5/5** ✅: 푸시업, 벤치프레스, 인클라인 프레스, 덤벨 플라이, 딥스
+- **등 5/5** ✅: 풀업, 바벨 로우, 랫풀다운, 시티드 로우, 데드리프트
+- **하체 2/5**: 스쿼트, 레그프레스 (런지, 레그컬, 불가리안 스플릿 미완)
+- **어깨 0/5**, **팔 0/4**, **코어 0/5**
+- **ENDURANCE 0/8**, **BALANCE 0/9**
+
+#### 새 GIF 추가 절차
+1. `python make_exercise_gif.py` 실행 → 프롬프트 복사 → ChatGPT 이미지 생성 → 다운로드 → Enter
+2. `images/gif/`에서 `assets/exercise_gif/`로 복사
+3. `ExerciseImages.kt` gifMap에 항목 추가
+
+#### 파일 구조
+```
+images/
+  raw/                              ← 원본 이미지 (A/B 프레임)
+  gif/                              ← 합성된 GIF
+assets/exercise_gif/                ← 앱 에셋 (빌드에 포함)
+  exercise_str_chest_pushup.gif
+  exercise_str_chest_bench_press.gif
+  ...
+make_exercise_gif.py                ← GIF 생성 도우미 스크립트
+exercise_image_prompts.md           ← 프롬프트 문서
+```
+
 ### Phase 43: 추천 퀘스트 하루 고정 + UI 수정 ✅ (2026-04-06)
 - **추천 퀘스트 하루 고정**: `LocalDate.now().toEpochDay()` 기반 시드로 `shuffled(dailyRandom)` — 같은 날 같은 추천
 - **스플래시 캐치프레이즈 마침표 제거**: "운동을 퀘스트로, 몸을 레전드로." → 마침표 제거
@@ -1177,7 +1226,8 @@ ui/test/
 - [x] STRENGTH 세트 테이블 UI — 세트별 무게/횟수 입력, 개별 체크, +/− 세트 추가/삭제
 - [x] 운동 가이드 카드 — 진행 화면 상단 플레이스홀더 + ON/OFF 토글
 - [x] 운동 목록 마지막 수행일 — "N일 전" 표시 + 시간/XP 동시 표시
-- [x] 운동 목록 썸네일 — 난이도별 색상 아이콘 플레이스홀더 (이미지 준비 시 교체)
+- [x] 운동 목록 썸네일 — GIF 있으면 표시, 없으면 난이도별 색상 아이콘 fallback
+- [x] 운동 GIF 이미지 시스템 — Coil GIF 디코더 + ExerciseImages 매핑 + 12/46개 적용 (가슴 5, 등 5, 하체 2)
 - [x] 여성 아바타 교체 — `avatar_female.png` 적용, `avatarIndex==1`에 반영
 - [x] 스킨 시스템 재구축 — 여성 전용 3종 (흰색 티셔츠/파란 스포츠브라/노란 트레이닝바지), `avatarFilter` 필드로 성별 필터링
 - [x] 뽑기 풀 필터링 — `avatarIndex` 기반, 풀 비었을 때 크래시 방지
@@ -1191,9 +1241,8 @@ ui/test/
 ## 미구현 / 다음 작업 후보
 
 ### 높은 우선순위
-- [ ] **운동 이미지 적용** — 29개 STRENGTH 운동별 일러스트/GIF 이미지 (ChatGPT 생성 프롬프트 준비 완료, 바탕화면 `운동_이미지_생성_프롬프트.md`)
-  - 이미지 준비 후 drawable에 넣고 QuestTreeScreen 썸네일 + WorkoutScreen 가이드에 적용
-  - `ExerciseImages.kt` 매핑 파일 재생성 필요
+- [ ] **운동 GIF 나머지 34개 추가** — 현재 12/46 완료. `make_exercise_gif.py`로 이어서 생성 → `assets/exercise_gif/`에 복사 → `ExerciseImages.kt` 매핑 추가
+  - 하체 3개, 어깨 5개, 팔 4개, 코어 5개, ENDURANCE 8개, BALANCE 9개 남음
 - [ ] **인바디 데이터 입력** — 프로필에서 인바디 수치 기록 → 스탯 반영
 
 ### 중간 우선순위
