@@ -18,6 +18,12 @@ object ExerciseImages {
         "str_back_pullup" to "exercise_str_back_pullup.gif",
         "str_back_barbell_row" to "exercise_str_back_barbell_row.gif",
         "str_back_lat_pulldown" to "exercise_str_back_lat_pulldown.gif",
+        "str_back_seated_row" to "exercise_str_back_seated_row.gif",
+        "str_back_deadlift" to "exercise_str_back_deadlift.gif",
+
+        // ── STRENGTH: 하체 ──
+        "str_legs_squat" to "exercise_str_legs_squat.gif",
+        "str_legs_leg_press" to "exercise_str_legs_leg_press.gif",
     )
 
     /** 운동 ID로 assets 경로 반환. GIF가 없으면 null. */
