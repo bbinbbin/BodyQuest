@@ -71,6 +71,7 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.coil.compose)
+    implementation(libs.coil.gif)
     implementation(libs.androidx.exifinterface)
     implementation(libs.credentials.manager)
     implementation(libs.credentials.manager.play)

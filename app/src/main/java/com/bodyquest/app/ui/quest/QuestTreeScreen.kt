@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,7 +30,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import com.bodyquest.app.domain.model.ExerciseImages
 import com.bodyquest.app.ui.common.ErrorScreen
 import com.bodyquest.app.ui.common.LoadingScreen
 import com.bodyquest.app.ui.common.UiState
@@ -197,19 +201,29 @@ fun QuestTreeScreen(
                             modifier = Modifier.padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // 운동 썸네일 (부위별 아이콘)
+                            // 운동 썸네일 (GIF 또는 아이콘 fallback)
                             Surface(
                                 shape = RoundedCornerShape(10.dp),
                                 color = difficultyColor.copy(alpha = 0.1f),
                                 modifier = Modifier.size(64.dp)
                             ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = Icons.Default.FitnessCenter,
-                                        contentDescription = null,
-                                        tint = difficultyColor,
-                                        modifier = Modifier.size(32.dp)
+                                val gifPath = ExerciseImages.getGifPath(quest.id)
+                                if (gifPath != null) {
+                                    AsyncImage(
+                                        model = gifPath,
+                                        contentDescription = quest.name,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.size(64.dp)
                                     )
+                                } else {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.FitnessCenter,
+                                            contentDescription = null,
+                                            tint = difficultyColor,
+                                            modifier = Modifier.size(32.dp)
+                                        )
+                                    }
                                 }
                             }
 

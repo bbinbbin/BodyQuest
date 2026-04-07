@@ -48,6 +48,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
+import com.bodyquest.app.domain.model.ExerciseImages
 import com.bodyquest.app.domain.model.Job
 import com.bodyquest.app.ui.common.LoadingScreen
 import com.bodyquest.app.ui.theme.DarkBorder
@@ -149,7 +152,17 @@ fun WorkoutScreen(
                                 Icon(Icons.Default.VisibilityOff, "가이드 숨기기", tint = TextMuted, modifier = Modifier.size(20.dp))
                             }
                         }
-                        Icon(Icons.Default.FitnessCenter, null, tint = NeonPurple.copy(alpha = 0.6f), modifier = Modifier.size(64.dp))
+                        val gifPath = ExerciseImages.getGifPath(quest.id)
+                        if (gifPath != null) {
+                            AsyncImage(
+                                model = gifPath,
+                                contentDescription = quest.name,
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier.size(120.dp)
+                            )
+                        } else {
+                            Icon(Icons.Default.FitnessCenter, null, tint = NeonPurple.copy(alpha = 0.6f), modifier = Modifier.size(64.dp))
+                        }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(quest.description, style = MaterialTheme.typography.bodySmall, color = TextMuted)
                     }
