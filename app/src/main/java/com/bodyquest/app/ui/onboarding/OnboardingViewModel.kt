@@ -48,6 +48,7 @@ class OnboardingViewModel @Inject constructor(
     }
 
     fun setNickname(nickname: String) {
+        if (nickname.length > MAX_NICKNAME_LENGTH) return
         _state.value = _state.value.copy(nickname = nickname, nicknameError = null)
     }
 
@@ -67,9 +68,23 @@ class OnboardingViewModel @Inject constructor(
 
     fun completeOnboarding() {
         val s = _state.value
-        if (s.selectedJob == null || s.selectedGoal == null || s.nickname.isBlank()) return
+        if (s.selectedJob == null || s.selectedGoal == null) return
 
-        _state.value = s.copy(isSaving = true, error = null, nicknameError = null)
+        val trimmed = s.nickname.trim()
+        if (trimmed.length < MIN_NICKNAME_LENGTH) {
+            _state.value = s.copy(nicknameError = "닉네임은 ${MIN_NICKNAME_LENGTH}자 이상이어야 합니다.")
+            return
+        }
+        if (trimmed.length > MAX_NICKNAME_LENGTH) {
+            _state.value = s.copy(nicknameError = "닉네임은 ${MAX_NICKNAME_LENGTH}자 이하여야 합니다.")
+            return
+        }
+        if (!NICKNAME_REGEX.matches(trimmed)) {
+            _state.value = s.copy(nicknameError = "한글, 영문, 숫자, 밑줄(_)만 사용할 수 있습니다.")
+            return
+        }
+
+        _state.value = s.copy(nickname = trimmed, isSaving = true, error = null, nicknameError = null)
 
         viewModelScope.launch {
             try {
@@ -124,5 +139,11 @@ class OnboardingViewModel @Inject constructor(
 
     fun clearError() {
         _state.value = _state.value.copy(error = null)
+    }
+
+    companion object {
+        private const val MIN_NICKNAME_LENGTH = 2
+        private const val MAX_NICKNAME_LENGTH = 12
+        private val NICKNAME_REGEX = Regex("^[가-힣a-zA-Z0-9_]+$")
     }
 }
