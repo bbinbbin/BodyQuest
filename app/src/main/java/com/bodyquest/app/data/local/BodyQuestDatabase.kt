@@ -268,12 +268,18 @@ abstract class BodyQuestDatabase : RoomDatabase() {
                             val hasOldData = strCursor.moveToFirst()
                             strCursor.close()
                             if (hasOldData) {
-                                db.execSQL("DELETE FROM quests WHERE category = 'STRENGTH'")
-                                for (q in seedQuests.filter { it.category == "STRENGTH" }) {
-                                    db.execSQL(
-                                        "INSERT OR IGNORE INTO quests (id, category, bodyPart, specificArea, name, description, difficulty, durationMinutes, sets, repsPerSet, xpReward, statType, statReward) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                                        arrayOf(q.id, q.category, q.bodyPart, q.specificArea, q.name, q.description, q.difficulty, q.durationMinutes, q.sets, q.repsPerSet, q.xpReward, q.statType, q.statReward)
-                                    )
+                                db.beginTransaction()
+                                try {
+                                    db.execSQL("DELETE FROM quests WHERE category = 'STRENGTH'")
+                                    for (q in seedQuests.filter { it.category == "STRENGTH" }) {
+                                        db.execSQL(
+                                            "INSERT OR IGNORE INTO quests (id, category, bodyPart, specificArea, name, description, difficulty, durationMinutes, sets, repsPerSet, xpReward, statType, statReward) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                                            arrayOf(q.id, q.category, q.bodyPart, q.specificArea, q.name, q.description, q.difficulty, q.durationMinutes, q.sets, q.repsPerSet, q.xpReward, q.statType, q.statReward)
+                                        )
+                                    }
+                                    db.setTransactionSuccessful()
+                                } finally {
+                                    db.endTransaction()
                                 }
                             }
 
