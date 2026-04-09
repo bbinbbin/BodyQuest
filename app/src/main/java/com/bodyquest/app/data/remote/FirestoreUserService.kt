@@ -5,12 +5,14 @@ import com.bodyquest.app.data.local.entity.SkinInventoryEntity
 import com.bodyquest.app.data.local.entity.UserEntity
 import com.bodyquest.app.data.local.entity.WorkoutEntity
 import com.bodyquest.app.data.local.entity.WorkoutSetEntity
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 class FirestoreUserService @Inject constructor(
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val auth: FirebaseAuth
 ) {
 
     suspend fun isNicknameTaken(nickname: String): Boolean {
@@ -23,6 +25,7 @@ class FirestoreUserService @Inject constructor(
     }
 
     suspend fun deleteUser(firebaseUid: String) {
+        require(auth.currentUser?.uid == firebaseUid) { "본인 계정만 삭제할 수 있습니다." }
         val userRef = firestore.collection("users").document(firebaseUid)
         val subcollections = listOf("workouts", "bossProgress", "inventory")
         for (name in subcollections) {

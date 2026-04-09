@@ -6,6 +6,7 @@ import com.bodyquest.app.data.local.dao.UserDao
 import com.bodyquest.app.data.local.dao.WorkoutDao
 import com.bodyquest.app.data.remote.FirestoreUserService
 import com.bodyquest.app.data.remote.SyncManager
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.Module
 import dagger.Provides
@@ -23,8 +24,8 @@ object FirestoreModule {
 
     @Provides
     @Singleton
-    fun provideFirestoreUserService(firestore: FirebaseFirestore): FirestoreUserService =
-        FirestoreUserService(firestore)
+    fun provideFirestoreUserService(firestore: FirebaseFirestore, auth: FirebaseAuth): FirestoreUserService =
+        FirestoreUserService(firestore, auth)
 
     @Provides
     @Singleton
