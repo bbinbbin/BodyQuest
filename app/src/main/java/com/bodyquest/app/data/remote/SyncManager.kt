@@ -66,11 +66,7 @@ class SyncManager @Inject constructor(
                 if (workoutDao.getWorkoutByFirestoreId(firestoreId) != null) continue
 
                 val localWorkout = workout.copy(userId = localUserId)
-                val workoutId = workoutDao.insertWorkout(localWorkout)
-
-                for (set in sets) {
-                    workoutDao.insertWorkoutSet(set.copy(workoutId = workoutId))
-                }
+                workoutDao.insertWorkoutWithSets(localWorkout, sets)
             }
         } catch (e: Exception) {
             AppLogger.w("SyncManager", "운동 기록 pull 실패", e)
