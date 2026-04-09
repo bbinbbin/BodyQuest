@@ -1,6 +1,7 @@
 package com.bodyquest.app.ui.gacha
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -39,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
@@ -114,44 +116,53 @@ fun GachaScreen(viewModel: GachaViewModel, onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 타이틀 — IDLE 때만 표시
-            AnimatedVisibility(
-                visible = phase == GachaPhase.IDLE,
-                enter = fadeIn(),
-                exit = fadeOut()
+            // 상단 여백 — 타이틀을 카드 바로 위에 배치
+            Spacer(Modifier.weight(1f))
+
+            // 타이틀 — IDLE 때만 보이지만 공간은 항상 유지
+            val titleAlpha by animateFloatAsState(
+                targetValue = if (phase == GachaPhase.IDLE) 1f else 0f,
+                animationSpec = tween(300),
+                label = "titleAlpha"
+            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.alpha(titleAlpha)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "스킨 뽑기",
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = "어떤 스킨이 나올까요?",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        text = "🎫 보유 티켓: ${ticketCount}장",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = if (ticketCount > 0) XpGold else TextMuted
-                    )
-                    Spacer(Modifier.height(28.dp))
-                }
+                Text(
+                    text = "스킨 뽑기",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "어떤 스킨이 나올까요?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = "🎫 보유 티켓: ${ticketCount}장",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = if (ticketCount > 0) XpGold else TextMuted
+                )
+                Spacer(Modifier.height(28.dp))
             }
 
-            // 카드 영역
-            when (phase) {
-                GachaPhase.IDLE -> IdleCard()
-                GachaPhase.SPINNING -> SpinningCard()
-                GachaPhase.REVEALED -> RevealedCard(visible = revealVisible, skin = drawnSkin)
+            // 카드 영역 — IDLE/SPINNING은 같은 카드, REVEALED만 교체
+            Box(
+                modifier = Modifier.size(width = 260.dp, height = 260.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (phase == GachaPhase.REVEALED) {
+                    RevealedCard(visible = revealVisible, skin = drawnSkin)
+                } else {
+                    QuestionCard(isSpinning = phase == GachaPhase.SPINNING)
+                }
             }
 
             Spacer(Modifier.height(40.dp))
@@ -220,6 +231,9 @@ fun GachaScreen(viewModel: GachaViewModel, onBack: () -> Unit) {
                     }
                 }
             }
+
+            // 하단 여백 — 카드가 화면 중앙에 오도록
+            Spacer(Modifier.weight(1f))
         }
 
         // 뽑기 순간 화면 플래시
@@ -237,37 +251,9 @@ fun GachaScreen(viewModel: GachaViewModel, onBack: () -> Unit) {
     }
 }
 
-// 대기 카드: 정적 "?" 카드
+// "?" 카드 — isSpinning에 따라 글로우+펄스 애니메이션 ON/OFF (위치 고정)
 @Composable
-private fun IdleCard() {
-    Surface(
-        modifier = Modifier.size(180.dp, 240.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = DarkSurfaceVariant,
-        border = BorderStroke(2.dp, NeonPurple.copy(alpha = 0.4f))
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "?",
-                    fontSize = 72.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = NeonPurple.copy(alpha = 0.6f)
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "신비한 스킨",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = TextMuted
-                )
-            }
-        }
-    }
-}
-
-// 뽑기 애니메이션 카드: 글로우 링 + 펄싱 "?" 카드
-@Composable
-private fun SpinningCard() {
+private fun QuestionCard(isSpinning: Boolean) {
     val infiniteTransition = rememberInfiniteTransition(label = "gacha_spin")
 
     val cardScale by infiniteTransition.animateFloat(
@@ -297,48 +283,64 @@ private fun SpinningCard() {
         label = "arcRotation"
     )
 
-    Box(modifier = Modifier.size(260.dp), contentAlignment = Alignment.Center) {
-        // 회전하는 글로우 아크 (카드 주변)
-        Spacer(
-            modifier = Modifier
-                .size(252.dp)
-                .rotate(arcRotation)
-                .drawBehind {
-                    val strokeWidth = 7.dp.toPx()
-                    val style = Stroke(strokeWidth)
-                    drawArc(
-                        color = NeonPurple.copy(alpha = glowAlpha),
-                        startAngle = -60f,
-                        sweepAngle = 200f,
-                        useCenter = false,
-                        style = style
-                    )
-                    drawArc(
-                        color = NeonPink.copy(alpha = glowAlpha * 0.55f),
-                        startAngle = 160f,
-                        sweepAngle = 90f,
-                        useCenter = false,
-                        style = style
-                    )
-                }
-        )
+    val scale = if (isSpinning) cardScale else 1f
+    val borderAlpha = if (isSpinning) glowAlpha else 0.4f
+    val textAlpha = if (isSpinning) glowAlpha else 0.6f
 
-        // 펄싱 "?" 카드
+    Box(modifier = Modifier.size(260.dp), contentAlignment = Alignment.Center) {
+        // 회전하는 글로우 아크 (SPINNING 때만 표시)
+        if (isSpinning) {
+            Spacer(
+                modifier = Modifier
+                    .size(252.dp)
+                    .rotate(arcRotation)
+                    .drawBehind {
+                        val strokeWidth = 7.dp.toPx()
+                        val style = Stroke(strokeWidth)
+                        drawArc(
+                            color = NeonPurple.copy(alpha = glowAlpha),
+                            startAngle = -60f,
+                            sweepAngle = 200f,
+                            useCenter = false,
+                            style = style
+                        )
+                        drawArc(
+                            color = NeonPink.copy(alpha = glowAlpha * 0.55f),
+                            startAngle = 160f,
+                            sweepAngle = 90f,
+                            useCenter = false,
+                            style = style
+                        )
+                    }
+            )
+        }
+
+        // "?" 카드 — 항상 같은 위치
         Surface(
             modifier = Modifier
                 .size(180.dp, 240.dp)
-                .scale(cardScale),
+                .scale(scale),
             shape = RoundedCornerShape(16.dp),
             color = DarkSurfaceVariant,
-            border = BorderStroke(2.dp, NeonPurple.copy(alpha = glowAlpha))
+            border = BorderStroke(2.dp, NeonPurple.copy(alpha = borderAlpha))
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = "?",
-                    fontSize = 82.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = NeonPurple.copy(alpha = glowAlpha)
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "?",
+                        fontSize = if (isSpinning) 82.sp else 72.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = NeonPurple.copy(alpha = textAlpha)
+                    )
+                    if (!isSpinning) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "신비한 스킨",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextMuted
+                        )
+                    }
+                }
             }
         }
     }
