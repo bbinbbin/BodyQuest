@@ -9,3 +9,6 @@
 .cxx
 local.properties
 .kotlin
+
+# Firebase
+app/google-services.json
