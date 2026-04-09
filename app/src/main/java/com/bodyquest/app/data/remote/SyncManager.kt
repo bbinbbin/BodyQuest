@@ -99,42 +99,54 @@ class SyncManager @Inject constructor(
         }
     }
 
-    suspend fun pushSkinInventoryToCloud(firebaseUid: String, item: SkinInventoryEntity) {
-        try {
+    /** @return true if push succeeded */
+    suspend fun pushSkinInventoryToCloud(firebaseUid: String, item: SkinInventoryEntity): Boolean {
+        return try {
             firestoreService.pushSkinInventory(firebaseUid, item)
+            true
         } catch (e: Exception) {
             AppLogger.w("SyncManager", "인벤토리 push 실패", e)
+            false
         }
     }
 
-    suspend fun pushBossProgressToCloud(firebaseUid: String, progress: BossProgressEntity) {
-        try {
+    /** @return true if push succeeded */
+    suspend fun pushBossProgressToCloud(firebaseUid: String, progress: BossProgressEntity): Boolean {
+        return try {
             firestoreService.pushBossProgress(firebaseUid, progress)
+            true
         } catch (e: Exception) {
             AppLogger.w("SyncManager", "보스 진행 push 실패", e)
+            false
         }
     }
 
-    suspend fun pushUserToCloud(user: UserEntity) {
-        try {
+    /** @return true if push succeeded */
+    suspend fun pushUserToCloud(user: UserEntity): Boolean {
+        return try {
             firestoreService.pushUser(user)
+            true
         } catch (e: Exception) {
             AppLogger.w("SyncManager", "유저 push 실패", e)
+            false
         }
     }
 
+    /** @return true if push succeeded */
     suspend fun pushCompletedWorkout(
         firebaseUid: String,
         workout: WorkoutEntity,
         sets: List<WorkoutSetEntity>
-    ) {
-        try {
-            if (workout.firestoreId != null) return // already pushed
+    ): Boolean {
+        return try {
+            if (workout.firestoreId != null) return true // already pushed
             val firestoreId = firestoreService.pushWorkout(firebaseUid, workout, sets)
             // Save firestoreId back to local DB
             workoutDao.updateWorkout(workout.copy(firestoreId = firestoreId))
+            true
         } catch (e: Exception) {
             AppLogger.w("SyncManager", "운동 기록 push 실패", e)
+            false
         }
     }
 }
