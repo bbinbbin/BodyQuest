@@ -42,34 +42,36 @@ class GachaViewModel @Inject constructor(
         }
     }
 
-    fun consumeTicket(): Boolean {
-        val current = _ticketCount.value
-        if (current <= 0) return false
-        val uid = auth.currentUser?.uid ?: return false
-        _ticketCount.value = current - 1
-        viewModelScope.launch {
-            userRepository.updateGachaTickets(uid, current - 1)
-            try {
-                val updatedUser = userRepository.getUserOnce(uid)
-                if (updatedUser != null) syncManager.pushUserToCloud(updatedUser)
-            } catch (e: Exception) {
-                AppLogger.w("GachaViewModel", "티켓 클라우드 push 실패", e)
-            }
-        }
-        return true
-    }
+    fun canConsume(): Boolean =
+        _ticketCount.value > 0 && auth.currentUser?.uid != null
 
-    fun onGachaResolved(skinId: String) {
+    /**
+     * 티켓 차감 + 스킨 인벤토리 추가를 하나의 코루틴에서 순차 실행.
+     * DB 티켓 차감 성공 후에만 스킨 추가 → UI 반영.
+     */
+    fun consumeAndReward(skinId: String) {
         val uid = auth.currentUser?.uid ?: return
+        val current = _ticketCount.value
+        if (current <= 0) return
         viewModelScope.launch {
-            skinInventoryRepository.addOrIncrement(uid, skinId)
             try {
-                val item = skinInventoryRepository.getItem(uid, skinId)
-                if (item != null) {
-                    syncManager.pushSkinInventoryToCloud(uid, item)
+                // 1) 로컬 DB 티켓 차감
+                userRepository.updateGachaTickets(uid, current - 1)
+                // 2) 로컬 DB 스킨 추가
+                skinInventoryRepository.addOrIncrement(uid, skinId)
+                // 3) 둘 다 성공 시 UI 반영
+                _ticketCount.value = current - 1
+                // 4) 클라우드 동기화 (실패해도 로컬은 이미 반영됨)
+                try {
+                    val updatedUser = userRepository.getUserOnce(uid)
+                    if (updatedUser != null) syncManager.pushUserToCloud(updatedUser)
+                    val item = skinInventoryRepository.getItem(uid, skinId)
+                    if (item != null) syncManager.pushSkinInventoryToCloud(uid, item)
+                } catch (e: Exception) {
+                    AppLogger.w("GachaViewModel", "클라우드 push 실패", e)
                 }
             } catch (e: Exception) {
-                AppLogger.w("GachaViewModel", "인벤토리 클라우드 push 실패", e)
+                AppLogger.e("GachaViewModel", "뽑기 처리 실패 — 티켓/스킨 미반영", e)
             }
         }
     }

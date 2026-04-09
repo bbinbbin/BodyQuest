@@ -95,8 +95,8 @@ fun GachaScreen(viewModel: GachaViewModel, onBack: () -> Unit) {
             showFlash = true
             delay(250)
             phase = GachaPhase.REVEALED
-            // 결과 확정 시 인벤토리에 저장
-            drawnSkin?.let { viewModel.onGachaResolved(it.id) }
+            // 결과 확정 시 티켓 차감 + 인벤토리 저장 (원자적)
+            drawnSkin?.let { viewModel.consumeAndReward(it.id) }
             delay(100)
             showFlash = false
             delay(100)
@@ -161,7 +161,7 @@ fun GachaScreen(viewModel: GachaViewModel, onBack: () -> Unit) {
                 GachaPhase.IDLE -> {
                     Button(
                         onClick = {
-                            if (skinPool.isNotEmpty() && viewModel.consumeTicket()) {
+                            if (skinPool.isNotEmpty() && viewModel.canConsume()) {
                                 drawnSkin = skinPool.random()
                                 phase = GachaPhase.SPINNING
                                 animTrigger++
