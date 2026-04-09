@@ -12,6 +12,7 @@ import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.domain.model.BattleLog
 import com.bodyquest.app.domain.model.BossResult
 import com.bodyquest.app.ui.common.UiState
+import com.bodyquest.app.util.AppLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -196,23 +197,27 @@ class BossViewModel @Inject constructor(
             if (result.success) {
                 val uid = authRepository.currentUserId
                 if (uid != null) {
+                    // 1) 보스 클리어 기록 (로컬 DB)
                     val clearResult = bossRepository.recordClear(uid, result.bossId, result.performance)
 
-                    // 등급별 티켓 지급 (S=3, A=2, B=1), 재도전 시 차이분만 추가
+                    // 2) 등급별 티켓 지급 (S=3, A=2, B=1), 재도전 시 차이분만 추가
                     val newTickets = performanceToTickets(clearResult.bestPerformance)
                     val oldTickets = clearResult.previousPerformance?.let { performanceToTickets(it) } ?: 0
                     ticketsEarned = maxOf(0, newTickets - oldTickets)
 
                     if (ticketsEarned > 0) {
-                        val user = userRepository.getUserOnce(uid)
-                        if (user != null) {
-                            userRepository.updateGachaTickets(uid, user.gachaTickets + ticketsEarned)
-                            val updatedUser = userRepository.getUserOnce(uid)
-                            if (updatedUser != null) syncManager.pushUserToCloud(updatedUser)
+                        try {
+                            val user = userRepository.getUserOnce(uid)
+                            if (user != null) {
+                                userRepository.updateGachaTickets(uid, user.gachaTickets + ticketsEarned)
+                            }
+                        } catch (e: Exception) {
+                            AppLogger.e("BossViewModel", "티켓 지급 실패", e)
+                            ticketsEarned = 0
                         }
                     }
 
-                    // Push boss progress to Firestore
+                    // 3) 클라우드 동기화 (실패해도 로컬은 이미 저장됨)
                     syncManager.pushBossProgressToCloud(
                         uid,
                         BossProgressEntity(
@@ -222,6 +227,8 @@ class BossViewModel @Inject constructor(
                             performance = clearResult.bestPerformance
                         )
                     )
+                    val updatedUser = userRepository.getUserOnce(uid)
+                    if (updatedUser != null) syncManager.pushUserToCloud(updatedUser)
                 }
             }
 
