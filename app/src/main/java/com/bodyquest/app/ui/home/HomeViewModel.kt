@@ -258,4 +258,11 @@ class HomeViewModel @Inject constructor(
             _uiState.value = UiState.Success(update(current.data))
         }
     }
+
+    override fun onCleared() {
+        super.onCleared()
+        loadJob?.cancel()
+        subJobs.forEach { it.cancel() }
+        subJobs.clear()
+    }
 }

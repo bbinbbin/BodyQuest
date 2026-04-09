@@ -265,6 +265,13 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    override fun onCleared() {
+        super.onCleared()
+        loadJob?.cancel()
+        subJobs.forEach { it.cancel() }
+        subJobs.clear()
+    }
+
     companion object {
         fun formatElapsedTime(totalSeconds: Int): String {
             val hours = totalSeconds / 3600
