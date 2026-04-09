@@ -1,7 +1,7 @@
 
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-04-08 (Phase 53: 헤어밴드 스킨 추가 + 운동 GIF 전체 46개 적용 완성)
+> 마지막 업데이트: 2026-04-09 (Phase 55: 보안/기능 전면 점검 + 로그인 아이디 저장 + 뽑기 UI 개선)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -1005,6 +1005,41 @@ exercise_image_prompts.md           ← 프롬프트 문서
 6. `AvatarScreen.femaleAvatarRes()` — 룩업 테이블 확장
 7. `InventoryScreen.skinDrawableRes()` — 미리보기 이미지 추가
 
+### Phase 54: 보안/기능 전면 점검 ✅ (2026-04-09)
+
+#### 보안 수정 (4건)
+- **google-services.json Git 노출 차단**: `.gitignore`에 추가 + `git rm --cached`로 추적 해제. Firebase API 키 노출 방지
+- **닉네임 입력 검증 강화**: 2~12자 길이 제한, 한글/영문/숫자/밑줄만 허용 (`OnboardingViewModel` — `NICKNAME_REGEX`, `MAX_NICKNAME_LENGTH`)
+- **Log.e() → AppLogger 교체**: `WorkoutViewModel.kt` 릴리즈 빌드 로그 노출 방지
+- **Firestore 삭제 시 클라이언트 권한 확인**: `FirestoreUserService.deleteUser()`에 `require(auth.currentUser?.uid == firebaseUid)` 추가. `FirebaseAuth` 생성자 주입 (`FirestoreModule` 수정)
+
+#### 기능 수정 (8건)
+- **뽑기 티켓 소비 원자적 처리**: `consumeTicket()` + `onGachaResolved()` → `consumeAndReward(skinId)` 통합. DB 티켓 차감 → 스킨 추가 → UI 반영 순차 실행. `canConsume()` 가능 여부 체크 분리
+- **SyncManager push Boolean 반환**: 4개 push 메서드 반환타입 `Unit` → `Boolean`. 호출자가 성공/실패 판단 가능
+- **운동 완료 클라우드 push 실패 감지**: `WorkoutCompleteState.syncFailed` 필드 추가, push 반환값으로 실패 감지 → "클라우드 동기화에 실패했습니다" 안내 표시
+- **보스 클리어 시 티켓 지급 안전 처리**: `updateGachaTickets()`를 try-catch로 감싸서 실패 시 `ticketsEarned = 0` (보스 클리어는 보존). 클라우드 push를 항상 호출
+- **Seed 데이터 트랜잭션 처리**: STRENGTH 퀘스트 DELETE+INSERT를 `beginTransaction()`/`endTransaction()`으로 감쌈. 중간 실패 시 전체 롤백
+- **운동 세트 pull 트랜잭션 처리**: `WorkoutDao`를 `interface` → `abstract class` 변경, `insertWorkoutWithSets()` `@Transaction` 메서드 추가. `SyncManager`에서 활용
+- **ViewModel onCleared() 추가**: `HomeViewModel`, `ProfileViewModel`에 `loadJob` 취소 + `subJobs` 정리 → 메모리 누수 방지
+- **다기기 동기화 충돌 개선**: `syncOnLogin()` 기존 `updatedAt` 단순 덮어쓰기 → 설정 데이터는 최신 `updatedAt` 기준, 누적 스탯(`strengthStat`, `enduranceStat`, `xp`, `level`, `gachaTickets`)은 `maxOf(local, cloud)` max merge
+
+### Phase 55: 로그인 아이디 저장 + UI 개선 ✅ (2026-04-09)
+
+#### 로그인 아이디 저장 기능
+- **`LoginState`**: `saveEmail: Boolean` 필드 추가
+- **`LoginViewModel`**: `init`에서 `EncryptedSharedPreferences`의 `saved_email` 읽어 자동 채움, `handleAuthSuccess()`에서 체크 시 저장/미체크 시 삭제
+- **`LoginScreen`**: 비밀번호 필드 아래에 "아이디 저장" 체크박스 + "비밀번호 찾기" 한 줄 배치 (로그인 모드에서만). `Box(scale(0.7f))` 소형 체크박스
+
+#### 로그인/회원가입 안내 문구 마침표 추가
+- "다시 오신 것을 환영합니다" → "다시 오신 것을 환영합니다."
+- "모험을 시작하세요" → "모험을 시작하세요."
+
+#### 뽑기 화면 레이아웃 개선
+- **타이틀 영역**: `AnimatedVisibility`(공간 축소) → `alpha` 애니메이션(공간 유지, 투명해지기만)
+- **카드 위치 고정**: `IdleCard()` + `SpinningCard()` 2개 → `QuestionCard(isSpinning)` 1개로 통합. 같은 Surface(180×240)가 항상 동일 위치, `isSpinning`으로 글로우+펄스 애니메이션만 토글
+- **카드 영역 고정 크기**: `Box(260×260)` 고정으로 phase 전환 시 레이아웃 흔들림 방지
+- **화면 중앙 배치**: `Arrangement.Center` → `Spacer(weight(1f))` 상하 배치로 카드가 화면 정중앙에 위치
+
 ---
 
 ### Phase 43: 추천 퀘스트 하루 고정 + UI 수정 ✅ (2026-04-06)
@@ -1309,6 +1344,17 @@ ui/test/
 - [x] 헤어밴드 결과 이미지 6종 — Gemini AI 합성, drawable 추가
 - [x] femaleAvatarRes() 12개 조합 룩업 — TOP/BOTTOM/HAT 전체 조합 완성
 - [x] 헤어밴드 스킨 미리보기 배경 제거 — rembg 처리 (86% 투명)
+- [x] 보안 전면 점검 — google-services.json Git 차단, 닉네임 검증, Firestore 삭제 권한, AppLogger 교체
+- [x] 뽑기 티켓 소비 원자적 처리 — DB 차감 + 스킨 추가 통합 (consumeAndReward)
+- [x] SyncManager push Boolean 반환 — 호출자가 성공/실패 판단 가능
+- [x] 운동 완료 클라우드 push 실패 감지 — syncFailed 안내 표시
+- [x] 보스 클리어 티켓 지급 안전 처리 — 실패 시 클리어 보존, 티켓만 미지급
+- [x] Seed 데이터 + 운동 세트 pull 트랜잭션 처리 — 중간 실패 시 롤백/원자적 삽입
+- [x] ViewModel onCleared() 메모리 누수 방지 — HomeViewModel, ProfileViewModel
+- [x] 다기기 동기화 충돌 개선 — 스탯 max merge, 설정 최신 updatedAt 기준
+- [x] 로그인 아이디 저장 — EncryptedSharedPreferences, 소형 체크박스 UI
+- [x] 로그인/회원가입 안내 문구 마침표 통일
+- [x] 뽑기 화면 레이아웃 개선 — 카드 위치 고정(QuestionCard 통합), 화면 중앙 배치, 전환 애니메이션 개선
 
 ---
 
@@ -1359,6 +1405,21 @@ ui/test/
 ## Git 커밋 히스토리
 
 ```
+32a48cc fix: 뽑기 카드 위치 고정 — IdleCard+SpinningCard를 QuestionCard로 통합
+b3d3e22 fix: 로그인/회원가입 안내 문구 마침표 추가
+5657740 feat: 로그인 아이디 저장 기능 — EncryptedSharedPreferences 활용
+50c1417 fix: 다기기 동기화 충돌 개선 — 스탯은 max merge, 설정은 최신 기준
+3b2a6ea fix: HomeViewModel, ProfileViewModel onCleared() 추가 — 메모리 누수 방지
+2f2a1b4 fix: 운동 세트 pull 시 트랜잭션 처리 — workout+sets 원자적 삽입
+6ee55bc fix: Seed 데이터 DELETE+INSERT 트랜잭션 처리 — 중간 실패 시 롤백 보장
+ba91fed security: Firestore 삭제 시 클라이언트 권한 확인 — 본인 계정만 삭제 허용
+0863b67 fix: 닉네임 입력 검증 강화 — 2~12자, 한글/영문/숫자/밑줄만 허용
+a5040e5 fix: 운동 완료 클라우드 push 실패 감지 + 사용자 안내 표시
+db65b98 fix: 보스 클리어 시 티켓 지급 실패 안전 처리 — 클리어 보존 + 에러 로깅
+aca425e fix: SyncManager push 메서드 Boolean 반환 — 호출자가 성공/실패 판단 가능
+0429885 fix: 뽑기 티켓 소비를 원자적 처리 — DB 차감 성공 후에만 스킨 추가
+b8017e3 security: google-services.json을 .gitignore에 추가 — Firebase API 키 노출 방지
+(Phase 53 커밋: 헤어밴드 스킨 추가 — HAT 슬롯 + 12개 조합 룩업)
 532082f feat: 운동 GIF 22개 추가 — 코어(5) + ENDURANCE(8) + BALANCE(9) 전체 완성
 cada10c feat: 운동 GIF 12개 추가 — 하체(런지, 레그컬, 불가리안) + 어깨(5개) + 팔(4개)
 968ed56 docs: HandOFF.md 업데이트 — Phase 52 반영 (운동 GIF 이미지 시스템)
@@ -1456,7 +1517,7 @@ bf950e4 feat: BodyQuest 프로토타입 구현
 디바이스 테스트: Android Studio에서 USB 디버깅으로 실행 또는 APK 직접 설치.
 
 ### Firebase 설정 (신규 환경)
-1. `app/google-services.json`이 이미 포함되어 있음
+1. `app/google-services.json`은 `.gitignore`에 추가되어 Git에 포함되지 않음. 빌드 시 필요하므로 별도로 전달받아 `app/` 폴더에 배치해야 함
 2. Firebase Console: https://console.firebase.google.com (프로젝트: bodyquest-ce5ab)
 3. 새 디버그 키로 빌드 시 SHA-1 지문을 Firebase Console에 추가해야 Google 로그인 동작
    - `./gradlew signingReport`로 SHA-1 확인
