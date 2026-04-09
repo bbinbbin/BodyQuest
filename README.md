@@ -19,7 +19,7 @@
 |------|-----------|
 | 언어 | Kotlin 2.1.20 |
 | UI | Jetpack Compose + Material 3 (BOM 2024.09.00) |
-| 로컬 DB | Room 2.7.1 (DB v15, exportSchema=true) |
+| 로컬 DB | Room 2.7.1 (DB v16, exportSchema=true) |
 | 네비게이션 | Navigation Compose 2.9.0 |
 | 상태 관리 | ViewModel + StateFlow (Lifecycle 2.10.0) |
 | DI | Hilt 2.56.2 |
@@ -45,7 +45,7 @@ app/src/main/java/com/bodyquest/app/
 │
 ├── data/
 │   ├── local/
-│   │   ├── BodyQuestDatabase.kt # Room DB v15, Migration(1,2)~(14,15)
+│   │   ├── BodyQuestDatabase.kt # Room DB v16, Migration(1,2)~(15,16)
 │   │   ├── SeedData.kt          # STRENGTH 29개 + ENDURANCE 8개 + BALANCE 9개 + 보스 150개
 │   │   ├── dao/                  # UserDao, QuestDao, WorkoutDao, BossProgressDao, SkinInventoryDao
 │   │   └── entity/              # User, Quest, Workout, WorkoutSet, BossProgress, SkinInventory
@@ -82,9 +82,10 @@ app/src/main/java/com/bodyquest/app/
 
 ### 인증 & 동기화
 - Firebase Auth (이메일/비밀번호 + Google Sign-In)
-- Firestore 클라우드 동기화 (Write-Through + Pull-on-Login)
+- 아이디 저장 기능 (EncryptedSharedPreferences)
+- Firestore 클라우드 동기화 (Write-Through + Pull-on-Login, 스탯 max merge)
 - 세션 타임아웃 15분 (백그라운드 복귀 시 자동 판단)
-- 계정 삭제 (Firestore + Room + Auth 완전 삭제)
+- 계정 삭제 (Firestore + Room + Auth 완전 삭제, 클라이언트 권한 검증)
 
 ### 퀘스트 & 운동
 - 46개 운동 퀘스트 (STRENGTH 29개, ENDURANCE 8개, BALANCE 9개)
@@ -101,7 +102,7 @@ app/src/main/java/com/bodyquest/app/
 ### 스킨 & 뽑기
 - 보스 클리어 시 뽑기 티켓 획득 (S=3, A=2, B=1)
 - 3단계 뽑기 애니메이션 (IDLE → SPINNING → REVEALED)
-- TOP/BOTTOM 슬롯 장착, 조합별 결과 이미지 룩업
+- TOP/BOTTOM/HAT 슬롯 장착, 12개 조합별 결과 이미지 룩업
 - 인벤토리 관리 + Firestore 동기화
 
 ### 프로필
