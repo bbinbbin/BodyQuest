@@ -29,20 +29,26 @@ class SyncManager @Inject constructor(
                 // New device: pull everything from cloud
                 val localId = userDao.insertUser(cloudUser)
                 pullWorkoutsFromCloud(firebaseUid, localId)
-            } else if (localUser != null && cloudUser != null && cloudUser.updatedAt > localUser.updatedAt) {
-                // Cloud is newer: update local user stats
+            } else if (localUser != null && cloudUser != null) {
+                // 양쪽 데이터 존재: 설정은 최신 updatedAt 기준, 스탯은 max merge
+                val cloudNewer = cloudUser.updatedAt > localUser.updatedAt
                 val updated = localUser.copy(
-                    nickname = cloudUser.nickname,
-                    job = cloudUser.job,
-                    goal = cloudUser.goal,
-                    avatarIndex = cloudUser.avatarIndex,
-                    strengthStat = cloudUser.strengthStat,
-                    enduranceStat = cloudUser.enduranceStat,
-                    xp = cloudUser.xp,
-                    level = cloudUser.level,
-                    profileImageUrl = cloudUser.profileImageUrl,
-                    updatedAt = cloudUser.updatedAt,
-                    gachaTickets = cloudUser.gachaTickets
+                    // 설정 데이터: 최신 updatedAt 쪽 사용
+                    nickname = if (cloudNewer) cloudUser.nickname else localUser.nickname,
+                    job = if (cloudNewer) cloudUser.job else localUser.job,
+                    goal = if (cloudNewer) cloudUser.goal else localUser.goal,
+                    avatarIndex = if (cloudNewer) cloudUser.avatarIndex else localUser.avatarIndex,
+                    profileImageUrl = if (cloudNewer) cloudUser.profileImageUrl else localUser.profileImageUrl,
+                    equippedSkinId = if (cloudNewer) cloudUser.equippedSkinId else localUser.equippedSkinId,
+                    equippedBottomId = if (cloudNewer) cloudUser.equippedBottomId else localUser.equippedBottomId,
+                    equippedHatId = if (cloudNewer) cloudUser.equippedHatId else localUser.equippedHatId,
+                    // 누적 스탯: 큰 값 유지 (오프라인 운동 데이터 보존)
+                    strengthStat = maxOf(localUser.strengthStat, cloudUser.strengthStat),
+                    enduranceStat = maxOf(localUser.enduranceStat, cloudUser.enduranceStat),
+                    xp = maxOf(localUser.xp, cloudUser.xp),
+                    level = maxOf(localUser.level, cloudUser.level),
+                    gachaTickets = maxOf(localUser.gachaTickets, cloudUser.gachaTickets),
+                    updatedAt = maxOf(localUser.updatedAt, cloudUser.updatedAt)
                 )
                 userDao.updateUser(updated)
                 pullWorkoutsFromCloud(firebaseUid, localUser.id)
