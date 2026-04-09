@@ -129,8 +129,8 @@ fun LoginScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = if (state.mode == LoginMode.SIGN_IN) "다시 오신 것을 환영합니다"
-                       else "모험을 시작하세요",
+                text = if (state.mode == LoginMode.SIGN_IN) "다시 오신 것을 환영합니다."
+                       else "모험을 시작하세요.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = TextSecondary,
                 textAlign = TextAlign.Center
