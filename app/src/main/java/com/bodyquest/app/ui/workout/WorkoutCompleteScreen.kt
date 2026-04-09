@@ -332,6 +332,16 @@ fun WorkoutCompleteScreen(
                         )
                     }
                 }
+
+                // 클라우드 동기화 실패 안내
+                if (state.syncFailed) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "클라우드 동기화에 실패했습니다. 다음 로그인 시 자동으로 동기화됩니다.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSecondary
+                    )
+                }
             }
         }
 

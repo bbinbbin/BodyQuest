@@ -12,7 +12,7 @@ import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.data.repository.WorkoutRepository
 import com.bodyquest.app.util.XpCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
-import android.util.Log
+import com.bodyquest.app.util.AppLogger
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,7 +56,8 @@ data class WorkoutCompleteState(
     val baseStatReward: Int = 0,   // 직업 효과 적용 전 기본값
     val statReward: Int = 0,       // 직업 효과 적용 후 최종값
     val leveledUp: Boolean = false,
-    val newLevel: Int = 1
+    val newLevel: Int = 1,
+    val syncFailed: Boolean = false
 )
 
 @HiltViewModel
@@ -340,15 +341,19 @@ class WorkoutViewModel @Inject constructor(
                         newLevel = newLevel
                     )
 
-                    // Push to cloud
+                    // Push to cloud (실패해도 로컬은 이미 저장됨)
+                    var cloudFailed = false
                     if (uid != null) {
                         val sets = workoutRepository.getSetsForWorkoutOnce(s.workoutId)
-                        syncManager.pushCompletedWorkout(uid, completedWorkout, sets)
+                        val workoutPushed = syncManager.pushCompletedWorkout(uid, completedWorkout, sets)
                         val updatedUser = userRepository.getUserOnce(uid)
-                        if (updatedUser != null) {
+                        val userPushed = if (updatedUser != null) {
                             syncManager.pushUserToCloud(updatedUser)
-                        }
+                        } else false
+                        cloudFailed = !workoutPushed || !userPushed
                     }
+
+                    _completeState.value = _completeState.value.copy(syncFailed = cloudFailed)
                 }
 
                 _state.value = s.copy(
@@ -358,7 +363,7 @@ class WorkoutViewModel @Inject constructor(
                     caloriesBurned = caloriesBurned
                 )
             } catch (e: Exception) {
-                Log.e("WorkoutViewModel", "보상 저장 실패", e)
+                AppLogger.e("WorkoutViewModel", "보상 저장 실패", e)
                 _state.value = s.copy(
                     isRunning = false,
                     isCompleted = true,
