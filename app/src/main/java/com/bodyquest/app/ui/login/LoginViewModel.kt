@@ -24,7 +24,8 @@ data class LoginState(
     val error: String? = null,
     val authSuccess: AuthSuccessResult? = null,
     val passwordResetSent: Boolean = false,
-    val signUpCompleted: Boolean = false
+    val signUpCompleted: Boolean = false,
+    val saveEmail: Boolean = false
 )
 
 data class AuthSuccessResult(
@@ -41,6 +42,17 @@ class LoginViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(LoginState())
     val state: StateFlow<LoginState> = _state
+
+    init {
+        val savedEmail = sharedPreferences.getString(KEY_SAVED_EMAIL, null)
+        if (!savedEmail.isNullOrBlank()) {
+            _state.value = _state.value.copy(email = savedEmail, saveEmail = true)
+        }
+    }
+
+    fun setSaveEmail(save: Boolean) {
+        _state.value = _state.value.copy(saveEmail = save)
+    }
 
     fun setEmail(email: String) {
         _state.value = _state.value.copy(email = email, error = null, signUpCompleted = false)
@@ -169,8 +181,19 @@ class LoginViewModel @Inject constructor(
         _state.value = _state.value.copy(isLoading = false, error = message)
     }
 
+    companion object {
+        private const val KEY_SAVED_EMAIL = "saved_email"
+    }
+
     private suspend fun handleAuthSuccess(result: AuthResult.Success) {
-        sharedPreferences.edit().putBoolean("has_logged_in", true).commit()
+        val editor = sharedPreferences.edit()
+        editor.putBoolean("has_logged_in", true)
+        if (_state.value.saveEmail) {
+            editor.putString(KEY_SAVED_EMAIL, _state.value.email.trim())
+        } else {
+            editor.remove(KEY_SAVED_EMAIL)
+        }
+        editor.commit()
         syncManager.syncOnLogin(result.uid)
         val existingUser = userRepository.getUserOnce(result.uid)
         val isNewUser = existingUser == null

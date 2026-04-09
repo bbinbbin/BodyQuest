@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.scale
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -26,6 +27,8 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -234,17 +237,43 @@ fun LoginScreen(
                 )
             }
 
-            // Forgot password (sign-in only)
+            // 아이디 저장 + 비밀번호 찾기 (로그인 모드에서만)
             if (state.mode == LoginMode.SIGN_IN) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "비밀번호 찾기",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = NeonPurple,
-                    modifier = Modifier
-                        .align(Alignment.End)
-                        .clickable { viewModel.sendPasswordReset() }
-                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { viewModel.setSaveEmail(!state.saveEmail) }
+                    ) {
+                        Box(modifier = Modifier.size(16.dp).scale(0.7f)) {
+                            Checkbox(
+                                checked = state.saveEmail,
+                                onCheckedChange = null,
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = NeonPurple,
+                                    uncheckedColor = TextMuted,
+                                    checkmarkColor = TextPrimary
+                                )
+                            )
+                        }
+                        Spacer(modifier = Modifier.size(6.dp))
+                        Text(
+                            text = "아이디 저장",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary
+                        )
+                    }
+                    Text(
+                        text = "비밀번호 찾기",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = NeonPurple,
+                        modifier = Modifier.clickable { viewModel.sendPasswordReset() }
+                    )
+                }
             }
 
             // Password reset sent message
