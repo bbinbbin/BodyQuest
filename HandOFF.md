@@ -1,7 +1,7 @@
 
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-04-11 (Phase 57: TIME_ONLY 운동 세트별 타이머 UI — 목표 시간 설정 + 달성 후 완료)
+> 마지막 업데이트: 2026-04-11 (Phase 60: 보스 카드 UI 수정 — 화면 크기별 재도전 버튼 잘림 방지)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -1156,6 +1156,75 @@ val targetSecondsInput: String = "30" // 초 입력 (기본 30)
 
 ---
 
+### Phase 58: 세트 스킨 + 남성 스킨 시스템 추가 ✅ (2026-04-11)
+
+#### 개요
+- `SkinCategory.SET` 추가 — 장착 시 TOP/BOTTOM/HAT 슬롯 전체 초기화 후 `equippedSkinId`에만 저장
+- 남성 전용 스킨 6종, 여성 전용 세트 스킨 2종 추가
+- SET 스킨과 개별 스킨 동시 장착 버그 수정
+
+#### SkinItem.kt 변경
+- `SkinCategory.SET("세트", "🎭", Color(0xFFFFD700))` 추가
+- `ALL_SKINS` 확장:
+  - 여성 세트: `skin_f_dinosaur_set` (공룡 세트), `skin_f_bunny_set` (바니 세트)
+  - 남성 개별: `skin_m_black_tank` (검정 나시티/TOP), `skin_m_white_tshirt` (흰색 반팔티/TOP), `skin_m_yellow_pants` (노란 트레이닝바지/BOTTOM)
+  - 남성 세트: `skin_m_dinosaur_set` (공룡 세트), `skin_m_bunny_set` (바니 세트), `skin_m_suit_set` (정장 세트)
+
+#### AvatarScreen 변경
+- `maleAvatarRes(topId, bottomId)` 함수 추가 — 남성 SET 스킨 우선 처리 + TOP/BOTTOM 조합 룩업
+- `femaleAvatarRes()` — SET 스킨(`skin_f_dinosaur_set`, `skin_f_bunny_set`) 우선 반환 로직 추가
+- `avatarIndex == 0` 분기: `R.drawable.avatar_male` → `maleAvatarRes()` 호출로 변경
+
+#### drawable 리소스 추가
+- 스킨 단품 미리보기: `skin_m_black_tank`, `skin_m_white_tshirt`, `skin_m_yellow_pants`, `skin_m_dinosaur_set`, `skin_m_bunny_set`, `skin_m_suit_set`, `skin_f_dinosaur_set`, `skin_f_bunny_set`
+- 남성 결과 이미지: `result_m_black_tank`, `result_m_white_tshirt`, `result_m_yellow_pants`, `result_m_black_tank_yellow_pants`, `result_m_white_tshirt_yellow_pants`, `result_m_dinosaur_set`, `result_m_bunny_set`, `result_m_suit_set`
+- 여성 세트 결과: `result_f_dinosaur_set`, `result_f_bunny_set`
+
+#### InventoryViewModel — SET 스킨 동시 장착 버그 수정
+- `private fun String?.isSetSkin()` 확장 함수 추가 (모든 import 뒤에 위치)
+- `isEquipped()`: SET 스킨 활성 중이면 개별 스킨을 "장착중"으로 표시하지 않음
+- `equipSkin()`:
+  - BOTTOM/HAT 장착 시 현재 SET 스킨이 활성 중이면 먼저 `equippedSkinId = null`로 해제
+  - SET 장착 시 `equippedBottom`, `equippedHat` 모두 null로 초기화
+- `unequipSkin()`: SET 카테고리는 `equippedSkinId = null`로 해제
+
+#### InventoryScreen 변경
+- `skinDrawableRes()` 남성/여성 전체 스킨 12종 매핑 추가
+- SET 카테고리 다이얼로그 안내 문구: "세트 스킨입니다.\n장착 시 현재 착용 중인 모든 스킨이 해제됩니다."
+
+**커밋**: `b144222` feat: 세트 스킨 시스템 + 남성 스킨 추가 / `4f0a7e6` fix: SET 스킨과 개별 스킨 동시 장착 버그 수정 / `bf8b8b6` fix: InventoryViewModel 빌드 오류 수정
+
+---
+
+### Phase 59: 뽑기 화면 개선 — 뒤로가기 + 스킨 이미지 수정 ✅ (2026-04-11)
+
+#### 뒤로가기 버튼 추가
+- `GachaScreen`: `TopAppBar` + `ArrowBack` IconButton 추가 (IDLE/SPINNING/REVEALED 모든 단계에서 동작)
+- 기존 Column 구조를 outer Column(TopAppBar 포함) + inner Column(콘텐츠) 이중 구조로 변경
+- 중복 타이틀 텍스트("스킨 뽑기") 제거 — TopAppBar 타이틀로 대체
+
+#### 뽑기 결과 스킨 이미지 수정
+- `skinDrawableRes()` 기존 여성 스킨 3종만 매핑 → 전체 스킨 12종으로 확장
+  - 여성 개별 4종: `skin_f_white_tshirt`, `skin_f_blue_bra`, `skin_f_yellow_pants`, `skin_f_headband`
+  - 여성 세트 2종: `skin_f_dinosaur_set`, `skin_f_bunny_set`
+  - 남성 개별 3종: `skin_m_black_tank`, `skin_m_white_tshirt`, `skin_m_yellow_pants`
+  - 남성 세트 3종: `skin_m_dinosaur_set`, `skin_m_bunny_set`, `skin_m_suit_set`
+
+**커밋**: `9b8d6bb` feat: 뽑기 화면 개선 — 뒤로가기 버튼 추가 + 스킨 이미지 전체 매핑
+
+---
+
+### Phase 60: 보스 카드 UI 수정 — 화면 크기별 재도전 버튼 잘림 방지 ✅ (2026-04-11)
+
+- **원인**: `BossCard` Surface에 `height(230.dp)` 고정값이 있어 클리어 상태(등급 카드 + "클리어 완료" 뱃지 + "재도전" 버튼)가 작은 화면에서 잘림
+- **수정**: `height(230.dp)` 제거 → 콘텐츠 크기에 맞게 자동 조절
+- `verticalArrangement = Arrangement.SpaceBetween` → `Arrangement.Top` 변경 (고정 높이 없으면 SpaceBetween 불필요)
+- `LazyRow`에 `Modifier.wrapContentHeight()` 추가
+
+**커밋**: `61f18f7` fix: 보스 카드 고정 높이 제거 — 화면 크기별 UI 잘림 해결
+
+---
+
 ### Phase 43: 추천 퀘스트 하루 고정 + UI 수정 ✅ (2026-04-06)
 - **추천 퀘스트 하루 고정**: `LocalDate.now().toEpochDay()` 기반 시드로 `shuffled(dailyRandom)` — 같은 날 같은 추천
 - **스플래시 캐치프레이즈 마침표 제거**: "운동을 퀘스트로, 몸을 레전드로." → 마침표 제거
@@ -1475,6 +1544,14 @@ ui/test/
 - [x] TIME_ONLY 세트별 타이머 UI — 목표 시간(분/초) 설정, 카운트업, 목표 달성 시 완료 버튼 전환
 - [x] 목표 미달 정지 → 세트 무효 처리 — cancelTimeSet() 호출 시 setElapsedSeconds 초기화
 - [x] 세트 간 휴식 — completeTimeSet() 후 isRunning=false 전환, 목표 시간 재편집 후 다음 세트 시작 가능
+- [x] SkinCategory.SET 추가 — 장착 시 모든 슬롯 초기화 후 equippedSkinId에 저장, 개별 스킨 동시 장착 차단
+- [x] 남성 스킨 6종 추가 — 검정 나시티/흰색 반팔티/노란 트레이닝바지(개별), 공룡/바니/정장(세트)
+- [x] 여성 세트 스킨 2종 추가 — 공룡 세트, 바니 세트
+- [x] maleAvatarRes() 룩업 함수 — 남성 SET/TOP/BOTTOM 조합별 결과 이미지 반환
+- [x] femaleAvatarRes() SET 감지 — 세트 스킨 우선 처리 로직 추가
+- [x] 뽑기 화면 뒤로가기 버튼 — TopAppBar + ArrowBack 아이콘 (모든 단계)
+- [x] 뽑기 결과 스킨 이미지 전체 매핑 — GachaScreen skinDrawableRes() 3종→12종
+- [x] 보스 카드 고정 높이 제거 — height(230.dp) → wrapContent, 재도전 버튼 잘림 방지
 
 ---
 
@@ -1485,7 +1562,7 @@ ui/test/
 - [ ] **인바디 데이터 입력** — 프로필에서 인바디 수치 기록 → 스탯 반영
 
 ### 중간 우선순위
-- [ ] **스킨 추가** — 현재 여성 전용 3종만 존재. 남성 스킨 및 추가 여성 스킨 제작 필요. 새 스킨 추가 시 `ALL_SKINS`, `femaleAvatarRes()` 룩업 테이블, 결과 이미지 모두 추가 필요
+- [ ] **스킨 추가** — 현재 여성 4종+세트2종 / 남성 3종+세트3종. 새 스킨 추가 시 `ALL_SKINS`, `maleAvatarRes()`/`femaleAvatarRes()` 룩업 테이블, 결과 이미지(`result_*.png`), 미리보기 이미지(`skin_*.png`) 모두 추가 필요
 - [ ] **스킨 조합 확장** — 현재 결과 이미지가 없는 조합(파란브라+흰티 동시 착용 불가 등) 처리 및 신규 조합 결과 이미지 제작
 - [ ] **스킨 확률 테이블** — 현재 `ALL_SKINS.random()` 균일 확률. 희귀도별 가중 확률 도입 가능
 - [ ] **PvP 대전** — 스탯 기반 1:1 비교 대결
