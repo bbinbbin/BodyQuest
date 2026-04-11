@@ -1,7 +1,7 @@
 
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-04-11 (Phase 60: 보스 카드 UI 수정 — 화면 크기별 재도전 버튼 잘림 방지)
+> 마지막 업데이트: 2026-04-12 (Phase 62: 인벤토리 티켓 수 표시 + 스킨 분해 기능)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -1225,6 +1225,46 @@ val targetSecondsInput: String = "30" // 초 입력 (기본 30)
 
 ---
 
+### Phase 61: 3D 뷰어 테스트 탭 제거 ✅ (2026-04-12)
+
+- **배경**: 실험적으로 추가했던 3D OBJ/GLB 뷰어 탭을 프로덕션 코드에서 제거
+- **삭제된 파일**: `ui/test/` 폴더 전체 (TestScreen, ModelRenderer, ModelGLSurfaceView, GlbParser, ObjParser)
+- **삭제된 에셋**: `assets/tesrbear2.glb`
+- **네비게이션 정리**:
+  - `Screen.ModelTest` 라우트 제거
+  - `BottomNavBar` 테스트 탭 항목 + `Icons.Default.Build` import 제거
+  - `BodyQuestNavGraph` composable 블록 + `bottomNavRoutes` 항목 제거
+- Phase 40~41에서 구현한 OBJ/GLB 파서 코드는 git 히스토리에 보존
+
+**커밋**: `531f604` chore: 3D 뷰어 테스트 탭 제거 — ui/test 전체 + GLB 모델 파일 삭제
+
+---
+
+### Phase 62: 인벤토리 티켓 수 표시 + 스킨 분해 기능 ✅ (2026-04-12)
+
+#### 티켓 수 표시
+- `InventoryViewModel`: `ticketCount: StateFlow<Int>` 추가 (UserEntity.gachaTickets 실시간 관찰)
+- `InventoryScreen` TopAppBar 우측 actions 영역에 `🎫 N 장` 배지 표시 (XpGold 색상)
+
+#### 스킨 분해 기능
+- **분해 흐름 (3단계 다이얼로그)**:
+  1. 스킨 카드 탭 → 기존 장착/해제 버튼 옆에 **"분해하기"** 버튼 추가 (NeonOrange)
+  2. 확인 다이얼로그 → "분해하면 스킨이 사라집니다. 60% 확률로 🎫 뽑기 티켓 1장을 획득합니다."
+  3. 결과 다이얼로그 → 🎫 "티켓 1장 획득!" (NeonGreen) 또는 💨 "아쉽게도 티켓을 얻지 못했습니다."
+- **분해 로직**:
+  - `count > 1`: count 1 감소 (스킨 유지)
+  - `count == 1`: 인벤토리에서 완전 삭제
+  - `Random.nextFloat() < 0.6f` → 티켓 획득 시 `gachaTickets + 1` + Firestore push
+
+#### 데이터 레이어
+- **`SkinInventoryDao`**: `decrementCount()` (count > 1인 경우만 감소), `deleteItem()` 쿼리 추가
+- **`SkinInventoryRepository`**: `decrementOrRemove(userId, skinId)` 메서드 추가
+- **`LocalSkinInventoryRepository`**: `decrementOrRemove()` 구현 — `decrementCount` 반환 0이면 `deleteItem` 호출
+
+**커밋**: `62c028b` feat: 인벤토리 티켓 수 표시 + 스킨 분해 기능 추가
+
+---
+
 ### Phase 43: 추천 퀘스트 하루 고정 + UI 수정 ✅ (2026-04-06)
 - **추천 퀘스트 하루 고정**: `LocalDate.now().toEpochDay()` 기반 시드로 `shuffled(dailyRandom)` — 같은 날 같은 추천
 - **스플래시 캐치프레이즈 마침표 제거**: "운동을 퀘스트로, 몸을 레전드로." → 마침표 제거
@@ -1269,7 +1309,7 @@ val targetSecondsInput: String = "30" // 초 입력 (기본 30)
 - 수행일과 시간/XP 정보 동시 표시
 - 운동 이미지는 플레이스홀더 (디자이너 이미지 준비 시 교체 예정)
 
-### Phase 40: 3D OBJ 뷰어 테스트 탭 ✅ (2026-04-03)
+### Phase 40: 3D OBJ 뷰어 테스트 탭 ✅ (2026-04-03) → Phase 61에서 제거됨
 
 #### 개요
 - 하단 탭 6번째 "테스트 (🔧)" 탭 추가
