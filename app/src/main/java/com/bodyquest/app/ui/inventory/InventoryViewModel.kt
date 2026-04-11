@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.random.Random
 
 private fun String?.isSetSkin() =
     this != null && ALL_SKINS.find { it.id == this }?.category == SkinCategory.SET
@@ -67,6 +68,17 @@ class InventoryViewModel @Inject constructor(
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
         } else {
             flowOf(null).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+        }
+    }
+
+    /** 보유 뽑기 티켓 수 */
+    val ticketCount: StateFlow<Int> = run {
+        if (uid != null) {
+            userRepository.getUser(uid)
+                .map { it?.gachaTickets ?: 0 }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+        } else {
+            flowOf(0).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
         }
     }
 
@@ -139,6 +151,26 @@ class InventoryViewModel @Inject constructor(
                 else -> {}
             }
             pushToCloud(uid)
+        }
+    }
+
+    /** 스킨 1개 분해. 60% 확률로 티켓 1장. onResult(true) = 티켓 획득, onResult(false) = 미획득 */
+    fun disassemble(skin: SkinItem, onResult: (gotTicket: Boolean) -> Unit) {
+        val uid = uid ?: return
+        viewModelScope.launch {
+            try {
+                skinInventoryRepository.decrementOrRemove(uid, skin.id)
+                val gotTicket = Random.nextFloat() < 0.6f
+                if (gotTicket) {
+                    val current = userRepository.getUserOnce(uid)?.gachaTickets ?: 0
+                    userRepository.updateGachaTickets(uid, current + 1)
+                    val updatedUser = userRepository.getUserOnce(uid)
+                    if (updatedUser != null) syncManager.pushUserToCloud(updatedUser)
+                }
+                onResult(gotTicket)
+            } catch (e: Exception) {
+                AppLogger.w("InventoryViewModel", "분해 실패", e)
+            }
         }
     }
 

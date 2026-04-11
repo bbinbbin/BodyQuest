@@ -20,4 +20,10 @@ interface SkinInventoryDao {
 
     @Query("UPDATE skin_inventory SET count = count + 1 WHERE skinId = :skinId AND userId = :userId")
     suspend fun incrementCount(skinId: String, userId: String): Int
+
+    @Query("UPDATE skin_inventory SET count = count - 1 WHERE skinId = :skinId AND userId = :userId AND count > 1")
+    suspend fun decrementCount(skinId: String, userId: String): Int
+
+    @Query("DELETE FROM skin_inventory WHERE skinId = :skinId AND userId = :userId")
+    suspend fun deleteItem(skinId: String, userId: String)
 }

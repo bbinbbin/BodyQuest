@@ -21,5 +21,10 @@ class LocalSkinInventoryRepository(
         }
     }
 
+    override suspend fun decrementOrRemove(userId: String, skinId: String) {
+        val updated = dao.decrementCount(skinId, userId)
+        if (updated == 0) dao.deleteItem(skinId, userId)
+    }
+
     override suspend fun upsert(item: SkinInventoryEntity) = dao.upsert(item)
 }

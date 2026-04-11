@@ -53,10 +53,13 @@ import com.bodyquest.app.domain.model.SkinItem
 import com.bodyquest.app.ui.theme.DarkBackground
 import com.bodyquest.app.ui.theme.DarkSurface
 import com.bodyquest.app.ui.theme.DarkSurfaceVariant
+import com.bodyquest.app.ui.theme.NeonGreen
+import com.bodyquest.app.ui.theme.NeonOrange
 import com.bodyquest.app.ui.theme.NeonPurple
 import com.bodyquest.app.ui.theme.TextMuted
 import com.bodyquest.app.ui.theme.TextPrimary
 import com.bodyquest.app.ui.theme.TextSecondary
+import com.bodyquest.app.ui.theme.XpGold
 
 private fun skinDrawableRes(skinId: String): Int? = when (skinId) {
     // 여성 개별 스킨
@@ -85,10 +88,13 @@ fun InventoryScreen(viewModel: InventoryViewModel, onBack: () -> Unit) {
     val equippedTopId by viewModel.equippedTopId.collectAsState()
     val equippedBottomId by viewModel.equippedBottomId.collectAsState()
     val equippedHatId by viewModel.equippedHatId.collectAsState()
+    val ticketCount by viewModel.ticketCount.collectAsState()
 
     var dialogSkin by remember { mutableStateOf<SkinItem?>(null) }
+    var confirmDisassembleSkin by remember { mutableStateOf<SkinItem?>(null) }
+    var disassembleResult by remember { mutableStateOf<Boolean?>(null) }
 
-    // 장착/해제 다이얼로그
+    // 1단계: 장착/해제/분해 선택 다이얼로그
     dialogSkin?.let { skin ->
         val isEquipped = viewModel.isEquipped(skin, equippedTopId, equippedBottomId, equippedHatId)
         AlertDialog(
@@ -120,8 +126,93 @@ fun InventoryScreen(viewModel: InventoryViewModel, onBack: () -> Unit) {
                 }
             },
             dismissButton = {
-                TextButton(onClick = { dialogSkin = null }) {
+                Row {
+                    TextButton(onClick = {
+                        confirmDisassembleSkin = skin
+                        dialogSkin = null
+                    }) {
+                        Text(text = "분해하기", color = NeonOrange)
+                    }
+                    TextButton(onClick = { dialogSkin = null }) {
+                        Text(text = "취소", color = TextMuted)
+                    }
+                }
+            }
+        )
+    }
+
+    // 2단계: 분해 확인 다이얼로그
+    confirmDisassembleSkin?.let { skin ->
+        AlertDialog(
+            onDismissRequest = { confirmDisassembleSkin = null },
+            containerColor = DarkSurfaceVariant,
+            title = {
+                Text(text = "스킨 분해", fontWeight = FontWeight.Bold, color = TextPrimary)
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "'${skin.name}'을(를) 분해하시겠습니까?",
+                        color = TextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "분해하면 스킨이 사라집니다.\n60% 확률로 🎫 뽑기 티켓 1장을 획득합니다.",
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val target = confirmDisassembleSkin
+                    confirmDisassembleSkin = null
+                    if (target != null) {
+                        viewModel.disassemble(target) { gotTicket ->
+                            disassembleResult = gotTicket
+                        }
+                    }
+                }) {
+                    Text(text = "분해하기", color = NeonOrange, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDisassembleSkin = null }) {
                     Text(text = "취소", color = TextMuted)
+                }
+            }
+        )
+    }
+
+    // 3단계: 분해 결과 다이얼로그
+    disassembleResult?.let { gotTicket ->
+        AlertDialog(
+            onDismissRequest = { disassembleResult = null },
+            containerColor = DarkSurfaceVariant,
+            title = {
+                Text(
+                    text = if (gotTicket) "티켓 획득!" else "분해 완료",
+                    fontWeight = FontWeight.Bold,
+                    color = if (gotTicket) XpGold else TextPrimary
+                )
+            },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = if (gotTicket) "🎫" else "💨",
+                        fontSize = 40.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = if (gotTicket) "뽑기 티켓 1장을 획득했습니다!" else "아쉽게도 티켓을 얻지 못했습니다.",
+                        color = if (gotTicket) NeonGreen else TextSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { disassembleResult = null }) {
+                    Text(text = "확인", color = NeonPurple, fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -142,6 +233,21 @@ fun InventoryScreen(viewModel: InventoryViewModel, onBack: () -> Unit) {
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "뒤로",
                         tint = TextPrimary
+                    )
+                }
+            },
+            actions = {
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = XpGold.copy(alpha = 0.15f),
+                    modifier = Modifier.padding(end = 12.dp)
+                ) {
+                    Text(
+                        text = "🎫 $ticketCount 장",
+                        color = XpGold,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                     )
                 }
             },
