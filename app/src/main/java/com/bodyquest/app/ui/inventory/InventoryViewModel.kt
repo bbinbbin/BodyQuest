@@ -82,6 +82,7 @@ class InventoryViewModel @Inject constructor(
         SkinCategory.TOP -> skin.id == topId
         SkinCategory.BOTTOM -> skin.id == bottomId
         SkinCategory.HAT -> skin.id == hatId
+        SkinCategory.SET -> skin.id == topId  // 세트는 equippedSkinId(TOP 슬롯)에 저장
         else -> false
     }
 
@@ -92,6 +93,12 @@ class InventoryViewModel @Inject constructor(
                 SkinCategory.TOP -> userRepository.updateEquippedSkin(uid, skin.id)
                 SkinCategory.BOTTOM -> userRepository.updateEquippedBottom(uid, skin.id)
                 SkinCategory.HAT -> userRepository.updateEquippedHat(uid, skin.id)
+                SkinCategory.SET -> {
+                    // 세트 장착: 모든 슬롯 초기화 후 equippedSkinId에만 저장
+                    userRepository.updateEquippedSkin(uid, skin.id)
+                    userRepository.updateEquippedBottom(uid, null)
+                    userRepository.updateEquippedHat(uid, null)
+                }
                 else -> {}
             }
             pushToCloud(uid)
@@ -105,6 +112,7 @@ class InventoryViewModel @Inject constructor(
                 SkinCategory.TOP -> userRepository.updateEquippedSkin(uid, null)
                 SkinCategory.BOTTOM -> userRepository.updateEquippedBottom(uid, null)
                 SkinCategory.HAT -> userRepository.updateEquippedHat(uid, null)
+                SkinCategory.SET -> userRepository.updateEquippedSkin(uid, null)
                 else -> {}
             }
             pushToCloud(uid)

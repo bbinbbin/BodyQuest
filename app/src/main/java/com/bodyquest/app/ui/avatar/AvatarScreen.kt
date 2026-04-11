@@ -36,10 +36,15 @@ import com.bodyquest.app.ui.theme.DarkSurfaceVariant
 import com.bodyquest.app.ui.theme.TextSecondary
 
 /**
- * TOP + BOTTOM + HAT 조합에 따라 미리 렌더링된 결과 이미지를 반환.
- * null → 기본 아바타 표시.
+ * 여성 아바타: TOP + BOTTOM + HAT 조합에 따라 결과 이미지를 반환.
+ * SET 스킨(equippedSkinId에 저장)은 topId로 감지해 단독 결과 이미지 반환.
  */
 private fun femaleAvatarRes(topId: String?, bottomId: String?, hatId: String?): Int {
+    // 세트 스킨 우선 처리 (모든 슬롯 무시)
+    when (topId) {
+        "skin_f_dinosaur_set" -> return R.drawable.result_f_dinosaur_set
+        "skin_f_bunny_set"    -> return R.drawable.result_f_bunny_set
+    }
     val hasHat = hatId == "skin_f_headband"
     val hasPants = bottomId == "skin_f_yellow_pants"
     return when {
@@ -60,6 +65,28 @@ private fun femaleAvatarRes(topId: String?, bottomId: String?, hatId: String?): 
         topId == "skin_f_blue_bra"     -> R.drawable.result_f_blue_bra
         hasPants -> R.drawable.result_f_yellow_pants
         else -> R.drawable.avatar_female
+    }
+}
+
+/**
+ * 남성 아바타: TOP + BOTTOM 조합에 따라 결과 이미지를 반환.
+ * SET 스킨은 topId로 감지해 단독 결과 이미지 반환.
+ */
+private fun maleAvatarRes(topId: String?, bottomId: String?): Int {
+    // 세트 스킨 우선 처리
+    when (topId) {
+        "skin_m_dinosaur_set" -> return R.drawable.result_m_dinosaur_set
+        "skin_m_bunny_set"    -> return R.drawable.result_m_bunny_set
+        "skin_m_suit_set"     -> return R.drawable.result_m_suit_set
+    }
+    val hasYellowPants = bottomId == "skin_m_yellow_pants"
+    return when {
+        topId == "skin_m_black_tank"   && hasYellowPants -> R.drawable.result_m_black_tank_yellow_pants
+        topId == "skin_m_white_tshirt" && hasYellowPants -> R.drawable.result_m_white_tshirt_yellow_pants
+        topId == "skin_m_black_tank"   -> R.drawable.result_m_black_tank
+        topId == "skin_m_white_tshirt" -> R.drawable.result_m_white_tshirt
+        hasYellowPants -> R.drawable.result_m_yellow_pants
+        else -> R.drawable.avatar_male
     }
 }
 
@@ -97,7 +124,7 @@ fun AvatarScreen(
                         .background(DarkSurfaceVariant)
                 ) {
                     val avatarRes = if (user.avatarIndex == 0) {
-                        R.drawable.avatar_male
+                        maleAvatarRes(user.equippedSkinId, user.equippedBottomId)
                     } else {
                         femaleAvatarRes(user.equippedSkinId, user.equippedBottomId, user.equippedHatId)
                     }

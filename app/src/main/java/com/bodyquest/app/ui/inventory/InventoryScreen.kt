@@ -48,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bodyquest.app.R
+import com.bodyquest.app.domain.model.SkinCategory
 import com.bodyquest.app.domain.model.SkinItem
 import com.bodyquest.app.ui.theme.DarkBackground
 import com.bodyquest.app.ui.theme.DarkSurface
@@ -58,10 +59,22 @@ import com.bodyquest.app.ui.theme.TextPrimary
 import com.bodyquest.app.ui.theme.TextSecondary
 
 private fun skinDrawableRes(skinId: String): Int? = when (skinId) {
-    "skin_f_white_tshirt" -> R.drawable.skin_f_white_tshirt
-    "skin_f_blue_bra"     -> R.drawable.skin_f_blue_bra
-    "skin_f_yellow_pants" -> R.drawable.skin_f_yellow_pants
-    "skin_f_headband"     -> R.drawable.skin_f_headband
+    // 여성 개별 스킨
+    "skin_f_white_tshirt"   -> R.drawable.skin_f_white_tshirt
+    "skin_f_blue_bra"       -> R.drawable.skin_f_blue_bra
+    "skin_f_yellow_pants"   -> R.drawable.skin_f_yellow_pants
+    "skin_f_headband"       -> R.drawable.skin_f_headband
+    // 여성 세트 스킨
+    "skin_f_dinosaur_set"   -> R.drawable.skin_f_dinosaur_set
+    "skin_f_bunny_set"      -> R.drawable.skin_f_bunny_set
+    // 남성 개별 스킨
+    "skin_m_black_tank"     -> R.drawable.skin_m_black_tank
+    "skin_m_white_tshirt"   -> R.drawable.skin_m_white_tshirt
+    "skin_m_yellow_pants"   -> R.drawable.skin_m_yellow_pants
+    // 남성 세트 스킨
+    "skin_m_dinosaur_set"   -> R.drawable.skin_m_dinosaur_set
+    "skin_m_bunny_set"      -> R.drawable.skin_m_bunny_set
+    "skin_m_suit_set"       -> R.drawable.skin_m_suit_set
     else -> null
 }
 
@@ -86,7 +99,11 @@ fun InventoryScreen(viewModel: InventoryViewModel, onBack: () -> Unit) {
             },
             text = {
                 Text(
-                    text = if (isEquipped) "현재 장착 중인 스킨입니다." else "${skin.category.displayName} 스킨입니다.",
+                    text = when {
+                        isEquipped -> "현재 장착 중인 스킨입니다."
+                        skin.category == SkinCategory.SET -> "세트 스킨입니다.\n장착 시 현재 착용 중인 모든 스킨이 해제됩니다."
+                        else -> "${skin.category.displayName} 스킨입니다."
+                    },
                     color = TextSecondary
                 )
             },
