@@ -1,7 +1,7 @@
 
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-04-09 (Phase 55: 보안/기능 전면 점검 + 로그인 아이디 저장 + 뽑기 UI 개선)
+> 마지막 업데이트: 2026-04-11 (Phase 57: TIME_ONLY 운동 세트별 타이머 UI — 목표 시간 설정 + 달성 후 완료)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -62,7 +62,7 @@ app/src/main/java/com/bodyquest/app/
 │
 ├── data/
 │   ├── local/
-│   │   ├── BodyQuestDatabase.kt # Room DB (v14), exportSchema=true, Migration(1,2)~Migration(13,14)
+│   │   ├── BodyQuestDatabase.kt # Room DB (v17), exportSchema=true, Migration(1,2)~Migration(16,17)
 │   │   ├── SeedData.kt          # STRENGTH 개별운동 29개 + ENDURANCE 8개 + BALANCE 9개 + 보스 150개
 │   │   ├── dao/
 │   │   │   ├── UserDao.kt       # abstract class, getUser(uid), @Transaction applyWorkoutRewards(), updateProfileImageUrl()
@@ -71,9 +71,9 @@ app/src/main/java/com/bodyquest/app/
 │   │   │   └── BossProgressDao.kt # getProgressForUser(Flow), getProgress(one-shot), @Upsert (composite PK)
 │   │   └── entity/
 │   │       ├── UserEntity.kt    # id, nickname, job, goal, avatarIndex, stats, xp, level, firebaseUid, email, authProvider, profileImageUrl, updatedAt, equippedSkinId, gachaTickets
-│   │       ├── QuestEntity.kt   # id, category, bodyPart, name, difficulty, rewards
+│   │       ├── QuestEntity.kt   # id, category, bodyPart, name, difficulty, rewards, inputType
 │   │       ├── WorkoutEntity.kt # FK(userId→users, questId→quests), 복합인덱스, CASCADE, firestoreId
-│   │       ├── WorkoutSetEntity.kt # FK(workoutId→workouts), CASCADE
+│   │       ├── WorkoutSetEntity.kt # FK(workoutId→workouts), CASCADE, durationSeconds(TIME_ONLY용)
 │   │       └── BossProgressEntity.kt # boss_progress 테이블: bossId, userId (composite PK), isCleared, performance
 │   ├── remote/
 │   │   ├── FirestoreUserService.kt # Firestore CRUD: pushUser, pullUser, pushWorkout, pullAllWorkouts, deleteUser, isNicknameTaken
@@ -93,6 +93,7 @@ app/src/main/java/com/bodyquest/app/
 │   ├── Job.kt                     # enum: STRENGTH/ENDURANCE/BALANCE
 │   ├── Goal.kt                    # enum: DIET/BULK_UP/MAINTAIN
 │   ├── StatType.kt                # enum: STRENGTH/ENDURANCE/BALANCE
+│   ├── ExerciseInputType.kt       # enum: WEIGHT_REPS / REPS_ONLY / TIME_ONLY / MIXED
 │   └── SkinItem.kt                # SkinCategory enum(상의/하의/신발/장갑/모자+emoji+color), SkinItem(id, name, category), ALL_SKINS(15개)
 │
 ├── ui/
@@ -136,9 +137,9 @@ app/src/main/java/com/bodyquest/app/
 │   │   └── QuestDetailViewModel.kt # @HiltViewModel, UiState<QuestEntity>
 │   │
 │   ├── workout/
-│   │   ├── WorkoutScreen.kt
+│   │   ├── WorkoutScreen.kt        # isTimeOnly/isStrength/ENDURANCE 3분기 UI
 │   │   ├── WorkoutCompleteScreen.kt
-│   │   └── WorkoutViewModel.kt     # @HiltViewModel, 운동 완료 시 Firestore push (workout + user)
+│   │   └── WorkoutViewModel.kt     # @HiltViewModel, SetRowData(inputType별 입력), TIME_ONLY 세트 타이머
 │   │
 │   ├── pvp/PvpScreen.kt            # Coming Soon
 │   ├── boss/
@@ -1042,6 +1043,119 @@ exercise_image_prompts.md           ← 프롬프트 문서
 
 ---
 
+### Phase 56: inputType 기반 운동 입력 시스템 재설계 (DB v16→v17) ✅ (2026-04-11)
+
+#### 배경 및 목적
+기존 WorkoutScreen은 `quest.category == "STRENGTH"` 하나로만 UI를 분기했다. 결과적으로 푸시업에 kg 입력 요구, 플랭크에 reps 입력 요구, 빈 입력도 기본값으로 저장되는 문제가 있었다. `QuestEntity.inputType`을 단일 진실 소스로 삼아 재설계.
+
+#### ExerciseInputType enum (신규)
+**파일**: `domain/model/ExerciseInputType.kt`
+```kotlin
+enum class ExerciseInputType {
+    WEIGHT_REPS,  // 중량 + 횟수 (벤치프레스, 스쿼트 등)
+    REPS_ONLY,    // 횟수만 (푸시업, 풀업, 크런치 등)
+    TIME_ONLY,    // 시간 기반 (플랭크, 러닝, 요가 등)
+    MIXED         // 횟수 + 시간 (줄넘기)
+}
+```
+
+#### QuestEntity 변경
+- `inputType: String = "WEIGHT_REPS"` 필드 추가
+
+#### WorkoutSetEntity 변경
+- `durationSeconds: Int = 0` 필드 추가 (TIME_ONLY / MIXED 운동용)
+
+#### DB v16 → v17 (MIGRATION_16_17)
+- `quests` 테이블: `inputType TEXT NOT NULL DEFAULT 'WEIGHT_REPS'` 컬럼 추가
+- `workout_sets` 테이블: `durationSeconds INTEGER NOT NULL DEFAULT 0` 컬럼 추가
+- 기존 퀘스트 UPDATE: REPS_ONLY(9개), TIME_ONLY(15개), MIXED(3개)
+
+#### SeedData 업데이트 (47개 전체 inputType 지정)
+| inputType | 운동 |
+|-----------|------|
+| WEIGHT_REPS | 벤치프레스, 스쿼트, 데드리프트 등 19개 |
+| REPS_ONLY | 푸시업, 풀업, 딥스, 크런치, 런지 등 9개 |
+| TIME_ONLY | 플랭크, 달리기, 요가, 스트레칭, 필라테스 등 15개 |
+| MIXED | 줄넘기 3종 |
+
+#### WorkoutViewModel 변경
+- `SetRowData`에 `durationSeconds: String = ""` 추가
+- `WorkoutState`에 `setRowError: Int? = null`, `setElapsedSeconds: Int = 0` 추가
+- `loadQuest()`: TIME_ONLY STRENGTH는 `setRows = emptyList()` (타이머 UI 사용)
+- `addSet()` / `removeSet()`: setRows 빈 경우(TIME_ONLY) totalSets만 조정
+- `updateSetWeight/Reps/Duration()`: 수정 시 `setRowError = null` 클리어
+- `completeSetRow()`: inputType별 검증 → 실패 시 `setRowError = setIndex` 설정
+  - WEIGHT_REPS: weight > 0 AND reps > 0
+  - REPS_ONLY: reps > 0
+  - TIME_ONLY: durationSeconds > 0
+  - MIXED: reps > 0 OR durationSeconds > 0
+- `completeTimeSet()`: setElapsedSeconds를 durationSeconds로 기록, 마지막 세트 시 finishWorkout()
+
+#### WorkoutScreen UI 분기
+```
+isTimeOnly (TIME_ONLY STRENGTH) → 세트별 타이머 UI
+isStrength (WEIGHT_REPS/REPS_ONLY/MIXED) → 기존 테이블 UI (inputType별 열 구성)
+else (ENDURANCE/BALANCE) → 기존 타이머 UI
+```
+- 테이블 헤더: WEIGHT_REPS → kg+횟수 / REPS_ONLY → 횟수 / MIXED → 횟수+초
+- 검증 실패 행: 빨간 테두리 + 에러 텍스트
+
+#### FirestoreUserService 변경
+- `pushWorkout()` sets 맵에 `"durationSeconds" to set.durationSeconds` 추가
+- `pullAllWorkouts()` sets 파싱에 `durationSeconds = (s["durationSeconds"] as? Long ?: 0).toInt()` 추가
+
+**커밋**: `de30913` feat: 운동 입력 방식(inputType) 기반 시스템 재설계 — DB v17
+
+---
+
+### Phase 57: TIME_ONLY 운동 세트별 타이머 UI — 목표 시간 설정 + 달성 후 완료 ✅ (2026-04-11)
+
+#### 배경
+플랭크 등 TIME_ONLY STRENGTH 운동은 "몇 세트할지 선택 + 목표 시간 설정 후 타이머 실행 → 목표 달성 시 완료" 흐름이 필요했다. 목표 미달 정지는 세트 무효 처리.
+
+#### WorkoutState 추가 필드
+```kotlin
+val targetDuration: Int = 0,         // 목표 시간(초), startTimeSet() 호출 시 잠금
+val targetMinutesInput: String = "0", // 분 입력 (기본 0)
+val targetSecondsInput: String = "30" // 초 입력 (기본 30)
+```
+
+#### WorkoutViewModel 추가/변경 메서드
+- `updateTargetMinutes(String)` / `updateTargetSeconds(String)` — 실행 중엔 무시
+- `startTimeSet()` — mins×60+secs = target, target=0이면 시작 불가. target을 state에 잠금 후 전체 타이머 시작
+- `cancelTimeSet()` — 목표 미달 정지: 타이머 전부 취소 + `setElapsedSeconds = 0` 리셋 (세트 무효)
+- `completeTimeSet()` — 목표 달성 후 완료: setElapsedSeconds를 durationSeconds로 기록, 세트 간 휴식 상태로 복귀 (isRunning=false, setElapsedSeconds=0)
+- `pauseTimeSet()` / `resumeTimeSet()` — 내부에 잔류하나 TIME_ONLY UI에서는 미사용 (cancelTimeSet으로 대체)
+
+#### WorkoutScreen isTimeOnly 섹션 UI 흐름
+
+**시작 전 (isRunning=false, setElapsedSeconds=0)**
+- 가이드 카드
+- 세트 +/- 컨트롤 (활성화)
+- "세트 N/M" + 진행 바
+- 목표 시간 설정 카드 (분 입력 72dp + 초 입력 72dp)
+- 하단: "운동 시작" / "세트 N 시작" 버튼 (목표=0이면 비활성)
+
+**실행 중, 목표 미달 (isRunning=true, setElapsedSeconds < targetDuration)**
+- 가이드 카드 토글 아이콘
+- 세트 +/- 컨트롤 (비활성화)
+- "세트 N/M" + 진행 바
+- 카운트업 타이머 64sp (흰색) + "목표: MM:SS"
+- BPM / kcal 통계 칩
+- 하단: "정지 (세트 무효)" OutlinedButton (NeonRed)
+
+**실행 중, 목표 달성 (isRunning=true, setElapsedSeconds >= targetDuration)**
+- 동일 UI + 타이머 초록색 + "목표 달성!" 초록 텍스트
+- 하단: "세트 완료 (N/M)" Button (NeonGreen)
+
+**세트 간 휴식 (isRunning=false, setElapsedSeconds=0, completedSets>0)**
+- 목표 시간 설정 카드 (재편집 가능)
+- 하단: "세트 N 시작" 버튼
+
+**커밋**: `5b92aad` feat: TIME_ONLY 운동 세트별 타이머 UI — 목표 시간 설정 + 달성 후 완료
+
+---
+
 ### Phase 43: 추천 퀘스트 하루 고정 + UI 수정 ✅ (2026-04-06)
 - **추천 퀘스트 하루 고정**: `LocalDate.now().toEpochDay()` 기반 시드로 `shuffled(dailyRandom)` — 같은 날 같은 추천
 - **스플래시 캐치프레이즈 마침표 제거**: "운동을 퀘스트로, 몸을 레전드로." → 마침표 제거
@@ -1355,6 +1469,12 @@ ui/test/
 - [x] 로그인 아이디 저장 — EncryptedSharedPreferences, 소형 체크박스 UI
 - [x] 로그인/회원가입 안내 문구 마침표 통일
 - [x] 뽑기 화면 레이아웃 개선 — 카드 위치 고정(QuestionCard 통합), 화면 중앙 배치, 전환 애니메이션 개선
+- [x] inputType 기반 운동 입력 시스템 재설계 — ExerciseInputType enum, DB v17 (quests.inputType + workout_sets.durationSeconds)
+- [x] 운동 입력 검증 — inputType별 빈값 차단, 에러 행 빨간 테두리 표시
+- [x] WorkoutScreen 3분기 — isTimeOnly(타이머) / isStrength(테이블) / ENDURANCE(기존 타이머) 완전 분리
+- [x] TIME_ONLY 세트별 타이머 UI — 목표 시간(분/초) 설정, 카운트업, 목표 달성 시 완료 버튼 전환
+- [x] 목표 미달 정지 → 세트 무효 처리 — cancelTimeSet() 호출 시 setElapsedSeconds 초기화
+- [x] 세트 간 휴식 — completeTimeSet() 후 isRunning=false 전환, 목표 시간 재편집 후 다음 세트 시작 가능
 
 ---
 
@@ -1399,12 +1519,18 @@ ui/test/
 16. **스킨 ID 변경 시 인벤토리 orphan** — `skin_inventory` 테이블의 `skinId`가 `ALL_SKINS`에 없으면 인벤토리에서 미표시. 스킨 id 변경 시 기존 데이터 정리 필요.
 17. **새 스킨/조합 추가 절차** — `ALL_SKINS`에 스킨 추가 → 결과 이미지 drawable 추가 → `AvatarScreen.femaleAvatarRes()` 룩업 테이블 업데이트 → `InventoryScreen.skinDrawableRes()` 업데이트. HAT 슬롯은 `equippedHatId` 사용, TOP은 `equippedSkinId`, BOTTOM은 `equippedBottomId`.
 18. **결과 이미지 생성 방법** — Gemini AI에 단일 결과 이미지 2장(예: 헤어밴드_결과 + 흰티_결과)을 주고 합성 요청. 개별 스킨 PNG는 100% 불투명이라 alpha_composite으로 자동 합성 불가 — 반드시 Gemini 등 AI로 수동 생성 필요.
+19. **TIME_ONLY 세트 타이머 — 전역 타이머와 동시 실행**: `timerJob`(elapsedSeconds)과 `setTimerJob`(setElapsedSeconds)이 동시에 실행된다. 세트 완료/취소 후 전역 타이머(elapsedSeconds)는 계속 누적된다. 의도된 동작.
+20. **TIME_ONLY 목표 시간 초기값**: 기본값 0분 30초. 앱 재시작 시 항상 초기화 (WorkoutState 기본값). DB 저장 없음.
 
 ---
 
 ## Git 커밋 히스토리
 
 ```
+5b92aad feat: TIME_ONLY 운동 세트별 타이머 UI — 목표 시간 설정 + 달성 후 완료
+de30913 feat: 운동 입력 방식(inputType) 기반 시스템 재설계 — DB v17
+8ff1830 docs: README.md 업데이트 — DB v16, HAT 슬롯, 아이디 저장, 보안 개선 반영
+99f7973 docs: HandOFF.md 업데이트 — Phase 54~55 반영 (보안/기능 점검, 아이디 저장, 뽑기 UI)
 32a48cc fix: 뽑기 카드 위치 고정 — IdleCard+SpinningCard를 QuestionCard로 통합
 b3d3e22 fix: 로그인/회원가입 안내 문구 마침표 추가
 5657740 feat: 로그인 아이디 저장 기능 — EncryptedSharedPreferences 활용
