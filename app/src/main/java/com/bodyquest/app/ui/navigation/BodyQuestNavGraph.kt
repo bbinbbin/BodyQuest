@@ -33,7 +33,6 @@ import com.bodyquest.app.ui.inventory.InventoryViewModel
 import com.bodyquest.app.ui.profile.ProfileScreen
 import com.bodyquest.app.ui.boss.BossScreen
 import com.bodyquest.app.ui.boss.BossViewModel
-import com.bodyquest.app.ui.test.TestScreen
 import com.bodyquest.app.ui.workout.WorkoutCompleteScreen
 import com.bodyquest.app.ui.workout.WorkoutScreen
 import com.bodyquest.app.ui.workout.WorkoutViewModel
@@ -45,8 +44,7 @@ private val bottomNavRoutes = setOf(
     Screen.Quest.route,
     Screen.Boss.route,
     Screen.Avatar.route,
-    Screen.Profile.route,
-    Screen.ModelTest.route
+    Screen.Profile.route
 )
 
 @Composable
@@ -255,9 +253,6 @@ fun BodyQuestNavGraph() {
                         }
                     }
                 )
-            }
-            composable(Screen.ModelTest.route) {
-                TestScreen(onBack = { navController.popBackStack() })
             }
         }
     }
