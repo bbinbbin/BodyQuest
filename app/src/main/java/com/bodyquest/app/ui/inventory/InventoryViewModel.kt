@@ -8,9 +8,6 @@ import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.domain.model.ALL_SKINS
 import com.bodyquest.app.domain.model.SkinCategory
 import com.bodyquest.app.domain.model.SkinItem
-
-private fun String?.isSetSkin() =
-    this != null && ALL_SKINS.find { it.id == this }?.category == SkinCategory.SET
 import com.bodyquest.app.util.AppLogger
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,6 +18,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+private fun String?.isSetSkin() =
+    this != null && ALL_SKINS.find { it.id == this }?.category == SkinCategory.SET
 
 @HiltViewModel
 class InventoryViewModel @Inject constructor(
