@@ -42,8 +42,12 @@ data class WorkoutState(
     val heartRate: Int = 0,
     val caloriesBurned: Int = 0,
     val rewardError: String? = null,
-    val setRows: List<SetRowData> = emptyList(),  // STRENGTH: 세트 테이블
+    val setRows: List<SetRowData> = emptyList(),  // STRENGTH 테이블 운동용
     val setRowError: Int? = null,                 // 검증 실패한 세트 인덱스
+    val setElapsedSeconds: Int = 0,               // TIME_ONLY 세트 타이머
+    val targetDuration: Int = 0,                  // TIME_ONLY 세트 목표 시간(초)
+    val targetMinutesInput: String = "0",         // 목표 분 입력
+    val targetSecondsInput: String = "30",        // 목표 초 입력
     val showGuide: Boolean = true
 )
 
@@ -79,6 +83,7 @@ class WorkoutViewModel @Inject constructor(
     val completeState: StateFlow<WorkoutCompleteState> = _completeState
 
     private var timerJob: Job? = null
+    private var setTimerJob: Job? = null
     private var heartRateSimJob: Job? = null
 
     fun loadQuest(questId: String) {
@@ -96,12 +101,10 @@ class WorkoutViewModel @Inject constructor(
 
             val isStrength = quest.category == "STRENGTH"
             val inputType = ExerciseInputType.valueOf(quest.inputType)
-            val initialRows = if (isStrength) {
+            // TIME_ONLY STRENGTH(플랭크 등)는 타이머 UI 사용 → setRows 불필요
+            val initialRows = if (isStrength && inputType != ExerciseInputType.TIME_ONLY) {
                 (1..quest.sets).map { i ->
-                    when (inputType) {
-                        ExerciseInputType.TIME_ONLY -> SetRowData(setNumber = i)
-                        else -> SetRowData(setNumber = i, reps = quest.repsPerSet.toString())
-                    }
+                    SetRowData(setNumber = i, reps = quest.repsPerSet.toString())
                 }
             } else emptyList()
 
@@ -167,6 +170,11 @@ class WorkoutViewModel @Inject constructor(
 
     fun addSet() {
         val s = _state.value
+        if (s.setRows.isEmpty()) {
+            // TIME_ONLY STRENGTH: setRows 없이 totalSets만 증가
+            _state.value = s.copy(totalSets = s.totalSets + 1)
+            return
+        }
         val lastRow = s.setRows.lastOrNull()
         val newRow = SetRowData(
             setNumber = s.setRows.size + 1,
@@ -182,14 +190,19 @@ class WorkoutViewModel @Inject constructor(
 
     fun removeSet() {
         val s = _state.value
+        if (s.setRows.isEmpty()) {
+            // TIME_ONLY STRENGTH: 운동 시작 전, 완료된 세트보다 많을 때만 감소
+            if (s.totalSets > s.completedSets + 1) {
+                _state.value = s.copy(totalSets = s.totalSets - 1)
+            }
+            return
+        }
         if (s.setRows.size <= 1) return
         val uncompleted = s.setRows.filter { !it.completed }
         if (uncompleted.isEmpty()) return
-        // 마지막 미완료 세트 제거
         val lastUncompleted = s.setRows.indexOfLast { !it.completed }
         val rows = s.setRows.toMutableList()
         rows.removeAt(lastUncompleted)
-        // 번호 재정렬
         val renumbered = rows.mapIndexed { i, r -> r.copy(setNumber = i + 1) }
         _state.value = s.copy(
             setRows = renumbered,
@@ -301,6 +314,93 @@ class WorkoutViewModel @Inject constructor(
                     completedSets = newCompleted,
                     currentSet = s.currentSet + 1
                 )
+            }
+        }
+    }
+
+    // ── TIME_ONLY STRENGTH (플랭크 등) 세트 타이머 ──
+
+    fun updateTargetMinutes(value: String) {
+        if (!_state.value.isRunning) {
+            _state.value = _state.value.copy(targetMinutesInput = value)
+        }
+    }
+
+    fun updateTargetSeconds(value: String) {
+        if (!_state.value.isRunning) {
+            _state.value = _state.value.copy(targetSecondsInput = value)
+        }
+    }
+
+    fun startTimeSet() {
+        val s = _state.value
+        val mins = s.targetMinutesInput.toIntOrNull() ?: 0
+        val secs = s.targetSecondsInput.toIntOrNull() ?: 0
+        val target = mins * 60 + secs
+        if (target <= 0) return
+        _state.value = s.copy(isRunning = true, targetDuration = target)
+        startTimer()
+        startSetTimer()
+        startHeartRateSimulation()
+    }
+
+    fun cancelTimeSet() {
+        // 목표 시간 미달 정지 → 세트 무효, 타이머 초기화
+        timerJob?.cancel()
+        setTimerJob?.cancel()
+        heartRateSimJob?.cancel()
+        _state.value = _state.value.copy(
+            isRunning = false,
+            setElapsedSeconds = 0
+        )
+    }
+
+    fun completeTimeSet() {
+        val s = _state.value
+        val quest = s.quest ?: return
+
+        setTimerJob?.cancel()
+        val recordedDuration = s.setElapsedSeconds
+
+        viewModelScope.launch {
+            val set = WorkoutSetEntity(
+                workoutId = s.workoutId,
+                setNumber = s.currentSet,
+                reps = 0,
+                weight = 0.0,
+                durationSeconds = recordedDuration,
+                completed = true,
+                completedAt = System.currentTimeMillis()
+            )
+            workoutRepository.insertWorkoutSet(set)
+
+            val newCompleted = s.completedSets + 1
+            if (newCompleted >= s.totalSets) {
+                _state.value = s.copy(completedSets = newCompleted, setElapsedSeconds = 0)
+                finishWorkout()
+            } else {
+                // 세트 완료 후 일시정지 → 유저가 쉬고 다음 세트 직접 시작
+                timerJob?.cancel()
+                heartRateSimJob?.cancel()
+                _state.value = s.copy(
+                    completedSets = newCompleted,
+                    currentSet = s.currentSet + 1,
+                    setElapsedSeconds = 0,
+                    isRunning = false
+                )
+            }
+        }
+    }
+
+    private fun startSetTimer() {
+        setTimerJob?.cancel()
+        setTimerJob = viewModelScope.launch {
+            while (true) {
+                delay(1000)
+                val current = _state.value
+                if (current.isRunning) {
+                    _state.value = current.copy(setElapsedSeconds = current.setElapsedSeconds + 1)
+                }
             }
         }
     }
@@ -525,6 +625,7 @@ class WorkoutViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         timerJob?.cancel()
+        setTimerJob?.cancel()
         heartRateSimJob?.cancel()
     }
 }

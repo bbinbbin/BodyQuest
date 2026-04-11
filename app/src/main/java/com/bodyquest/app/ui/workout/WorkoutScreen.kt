@@ -127,11 +127,211 @@ fun WorkoutScreen(
 
         val isStrength = quest.category == "STRENGTH"
         val inputType = ExerciseInputType.valueOf(quest.inputType)
+        val isTimeOnly = isStrength && inputType == ExerciseInputType.TIME_ONLY
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        if (isStrength) {
-            // ── STRENGTH: 테이블 뷰 ──
+        if (isTimeOnly) {
+            // ── TIME_ONLY STRENGTH (플랭크 등): 세트별 타이머 UI ──
+
+            // 운동 가이드 카드
+            if (state.showGuide) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = DarkSurfaceVariant
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("운동 가이드", style = MaterialTheme.typography.labelMedium, color = TextMuted)
+                            IconButton(onClick = { viewModel.toggleGuide() }) {
+                                Icon(Icons.Default.VisibilityOff, "가이드 숨기기", tint = TextMuted, modifier = Modifier.size(20.dp))
+                            }
+                        }
+                        val gifPath = ExerciseImages.getGifPath(quest.id)
+                        if (gifPath != null) {
+                            AsyncImage(
+                                model = gifPath,
+                                contentDescription = quest.name,
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier.size(120.dp)
+                            )
+                        } else {
+                            Icon(Icons.Default.FitnessCenter, null, tint = NeonPurple.copy(alpha = 0.6f), modifier = Modifier.size(64.dp))
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(quest.description, style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            } else {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    IconButton(onClick = { viewModel.toggleGuide() }) {
+                        Icon(Icons.Default.Visibility, "가이드 보기", tint = TextMuted, modifier = Modifier.size(20.dp))
+                    }
+                }
+            }
+
+            // 세트 +/- 컨트롤 (타이머 실행 전에만 활성화)
+            val canEditSets = !state.isRunning && state.setElapsedSeconds == 0
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { viewModel.removeSet() }, enabled = canEditSets) {
+                    Text(
+                        "−", fontSize = 24.sp, fontWeight = FontWeight.Bold,
+                        color = if (canEditSets) TextMuted else TextMuted.copy(alpha = 0.3f)
+                    )
+                }
+                Text(
+                    text = "${state.totalSets} 세트",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                IconButton(onClick = { viewModel.addSet() }, enabled = canEditSets) {
+                    Text(
+                        "+", fontSize = 24.sp, fontWeight = FontWeight.Bold,
+                        color = if (canEditSets) NeonPurple else NeonPurple.copy(alpha = 0.3f)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 세트 진행 표시 + 진행 바
+            Text(
+                text = "세트 ${state.completedSets + 1} / ${state.totalSets}",
+                style = MaterialTheme.typography.titleMedium,
+                color = NeonPurple
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = { state.completedSets.toFloat() / state.totalSets },
+                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                color = NeonPurple,
+                trackColor = DarkSurfaceVariant,
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            if (!state.isRunning && state.setElapsedSeconds == 0) {
+                // ── 목표 시간 설정 카드 ──
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = DarkSurfaceVariant
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "목표 시간",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = TextMuted
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedTextField(
+                                value = state.targetMinutesInput,
+                                onValueChange = { viewModel.updateTargetMinutes(it) },
+                                modifier = Modifier.width(72.dp),
+                                singleLine = true,
+                                textStyle = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center
+                                ),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                colors = strengthTextFieldColors()
+                            )
+                            Text(
+                                text = "분",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = TextSecondary,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                            OutlinedTextField(
+                                value = state.targetSecondsInput,
+                                onValueChange = { viewModel.updateTargetSeconds(it) },
+                                modifier = Modifier.width(72.dp),
+                                singleLine = true,
+                                textStyle = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center
+                                ),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                colors = strengthTextFieldColors()
+                            )
+                            Text(
+                                text = "초",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = TextSecondary,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                        }
+                    }
+                }
+            } else {
+                // ── 타이머 실행 중 ──
+                val goalReached = state.setElapsedSeconds >= state.targetDuration
+                val setMin = state.setElapsedSeconds / 60
+                val setSec = state.setElapsedSeconds % 60
+                Text(
+                    text = "%02d:%02d".format(setMin, setSec),
+                    fontSize = 64.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (goalReached) NeonGreen else MaterialTheme.colorScheme.onBackground
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 목표 달성 여부 표시
+                val targetMin = state.targetDuration / 60
+                val targetSec = state.targetDuration % 60
+                Text(
+                    text = if (goalReached) "목표 달성!" else "목표: %02d:%02d".format(targetMin, targetSec),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (goalReached) NeonGreen else TextMuted
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // 통계
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    StatChip(
+                        icon = Icons.Default.Favorite,
+                        value = if (state.heartRate > 0) "${state.heartRate}" else "--",
+                        label = "BPM",
+                        color = NeonRed
+                    )
+                    StatChip(
+                        icon = Icons.Default.LocalFireDepartment,
+                        value = "${state.caloriesBurned}",
+                        label = "kcal",
+                        color = com.bodyquest.app.ui.theme.NeonBlue
+                    )
+                }
+            }
+
+        } else if (isStrength) {
+            // ── STRENGTH 테이블 UI (WEIGHT_REPS / REPS_ONLY / MIXED) ──
 
             // 운동 가이드 카드
             if (state.showGuide) {
@@ -214,13 +414,11 @@ fun WorkoutScreen(
                     ExerciseInputType.REPS_ONLY -> {
                         Text("횟수", modifier = Modifier.weight(2f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium, color = TextMuted)
                     }
-                    ExerciseInputType.TIME_ONLY -> {
-                        Text("초", modifier = Modifier.weight(2f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium, color = TextMuted)
-                    }
                     ExerciseInputType.MIXED -> {
                         Text("횟수", modifier = Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium, color = TextMuted)
                         Text("초", modifier = Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium, color = TextMuted)
                     }
+                    else -> {} // TIME_ONLY는 이 브랜치에 없음
                 }
                 Text("", modifier = Modifier.width(48.dp)) // 체크 자리
             }
@@ -291,19 +489,6 @@ fun WorkoutScreen(
                                     colors = strengthTextFieldColors()
                                 )
                             }
-                            ExerciseInputType.TIME_ONLY -> {
-                                OutlinedTextField(
-                                    value = row.durationSeconds,
-                                    onValueChange = { viewModel.updateSetDuration(index, it) },
-                                    modifier = Modifier.weight(2f).padding(horizontal = 4.dp),
-                                    enabled = !row.completed,
-                                    singleLine = true,
-                                    isError = hasError,
-                                    textStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    colors = strengthTextFieldColors()
-                                )
-                            }
                             ExerciseInputType.MIXED -> {
                                 OutlinedTextField(
                                     value = row.reps,
@@ -328,6 +513,7 @@ fun WorkoutScreen(
                                     colors = strengthTextFieldColors()
                                 )
                             }
+                            else -> {} // TIME_ONLY는 이 브랜치에 없음
                         }
 
                         // 체크 버튼
@@ -359,8 +545,8 @@ fun WorkoutScreen(
                             text = when (inputType) {
                                 ExerciseInputType.WEIGHT_REPS -> "무게와 횟수를 입력해주세요."
                                 ExerciseInputType.REPS_ONLY -> "횟수를 입력해주세요."
-                                ExerciseInputType.TIME_ONLY -> "시간(초)을 입력해주세요."
                                 ExerciseInputType.MIXED -> "횟수 또는 시간을 입력해주세요."
+                                else -> ""
                             },
                             color = NeonRed,
                             style = MaterialTheme.typography.labelSmall,
@@ -380,6 +566,7 @@ fun WorkoutScreen(
                 style = MaterialTheme.typography.titleMedium,
                 color = TextMuted
             )
+
         } else {
             // ── ENDURANCE/BALANCE: 기존 타이머 중심 UI ──
             val minutes = state.elapsedSeconds / 60
@@ -449,9 +636,66 @@ fun WorkoutScreen(
         Spacer(modifier = Modifier.weight(1f))
 
         // Control buttons
-        if (isStrength) {
-            // STRENGTH: 세트별 체크로 완료하므로 취소 버튼만
-            // (빈 상태 — 모든 세트 체크 완료 시 자동으로 finishWorkout 호출됨)
+        if (isTimeOnly) {
+            val goalReached = state.isRunning && state.setElapsedSeconds >= state.targetDuration
+            when {
+                goalReached -> {
+                    // 목표 달성 → 완료 버튼
+                    Button(
+                        onClick = { viewModel.completeTimeSet() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = NeonGreen)
+                    ) {
+                        Icon(Icons.Default.Check, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "세트 완료 (${state.completedSets + 1}/${state.totalSets})",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                }
+                state.isRunning -> {
+                    // 실행 중, 목표 미달 → 정지 버튼 (세트 무효)
+                    OutlinedButton(
+                        onClick = { viewModel.cancelTimeSet() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Icon(Icons.Default.Pause, contentDescription = null, tint = NeonRed)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("정지 (세트 무효)", color = NeonRed, style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+                else -> {
+                    // 시작 전 또는 세트 간 휴식 → 시작 버튼
+                    val targetSecs = (state.targetMinutesInput.toIntOrNull() ?: 0) * 60 +
+                        (state.targetSecondsInput.toIntOrNull() ?: 0)
+                    Button(
+                        onClick = { viewModel.startTimeSet() },
+                        enabled = targetSecs > 0,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = NeonGreen)
+                    ) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (state.completedSets == 0) "운동 시작" else "세트 ${state.completedSets + 1} 시작",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                }
+            }
+        } else if (isStrength) {
+            // STRENGTH 테이블: 세트별 체크로 완료하므로 버튼 없음
+            // (모든 세트 체크 완료 시 자동으로 finishWorkout 호출됨)
         } else if (!state.isRunning && state.elapsedSeconds == 0) {
             // Not started yet (ENDURANCE/BALANCE)
             Button(
@@ -515,7 +759,7 @@ fun WorkoutScreen(
                 }
             }
         } else {
-            // Paused
+            // Paused (ENDURANCE/BALANCE)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
