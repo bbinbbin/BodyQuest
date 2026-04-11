@@ -17,5 +17,6 @@ data class QuestEntity(
     val repsPerSet: Int,
     val xpReward: Int,
     val statType: String,          // "STRENGTH" | "ENDURANCE" | "BALANCE"
-    val statReward: Int
+    val statReward: Int,
+    val inputType: String = "WEIGHT_REPS"  // ExerciseInputType: WEIGHT_REPS | REPS_ONLY | TIME_ONLY | MIXED
 )

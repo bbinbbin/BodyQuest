@@ -98,6 +98,7 @@ class FirestoreUserService @Inject constructor(
                 "setNumber" to set.setNumber,
                 "reps" to set.reps,
                 "weight" to set.weight,
+                "durationSeconds" to set.durationSeconds,
                 "completed" to set.completed,
                 "completedAt" to set.completedAt
             )
@@ -193,6 +194,7 @@ class FirestoreUserService @Inject constructor(
                     setNumber = (s["setNumber"] as? Long ?: 0).toInt(),
                     reps = (s["reps"] as? Long ?: 0).toInt(),
                     weight = (s["weight"] as? Number)?.toDouble() ?: 0.0,
+                    durationSeconds = (s["durationSeconds"] as? Long ?: 0).toInt(),
                     completed = s["completed"] as? Boolean ?: false,
                     completedAt = s["completedAt"] as? Long
                 )

@@ -21,6 +21,7 @@ data class WorkoutSetEntity(
     val setNumber: Int,
     val reps: Int,
     val weight: Double = 0.0,
+    val durationSeconds: Int = 0,  // TIME_ONLY / MIXED 운동용
     val completed: Boolean = false,
     val completedAt: Long? = null
 )

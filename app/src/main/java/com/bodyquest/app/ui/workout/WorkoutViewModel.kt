@@ -6,6 +6,7 @@ import com.bodyquest.app.data.local.entity.QuestEntity
 import com.bodyquest.app.data.local.entity.WorkoutEntity
 import com.bodyquest.app.data.local.entity.WorkoutSetEntity
 import com.bodyquest.app.data.remote.SyncManager
+import com.bodyquest.app.domain.model.ExerciseInputType
 import com.bodyquest.app.data.repository.AuthRepository
 import com.bodyquest.app.data.repository.QuestRepository
 import com.bodyquest.app.data.repository.UserRepository
@@ -25,6 +26,7 @@ data class SetRowData(
     val setNumber: Int,
     val weight: String = "",
     val reps: String = "",
+    val durationSeconds: String = "",  // TIME_ONLY / MIXED 운동용
     val completed: Boolean = false
 )
 
@@ -41,6 +43,7 @@ data class WorkoutState(
     val caloriesBurned: Int = 0,
     val rewardError: String? = null,
     val setRows: List<SetRowData> = emptyList(),  // STRENGTH: 세트 테이블
+    val setRowError: Int? = null,                 // 검증 실패한 세트 인덱스
     val showGuide: Boolean = true
 )
 
@@ -92,9 +95,13 @@ class WorkoutViewModel @Inject constructor(
             val workoutId = workoutRepository.startWorkout(workout)
 
             val isStrength = quest.category == "STRENGTH"
+            val inputType = ExerciseInputType.valueOf(quest.inputType)
             val initialRows = if (isStrength) {
                 (1..quest.sets).map { i ->
-                    SetRowData(setNumber = i, reps = quest.repsPerSet.toString())
+                    when (inputType) {
+                        ExerciseInputType.TIME_ONLY -> SetRowData(setNumber = i)
+                        else -> SetRowData(setNumber = i, reps = quest.repsPerSet.toString())
+                    }
                 }
             } else emptyList()
 
@@ -136,7 +143,7 @@ class WorkoutViewModel @Inject constructor(
         val rows = s.setRows.toMutableList()
         if (setIndex in rows.indices) {
             rows[setIndex] = rows[setIndex].copy(weight = value)
-            _state.value = s.copy(setRows = rows)
+            _state.value = s.copy(setRows = rows, setRowError = null)
         }
     }
 
@@ -145,7 +152,16 @@ class WorkoutViewModel @Inject constructor(
         val rows = s.setRows.toMutableList()
         if (setIndex in rows.indices) {
             rows[setIndex] = rows[setIndex].copy(reps = value)
-            _state.value = s.copy(setRows = rows)
+            _state.value = s.copy(setRows = rows, setRowError = null)
+        }
+    }
+
+    fun updateSetDuration(setIndex: Int, value: String) {
+        val s = _state.value
+        val rows = s.setRows.toMutableList()
+        if (setIndex in rows.indices) {
+            rows[setIndex] = rows[setIndex].copy(durationSeconds = value)
+            _state.value = s.copy(setRows = rows, setRowError = null)
         }
     }
 
@@ -155,7 +171,8 @@ class WorkoutViewModel @Inject constructor(
         val newRow = SetRowData(
             setNumber = s.setRows.size + 1,
             weight = lastRow?.weight ?: "",
-            reps = lastRow?.reps ?: ""
+            reps = lastRow?.reps ?: "",
+            durationSeconds = lastRow?.durationSeconds ?: ""
         )
         _state.value = s.copy(
             setRows = s.setRows + newRow,
@@ -183,31 +200,73 @@ class WorkoutViewModel @Inject constructor(
     fun completeSetRow(setIndex: Int) {
         val s = _state.value
         val quest = s.quest ?: return
+        val inputType = ExerciseInputType.valueOf(quest.inputType)
         val rows = s.setRows.toMutableList()
         if (setIndex !in rows.indices || rows[setIndex].completed) return
 
         val row = rows[setIndex]
-        val reps = row.reps.toIntOrNull() ?: quest.repsPerSet
-        val weight = row.weight.toDoubleOrNull() ?: 0.0
+
+        // inputType별 입력값 검증
+        val finalReps: Int
+        val finalWeight: Double
+        val finalDuration: Int
+
+        when (inputType) {
+            ExerciseInputType.WEIGHT_REPS -> {
+                val w = row.weight.toDoubleOrNull()
+                val r = row.reps.toIntOrNull()
+                if (w == null || w <= 0.0 || r == null || r <= 0) {
+                    _state.value = s.copy(setRowError = setIndex)
+                    return
+                }
+                finalReps = r; finalWeight = w; finalDuration = 0
+            }
+            ExerciseInputType.REPS_ONLY -> {
+                val r = row.reps.toIntOrNull()
+                if (r == null || r <= 0) {
+                    _state.value = s.copy(setRowError = setIndex)
+                    return
+                }
+                finalReps = r; finalWeight = 0.0; finalDuration = 0
+            }
+            ExerciseInputType.TIME_ONLY -> {
+                val d = row.durationSeconds.toIntOrNull()
+                if (d == null || d <= 0) {
+                    _state.value = s.copy(setRowError = setIndex)
+                    return
+                }
+                finalReps = 0; finalWeight = 0.0; finalDuration = d
+            }
+            ExerciseInputType.MIXED -> {
+                val r = row.reps.toIntOrNull() ?: 0
+                val d = row.durationSeconds.toIntOrNull() ?: 0
+                if (r <= 0 && d <= 0) {
+                    _state.value = s.copy(setRowError = setIndex)
+                    return
+                }
+                finalReps = r; finalWeight = 0.0; finalDuration = d
+            }
+        }
 
         rows[setIndex] = row.copy(completed = true)
         val newCompleted = rows.count { it.completed }
 
         if (!s.isRunning) {
             // 첫 세트 체크 시 타이머 시작
-            _state.value = s.copy(setRows = rows, completedSets = newCompleted, isRunning = true)
+            _state.value = s.copy(setRows = rows, completedSets = newCompleted, isRunning = true, setRowError = null)
             startTimer()
             startHeartRateSimulation()
         } else {
-            _state.value = s.copy(setRows = rows, completedSets = newCompleted)
+            _state.value = s.copy(setRows = rows, completedSets = newCompleted, setRowError = null)
         }
 
         viewModelScope.launch {
             val set = WorkoutSetEntity(
                 workoutId = s.workoutId,
                 setNumber = row.setNumber,
-                reps = reps,
-                weight = weight,
+                reps = finalReps,
+                weight = finalWeight,
+                durationSeconds = finalDuration,
                 completed = true,
                 completedAt = System.currentTimeMillis()
             )

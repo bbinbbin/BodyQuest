@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import com.bodyquest.app.domain.model.ExerciseImages
+import com.bodyquest.app.domain.model.ExerciseInputType
 import com.bodyquest.app.domain.model.Job
 import com.bodyquest.app.ui.common.LoadingScreen
 import com.bodyquest.app.ui.theme.DarkBorder
@@ -125,6 +126,7 @@ fun WorkoutScreen(
         }
 
         val isStrength = quest.category == "STRENGTH"
+        val inputType = ExerciseInputType.valueOf(quest.inputType)
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -204,8 +206,22 @@ fun WorkoutScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("", modifier = Modifier.width(36.dp)) // 번호 자리
-                Text("kg", modifier = Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium, color = TextMuted)
-                Text("횟수", modifier = Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium, color = TextMuted)
+                when (inputType) {
+                    ExerciseInputType.WEIGHT_REPS -> {
+                        Text("kg", modifier = Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium, color = TextMuted)
+                        Text("횟수", modifier = Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium, color = TextMuted)
+                    }
+                    ExerciseInputType.REPS_ONLY -> {
+                        Text("횟수", modifier = Modifier.weight(2f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium, color = TextMuted)
+                    }
+                    ExerciseInputType.TIME_ONLY -> {
+                        Text("초", modifier = Modifier.weight(2f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium, color = TextMuted)
+                    }
+                    ExerciseInputType.MIXED -> {
+                        Text("횟수", modifier = Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium, color = TextMuted)
+                        Text("초", modifier = Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium, color = TextMuted)
+                    }
+                }
                 Text("", modifier = Modifier.width(48.dp)) // 체크 자리
             }
 
@@ -213,77 +229,143 @@ fun WorkoutScreen(
 
             // 세트 행들
             state.setRows.forEachIndexed { index, row ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp, horizontal = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // 세트 번호
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (row.completed) NeonPurple.copy(alpha = 0.2f) else DarkSurfaceVariant,
-                        modifier = Modifier.size(36.dp)
+                val hasError = state.setRowError == index
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp, horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                text = "${row.setNumber}",
-                                fontWeight = FontWeight.Bold,
-                                color = if (row.completed) NeonPurple else TextMuted
-                            )
-                        }
-                    }
-
-                    // 무게 입력
-                    OutlinedTextField(
-                        value = row.weight,
-                        onValueChange = { viewModel.updateSetWeight(index, it) },
-                        modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
-                        enabled = !row.completed,
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center
-                        ),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        colors = strengthTextFieldColors()
-                    )
-
-                    // 횟수 입력
-                    OutlinedTextField(
-                        value = row.reps,
-                        onValueChange = { viewModel.updateSetReps(index, it) },
-                        modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
-                        enabled = !row.completed,
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center
-                        ),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        colors = strengthTextFieldColors()
-                    )
-
-                    // 체크 버튼
-                    IconButton(
-                        onClick = { viewModel.completeSetRow(index) },
-                        enabled = !row.completed,
-                        modifier = Modifier.size(48.dp)
-                    ) {
+                        // 세트 번호
                         Surface(
-                            shape = CircleShape,
-                            color = if (row.completed) NeonPurple else DarkSurfaceVariant,
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (row.completed) NeonPurple.copy(alpha = 0.2f) else DarkSurfaceVariant,
                             modifier = Modifier.size(36.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = "세트 완료",
-                                    tint = if (row.completed) MaterialTheme.colorScheme.onPrimary else TextMuted,
-                                    modifier = Modifier.size(20.dp)
+                                Text(
+                                    text = "${row.setNumber}",
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (row.completed) NeonPurple else TextMuted
                                 )
                             }
                         }
+
+                        // inputType별 입력 필드
+                        when (inputType) {
+                            ExerciseInputType.WEIGHT_REPS -> {
+                                OutlinedTextField(
+                                    value = row.weight,
+                                    onValueChange = { viewModel.updateSetWeight(index, it) },
+                                    modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
+                                    enabled = !row.completed,
+                                    singleLine = true,
+                                    isError = hasError,
+                                    textStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                    colors = strengthTextFieldColors()
+                                )
+                                OutlinedTextField(
+                                    value = row.reps,
+                                    onValueChange = { viewModel.updateSetReps(index, it) },
+                                    modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
+                                    enabled = !row.completed,
+                                    singleLine = true,
+                                    isError = hasError,
+                                    textStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    colors = strengthTextFieldColors()
+                                )
+                            }
+                            ExerciseInputType.REPS_ONLY -> {
+                                OutlinedTextField(
+                                    value = row.reps,
+                                    onValueChange = { viewModel.updateSetReps(index, it) },
+                                    modifier = Modifier.weight(2f).padding(horizontal = 4.dp),
+                                    enabled = !row.completed,
+                                    singleLine = true,
+                                    isError = hasError,
+                                    textStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    colors = strengthTextFieldColors()
+                                )
+                            }
+                            ExerciseInputType.TIME_ONLY -> {
+                                OutlinedTextField(
+                                    value = row.durationSeconds,
+                                    onValueChange = { viewModel.updateSetDuration(index, it) },
+                                    modifier = Modifier.weight(2f).padding(horizontal = 4.dp),
+                                    enabled = !row.completed,
+                                    singleLine = true,
+                                    isError = hasError,
+                                    textStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    colors = strengthTextFieldColors()
+                                )
+                            }
+                            ExerciseInputType.MIXED -> {
+                                OutlinedTextField(
+                                    value = row.reps,
+                                    onValueChange = { viewModel.updateSetReps(index, it) },
+                                    modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
+                                    enabled = !row.completed,
+                                    singleLine = true,
+                                    isError = hasError,
+                                    textStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    colors = strengthTextFieldColors()
+                                )
+                                OutlinedTextField(
+                                    value = row.durationSeconds,
+                                    onValueChange = { viewModel.updateSetDuration(index, it) },
+                                    modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
+                                    enabled = !row.completed,
+                                    singleLine = true,
+                                    isError = hasError,
+                                    textStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    colors = strengthTextFieldColors()
+                                )
+                            }
+                        }
+
+                        // 체크 버튼
+                        IconButton(
+                            onClick = { viewModel.completeSetRow(index) },
+                            enabled = !row.completed,
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = if (row.completed) NeonPurple else DarkSurfaceVariant,
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "세트 완료",
+                                        tint = if (row.completed) MaterialTheme.colorScheme.onPrimary else TextMuted,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // 검증 에러 메시지
+                    if (hasError) {
+                        Text(
+                            text = when (inputType) {
+                                ExerciseInputType.WEIGHT_REPS -> "무게와 횟수를 입력해주세요."
+                                ExerciseInputType.REPS_ONLY -> "횟수를 입력해주세요."
+                                ExerciseInputType.TIME_ONLY -> "시간(초)을 입력해주세요."
+                                ExerciseInputType.MIXED -> "횟수 또는 시간을 입력해주세요."
+                            },
+                            color = NeonRed,
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(start = 44.dp, bottom = 4.dp)
+                        )
                     }
                 }
             }

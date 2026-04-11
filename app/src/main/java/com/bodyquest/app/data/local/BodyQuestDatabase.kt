@@ -30,7 +30,7 @@ import com.bodyquest.app.data.local.entity.WorkoutSetEntity
         BossProgressEntity::class,
         SkinInventoryEntity::class
     ],
-    version = 16,
+    version = 17,
     exportSchema = true
 )
 abstract class BodyQuestDatabase : RoomDatabase() {
@@ -207,6 +207,25 @@ abstract class BodyQuestDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // quests 테이블에 inputType 컬럼 추가 (기본값 WEIGHT_REPS)
+                db.execSQL("ALTER TABLE `quests` ADD COLUMN `inputType` TEXT NOT NULL DEFAULT 'WEIGHT_REPS'")
+
+                // workout_sets 테이블에 durationSeconds 컬럼 추가
+                db.execSQL("ALTER TABLE `workout_sets` ADD COLUMN `durationSeconds` INTEGER NOT NULL DEFAULT 0")
+
+                // REPS_ONLY 운동 업데이트
+                db.execSQL("UPDATE quests SET inputType = 'REPS_ONLY' WHERE id IN ('str_chest_pushup','str_chest_dips','str_back_pullup','str_legs_lunge','str_legs_bulgarian_split','str_core_crunch','str_core_leg_raise','str_core_bicycle_crunch','str_core_hanging_leg_raise')")
+
+                // TIME_ONLY 운동 업데이트
+                db.execSQL("UPDATE quests SET inputType = 'TIME_ONLY' WHERE id IN ('str_core_plank','end_light_run','end_interval','end_long_distance','end_recovery_jog','end_cycling','bal_yoga_beginner','bal_yoga_intermediate','bal_yoga_advanced','bal_stretch_beginner','bal_stretch_intermediate','bal_stretch_advanced','bal_pilates_beginner','bal_pilates_intermediate','bal_pilates_advanced')")
+
+                // MIXED 운동 업데이트
+                db.execSQL("UPDATE quests SET inputType = 'MIXED' WHERE id IN ('end_jumprope_beginner','end_jumprope_intermediate','end_jumprope_advanced')")
+            }
+        }
+
         val MIGRATION_10_11 = object : Migration(10, 11) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("""
@@ -223,8 +242,8 @@ abstract class BodyQuestDatabase : RoomDatabase() {
         private fun insertSeedQuests(db: SupportSQLiteDatabase) {
             seedQuests.forEach { q ->
                 db.execSQL(
-                    "INSERT OR IGNORE INTO quests (id, category, bodyPart, specificArea, name, description, difficulty, durationMinutes, sets, repsPerSet, xpReward, statType, statReward) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                    arrayOf(q.id, q.category, q.bodyPart, q.specificArea, q.name, q.description, q.difficulty, q.durationMinutes, q.sets, q.repsPerSet, q.xpReward, q.statType, q.statReward)
+                    "INSERT OR IGNORE INTO quests (id, category, bodyPart, specificArea, name, description, difficulty, durationMinutes, sets, repsPerSet, xpReward, statType, statReward, inputType) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    arrayOf(q.id, q.category, q.bodyPart, q.specificArea, q.name, q.description, q.difficulty, q.durationMinutes, q.sets, q.repsPerSet, q.xpReward, q.statType, q.statReward, q.inputType)
                 )
             }
         }
@@ -245,7 +264,7 @@ abstract class BodyQuestDatabase : RoomDatabase() {
                     BodyQuestDatabase::class.java,
                     "bodyquest_db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17)
                     .fallbackToDestructiveMigration()
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
@@ -273,8 +292,8 @@ abstract class BodyQuestDatabase : RoomDatabase() {
                                     db.execSQL("DELETE FROM quests WHERE category = 'STRENGTH'")
                                     for (q in seedQuests.filter { it.category == "STRENGTH" }) {
                                         db.execSQL(
-                                            "INSERT OR IGNORE INTO quests (id, category, bodyPart, specificArea, name, description, difficulty, durationMinutes, sets, repsPerSet, xpReward, statType, statReward) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                                            arrayOf(q.id, q.category, q.bodyPart, q.specificArea, q.name, q.description, q.difficulty, q.durationMinutes, q.sets, q.repsPerSet, q.xpReward, q.statType, q.statReward)
+                                            "INSERT OR IGNORE INTO quests (id, category, bodyPart, specificArea, name, description, difficulty, durationMinutes, sets, repsPerSet, xpReward, statType, statReward, inputType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                                            arrayOf(q.id, q.category, q.bodyPart, q.specificArea, q.name, q.description, q.difficulty, q.durationMinutes, q.sets, q.repsPerSet, q.xpReward, q.statType, q.statReward, q.inputType)
                                         )
                                     }
                                     db.setTransactionSuccessful()
