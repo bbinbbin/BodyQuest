@@ -27,11 +27,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -67,14 +74,28 @@ import kotlinx.coroutines.delay
 
 /** 스킨 ID → drawable 리소스 매핑 (뽑기 결과 카드 미리보기용) */
 private fun skinDrawableRes(skinId: String): Int? = when (skinId) {
-    "skin_f_white_tshirt"  -> R.drawable.skin_f_white_tshirt
-    "skin_f_blue_bra"      -> R.drawable.skin_f_blue_bra
-    "skin_f_yellow_pants"  -> R.drawable.skin_f_yellow_pants
+    // 여성 개별 스킨
+    "skin_f_white_tshirt"   -> R.drawable.skin_f_white_tshirt
+    "skin_f_blue_bra"       -> R.drawable.skin_f_blue_bra
+    "skin_f_yellow_pants"   -> R.drawable.skin_f_yellow_pants
+    "skin_f_headband"       -> R.drawable.skin_f_headband
+    // 여성 세트 스킨
+    "skin_f_dinosaur_set"   -> R.drawable.skin_f_dinosaur_set
+    "skin_f_bunny_set"      -> R.drawable.skin_f_bunny_set
+    // 남성 개별 스킨
+    "skin_m_black_tank"     -> R.drawable.skin_m_black_tank
+    "skin_m_white_tshirt"   -> R.drawable.skin_m_white_tshirt
+    "skin_m_yellow_pants"   -> R.drawable.skin_m_yellow_pants
+    // 남성 세트 스킨
+    "skin_m_dinosaur_set"   -> R.drawable.skin_m_dinosaur_set
+    "skin_m_bunny_set"      -> R.drawable.skin_m_bunny_set
+    "skin_m_suit_set"       -> R.drawable.skin_m_suit_set
     else -> null
 }
 
 private enum class GachaPhase { IDLE, SPINNING, REVEALED }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GachaScreen(viewModel: GachaViewModel, onBack: () -> Unit) {
     val ticketCount by viewModel.ticketCount.collectAsState()
@@ -113,11 +134,30 @@ fun GachaScreen(viewModel: GachaViewModel, onBack: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
+            modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            TopAppBar(
+                title = { Text("스킨 뽑기", fontWeight = FontWeight.Bold, color = TextPrimary) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "뒤로",
+                            tint = TextPrimary
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBackground)
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+
             // 상단 여백 — 타이틀을 카드 바로 위에 배치
             Spacer(Modifier.weight(1f))
 
@@ -131,13 +171,6 @@ fun GachaScreen(viewModel: GachaViewModel, onBack: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.alpha(titleAlpha)
             ) {
-                Text(
-                    text = "스킨 뽑기",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary
-                )
-                Spacer(Modifier.height(8.dp))
                 Text(
                     text = "어떤 스킨이 나올까요?",
                     style = MaterialTheme.typography.bodyMedium,
@@ -234,7 +267,8 @@ fun GachaScreen(viewModel: GachaViewModel, onBack: () -> Unit) {
 
             // 하단 여백 — 카드가 화면 중앙에 오도록
             Spacer(Modifier.weight(1f))
-        }
+            } // inner Column
+        } // outer Column
 
         // 뽑기 순간 화면 플래시
         AnimatedVisibility(
