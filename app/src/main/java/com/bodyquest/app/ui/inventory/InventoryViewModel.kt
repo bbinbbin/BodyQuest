@@ -8,6 +8,9 @@ import com.bodyquest.app.data.repository.UserRepository
 import com.bodyquest.app.domain.model.ALL_SKINS
 import com.bodyquest.app.domain.model.SkinCategory
 import com.bodyquest.app.domain.model.SkinItem
+
+private fun String?.isSetSkin() =
+    this != null && ALL_SKINS.find { it.id == this }?.category == SkinCategory.SET
 import com.bodyquest.app.util.AppLogger
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -78,21 +81,41 @@ class InventoryViewModel @Inject constructor(
         }
     }
 
-    fun isEquipped(skin: SkinItem, topId: String?, bottomId: String?, hatId: String?): Boolean = when (skin.category) {
-        SkinCategory.TOP -> skin.id == topId
-        SkinCategory.BOTTOM -> skin.id == bottomId
-        SkinCategory.HAT -> skin.id == hatId
-        SkinCategory.SET -> skin.id == topId  // 세트는 equippedSkinId(TOP 슬롯)에 저장
-        else -> false
+    fun isEquipped(skin: SkinItem, topId: String?, bottomId: String?, hatId: String?): Boolean {
+        // SET 스킨이 활성화 중이면 개별 스킨은 장착중으로 표시하지 않음
+        val setIsActive = topId.isSetSkin()
+        if (setIsActive && skin.category != SkinCategory.SET) return false
+        return when (skin.category) {
+            SkinCategory.TOP -> skin.id == topId
+            SkinCategory.BOTTOM -> skin.id == bottomId
+            SkinCategory.HAT -> skin.id == hatId
+            SkinCategory.SET -> skin.id == topId  // 세트는 equippedSkinId(TOP 슬롯)에 저장
+            else -> false
+        }
     }
 
     fun equipSkin(skin: SkinItem) {
         val uid = uid ?: return
         viewModelScope.launch {
             when (skin.category) {
-                SkinCategory.TOP -> userRepository.updateEquippedSkin(uid, skin.id)
-                SkinCategory.BOTTOM -> userRepository.updateEquippedBottom(uid, skin.id)
-                SkinCategory.HAT -> userRepository.updateEquippedHat(uid, skin.id)
+                SkinCategory.TOP -> {
+                    // equippedSkinId 덮어쓰기 → SET 스킨이 있어도 자동으로 교체됨
+                    userRepository.updateEquippedSkin(uid, skin.id)
+                }
+                SkinCategory.BOTTOM -> {
+                    // SET 스킨이 활성 중이면 먼저 해제
+                    if (userRepository.getUserOnce(uid)?.equippedSkinId.isSetSkin()) {
+                        userRepository.updateEquippedSkin(uid, null)
+                    }
+                    userRepository.updateEquippedBottom(uid, skin.id)
+                }
+                SkinCategory.HAT -> {
+                    // SET 스킨이 활성 중이면 먼저 해제
+                    if (userRepository.getUserOnce(uid)?.equippedSkinId.isSetSkin()) {
+                        userRepository.updateEquippedSkin(uid, null)
+                    }
+                    userRepository.updateEquippedHat(uid, skin.id)
+                }
                 SkinCategory.SET -> {
                     // 세트 장착: 모든 슬롯 초기화 후 equippedSkinId에만 저장
                     userRepository.updateEquippedSkin(uid, skin.id)
