@@ -283,7 +283,9 @@ private fun BossCard(
     val dimColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
 
     Surface(
-        modifier = Modifier.width(220.dp),
+        modifier = Modifier
+            .width(220.dp)
+            .height(240.dp),
         shape = RoundedCornerShape(14.dp),
         color = DarkSurfaceVariant
     ) {
@@ -300,6 +302,10 @@ private fun BossCard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
             if (bwp.isCleared) {
                 // 클리어 완료: 등급 뱃지만 표시
                 val gradeColor = when (bwp.clearedGrade) {
@@ -330,7 +336,10 @@ private fun BossCard(
                 }
             } else {
                 // 미클리어: 요구 조건 게이지
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     RequirementGauge(
                         label = "레벨",
                         required = boss.requiredLevel,
@@ -355,6 +364,7 @@ private fun BossCard(
                     }
                 }
             }
+            } // Box weight(1f)
 
             Spacer(modifier = Modifier.height(14.dp))
 

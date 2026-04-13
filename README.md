@@ -19,7 +19,7 @@
 |------|-----------|
 | 언어 | Kotlin 2.1.20 |
 | UI | Jetpack Compose + Material 3 (BOM 2024.09.00) |
-| 로컬 DB | Room 2.7.1 (DB v16, exportSchema=true) |
+| 로컬 DB | Room 2.7.1 (DB v17, exportSchema=true) |
 | 네비게이션 | Navigation Compose 2.9.0 |
 | 상태 관리 | ViewModel + StateFlow (Lifecycle 2.10.0) |
 | DI | Hilt 2.56.2 |
@@ -45,8 +45,8 @@ app/src/main/java/com/bodyquest/app/
 │
 ├── data/
 │   ├── local/
-│   │   ├── BodyQuestDatabase.kt # Room DB v16, Migration(1,2)~(15,16)
-│   │   ├── SeedData.kt          # STRENGTH 29개 + ENDURANCE 8개 + BALANCE 9개 + 보스 150개
+│   │   ├── BodyQuestDatabase.kt # Room DB v17, Migration(1,2)~(16,17)
+│   │   ├── SeedData.kt          # STRENGTH 29개 + ENDURANCE 8개 + BALANCE 9개 + 보스 150개 (inputType 지정)
 │   │   ├── dao/                  # UserDao, QuestDao, WorkoutDao, BossProgressDao, SkinInventoryDao
 │   │   └── entity/              # User, Quest, Workout, WorkoutSet, BossProgress, SkinInventory
 │   ├── remote/
@@ -54,7 +54,7 @@ app/src/main/java/com/bodyquest/app/
 │   │   └── SyncManager.kt          # 동기화 오케스트레이션
 │   └── repository/              # interface + Local 구현체
 │
-├── domain/model/                # Job, Goal, StatType, SkinItem, AuthResult
+├── domain/model/                # Job, Goal, StatType, ExerciseInputType, SkinItem, AuthResult
 │
 ├── ui/
 │   ├── splash/                  # 스플래시 (세션 타임아웃 15분 체크)
@@ -70,7 +70,6 @@ app/src/main/java/com/bodyquest/app/
 │   ├── inventory/               # 스킨 인벤토리 (장착/해제)
 │   ├── profile/                 # 프로필 (통계, 달력, 주간 그래프, 계정 관리)
 │   ├── pvp/                     # PvP (Coming Soon)
-│   ├── test/                    # 3D 모델 뷰어 (OBJ/GLB, OpenGL ES 2.0)
 │   ├── navigation/              # NavGraph, BottomNavBar, Screen routes
 │   ├── common/                  # UiState, LoadingScreen, ErrorScreen
 │   └── theme/                   # 다크 게이밍 테마
@@ -89,9 +88,12 @@ app/src/main/java/com/bodyquest/app/
 
 ### 퀘스트 & 운동
 - 46개 운동 퀘스트 (STRENGTH 29개, ENDURANCE 8개, BALANCE 9개)
-- STRENGTH: 세트 테이블 UI (무게/횟수 입력, 개별 체크)
-- ENDURANCE/BALANCE: 타이머 UI
+- inputType 기반 운동 입력 분기: WEIGHT_REPS(중량+횟수) / REPS_ONLY(횟수만) / TIME_ONLY(시간) / MIXED(횟수+시간)
+- WEIGHT_REPS/REPS_ONLY/MIXED: 세트 테이블 UI (무게/횟수 입력, 개별 체크)
+- TIME_ONLY STRENGTH: 세트별 목표 시간 설정 + 카운트업 타이머 (목표 달성 시 완료, 미달 시 무효)
+- ENDURANCE/BALANCE: 전체 타이머 UI
 - 직업별 스탯 배율 적용, BALANCE 양쪽 스탯 분배
+- 운동 GIF 가이드 46개 (Coil GIF 디코더)
 
 ### 보스 시스템
 - 150보스 (근력 50 + 지구력 50 + 하이브리드 50)
@@ -102,8 +104,11 @@ app/src/main/java/com/bodyquest/app/
 ### 스킨 & 뽑기
 - 보스 클리어 시 뽑기 티켓 획득 (S=3, A=2, B=1)
 - 3단계 뽑기 애니메이션 (IDLE → SPINNING → REVEALED)
-- TOP/BOTTOM/HAT 슬롯 장착, 12개 조합별 결과 이미지 룩업
-- 인벤토리 관리 + Firestore 동기화
+- TOP/BOTTOM/HAT 슬롯 개별 장착 + SET 스킨 (장착 시 전체 슬롯 초기화)
+- 남성 스킨 6종 (개별 3 + 세트 3) / 여성 스킨 6종 (개별 4 + 세트 2)
+- 조합별 결과 이미지 룩업 (여성 12개, 남성 8개)
+- 스킨 분해: 60% 확률로 뽑기 티켓 1장 획득
+- 인벤토리 관리 (티켓 수 표시) + Firestore 동기화
 
 ### 프로필
 - 누적 통계 (총 운동, 총 XP, 운동 시간, 보스 클리어)
