@@ -28,7 +28,8 @@
 | 이미지 | Coil 2.6.0 |
 | 보안 | EncryptedSharedPreferences, network_security_config (HTTPS 강제) |
 | 빌드 | AGP 8.9.1, Gradle 9.3.1, R8 난독화 |
-| 최소 SDK | 24 / targetSdk 36 / compileSdk 36 |
+| Wear OS | Wear Compose 1.4.0 + Data Layer API (play-services-wearable 19.0.0) |
+| 최소 SDK | 24 (폰) / 26 (워치) / targetSdk 36 (폰) / 34 (워치) / compileSdk 36 |
 
 ## 프로젝트 구조
 
@@ -75,6 +76,16 @@ app/src/main/java/com/bodyquest/app/
 │   └── theme/                   # 다크 게이밍 테마
 │
 └── util/                        # XpCalculator, ImageUtil, AppLogger
+
+wear/src/main/java/com/bodyquest/wear/
+├── BodyQuestWearApp.kt          # @HiltAndroidApp
+├── MainActivity.kt              # @AndroidEntryPoint
+├── di/WearableModule.kt         # NodeClient, MessageClient 제공
+├── data/PhoneConnectionRepository.kt  # 폰 연결 감지 + 메시지 송신
+└── ui/
+    ├── WearHomeScreen.kt        # 연결 상태 + 테스트 핑
+    ├── WearHomeViewModel.kt     # 연결 모니터링
+    └── theme/Theme.kt           # Wear Material 테마
 ```
 
 ## 주요 기능
@@ -121,14 +132,18 @@ app/src/main/java/com/bodyquest/app/
 ## 빌드 & 실행
 
 ```bash
-# 디버그 빌드
-./gradlew assembleDebug
+# 폰 앱 디버그 빌드
+./gradlew :app:assembleDebug
+
+# 워치 앱 디버그 빌드
+./gradlew :wear:assembleDebug
 
 # 릴리즈 빌드 (서명 설정 필요)
 ./gradlew assembleRelease
 
 # APK 위치
 app/build/outputs/apk/debug/app-debug.apk
+wear/build/outputs/apk/debug/wear-debug.apk
 ```
 
 Android Studio에서 직접 실행하거나, APK를 디바이스에 설치하여 테스트할 수 있습니다.
