@@ -1,7 +1,7 @@
 
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-04-12 (Phase 62: 인벤토리 티켓 수 표시 + 스킨 분해 기능)
+> 마지막 업데이트: 2026-04-13 (Phase 66: 운동 완료 화면 세트/횟수/볼륨 표시)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -1265,6 +1265,93 @@ val targetSecondsInput: String = "30" // 초 입력 (기본 30)
 
 ---
 
+### Phase 63: 보스 카드 높이 통일 + README 최신 반영 ✅ (2026-04-13)
+
+#### 보스 카드 높이 통일
+- **BossScreen.kt**: `BossCard` Surface에 `height(240.dp)` 고정 높이 설정
+- 클리어(등급 S/A/B)/미클리어(게이지)/잠금 카드 모두 동일 높이
+- 중간 콘텐츠 영역을 `Box(Modifier.weight(1f), contentAlignment = Alignment.Center)`로 감싸서 등급·게이지가 세로 중앙 배치
+- 버튼(도전하기/재도전/잠금)이 항상 하단에 고정
+- 미클리어 게이지 Column에 `fillMaxWidth()` 추가
+
+#### README 최신 반영
+- DB v16 → v17 (2곳)
+- Migration 범위 (15,16) → (16,17)
+- SeedData 설명에 `inputType 지정` 추가
+- domain/model에 `ExerciseInputType` 추가
+- `ui/test/` 항목 제거 (Phase 61에서 삭제됨)
+- 운동 UI 설명: inputType 4종 분기 + TIME_ONLY 타이머 + GIF 가이드 추가
+- 스킨 시스템: SET 카테고리, 남성/여성 스킨 수량, 스킨 분해, 티켓 수 표시 반영
+
+**커밋**: `65457a3` fix: 보스 카드 높이 통일 + README 최신 상태 반영
+
+---
+
+### Phase 64: WEIGHT_REPS 운동 kg 기본값 0 + 0kg 허용 ✅ (2026-04-13)
+
+- **`SetRowData`**: `weight` 기본값 `""` → `"0"` 변경 — 세트 생성 시 kg 필드에 0 표시
+- **세트 추가 시 fallback**: `lastRow?.weight ?: ""` → `lastRow?.weight ?: "0"`
+- **`completeSetRow()` 검증 완화**: `w <= 0.0` → `w < 0.0` — 맨몸 운동(0kg)도 기록 가능
+- 횟수만 1 이상이면 세트 완료 통과
+
+**커밋**: `a1c9f61` fix: WEIGHT_REPS 운동 kg 기본값 0 + 0kg 허용
+
+---
+
+### Phase 65: 세트 간 휴식 타이머 ✅ (2026-04-13)
+
+#### 개요
+- 세트 완료 시 자동으로 60초 카운트다운 휴식 타이머 시작
+- 풀스크린 오버레이로 표시 (BattleOverlay와 유사한 방식)
+- STRENGTH 테이블 UI + TIME_ONLY 타이머 UI 모두 적용
+
+#### WorkoutState 추가 필드
+```kotlin
+val isResting: Boolean = false,
+val restTimerSeconds: Int = 0,       // 남은 휴식 시간
+val restTimerTotal: Int = 60         // 휴식 총 시간 (기본 60초)
+```
+
+#### WorkoutViewModel 추가
+- `restTimerJob: Job?` — 휴식 타이머 코루틴
+- `startRestTimer()`: 60초 카운트다운, 0 도달 시 `isResting = false`
+- `skipRestTimer()`: 즉시 휴식 종료
+- `completeSetRow()`: 마지막 세트가 아니면 → `startRestTimer()` 호출
+- `completeTimeSet()`: 마지막 세트가 아니면 → `startRestTimer()` 호출
+
+#### RestTimerOverlay (풀스크린)
+- 어두운 배경(`0xF0050510`)으로 전체 화면 덮기
+- "휴식 중" 타이틀 (NeonPurple) + "세트 N / M 완료" 표시
+- 180dp 원형 프로그레스 아크 (NeonPurple) + 48sp 카운트다운
+- "다음 세트를 준비하세요." 안내 문구
+- "건너뛰기" 버튼 (NeonPurple, 풀 너비)
+- 60초 경과 시 자동 닫힘
+
+**커밋**: `8a863e3` feat: 세트 간 휴식 타이머 추가 — 60초 카운트다운 풀스크린 오버레이
+
+---
+
+### Phase 66: 운동 완료 화면 — 총 세트/횟수/볼륨 표시 ✅ (2026-04-13)
+
+#### 데이터 레이어
+- **`WorkoutCompleteState`**: `totalReps: Int = 0`, `totalVolume: Double = 0.0` 필드 추가
+- **`finishWorkout()`**: `getSetsForWorkoutOnce()`로 세트 조회 → `sets.sumOf { it.reps }`, `sets.sumOf { it.weight * it.reps }` 계산
+- **`loadCompleteData()`**: 동일하게 세트 합계 계산 (히스토리에서 접근 시)
+
+#### UI (WorkoutCompleteScreen)
+- 기존 운동 요약 행 (시간/BPM/칼로리) 아래에 2번째 행 추가:
+  - **세트** (ViewList 아이콘, NeonPurple) — 항상 표시
+  - **총 횟수** (Repeat 아이콘) — `totalReps > 0`일 때만
+  - **볼륨 kg** (FitnessCenter 아이콘) — `totalVolume > 0`일 때만
+- 운동 타입별 표시:
+  - WEIGHT_REPS(벤치프레스 등) → 세트 + 총 횟수 + 볼륨 3개
+  - REPS_ONLY(푸시업 등) → 세트 + 총 횟수 2개
+  - TIME_ONLY/ENDURANCE/BALANCE → 미표시 (reps=0, volume=0)
+
+**커밋**: `901b504` feat: 운동 완료 화면에 총 세트/횟수/볼륨 표시 추가
+
+---
+
 ### Phase 43: 추천 퀘스트 하루 고정 + UI 수정 ✅ (2026-04-06)
 - **추천 퀘스트 하루 고정**: `LocalDate.now().toEpochDay()` 기반 시드로 `shuffled(dailyRandom)` — 같은 날 같은 추천
 - **스플래시 캐치프레이즈 마침표 제거**: "운동을 퀘스트로, 몸을 레전드로." → 마침표 제거
@@ -1592,6 +1679,10 @@ ui/test/
 - [x] 뽑기 화면 뒤로가기 버튼 — TopAppBar + ArrowBack 아이콘 (모든 단계)
 - [x] 뽑기 결과 스킨 이미지 전체 매핑 — GachaScreen skinDrawableRes() 3종→12종
 - [x] 보스 카드 고정 높이 제거 — height(230.dp) → wrapContent, 재도전 버튼 잘림 방지
+- [x] 보스 카드 높이 통일 — 240dp 고정, 등급·게이지 세로 중앙, 버튼 하단 고정
+- [x] WEIGHT_REPS kg 기본값 0 — 빈 입력 대신 0 표시, 0kg 허용 (맨몸 운동 대응)
+- [x] 세트 간 휴식 타이머 — 60초 카운트다운 풀스크린 오버레이, 건너뛰기 버튼, STRENGTH+TIME_ONLY 적용
+- [x] 운동 완료 화면 세트/횟수/볼륨 — totalReps/totalVolume 계산, WEIGHT_REPS 볼륨 조건부 표시
 
 ---
 
