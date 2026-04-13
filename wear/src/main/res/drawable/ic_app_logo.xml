@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Shield shape with neon purple -->
+    <path
+        android:pathData="M54,28L54,28C54,28 36,34 30,38L30,56C30,68 40,78 54,84C68,78 78,68 78,56L78,38C72,34 54,28 54,28Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="30"
+                android:startY="28"
+                android:endX="78"
+                android:endY="84">
+                <item android:color="#FF8B5CF6" android:offset="0.0" />
+                <item android:color="#FF6D28D9" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Inner shield highlight -->
+    <path
+        android:pathData="M54,32L54,32C54,32 39,37 34,40.5L34,56C34,66 42.5,74.5 54,80C65.5,74.5 74,66 74,56L74,40.5C69,37 54,32 54,32Z"
+        android:fillColor="#00000000"
+        android:strokeWidth="1"
+        android:strokeColor="#40FFFFFF" />
+
+    <!-- Sword/dumbbell cross - vertical bar -->
+    <path
+        android:pathData="M52,42L56,42L56,70L52,70Z"
+        android:fillColor="#FFFFFF" />
+
+    <!-- Sword/dumbbell cross - horizontal bar -->
+    <path
+        android:pathData="M44,52L64,52L64,56L44,56Z"
+        android:fillColor="#FFFFFF" />
+
+    <!-- Top diamond accent -->
+    <path
+        android:pathData="M54,39L56.5,42L54,45L51.5,42Z"
+        android:fillColor="#FFFFD740" />
+
+    <!-- Bottom point -->
+    <path
+        android:pathData="M52,68L54,73L56,68Z"
+        android:fillColor="#FFFFD740" />
+
+    <!-- Left weight cap -->
+    <path
+        android:pathData="M41,50L44,50L44,58L41,58Z"
+        android:fillColor="#FFFFFF" />
+
+    <!-- Right weight cap -->
+    <path
+        android:pathData="M64,50L67,50L67,58L64,58Z"
+        android:fillColor="#FFFFFF" />
+</vector>
