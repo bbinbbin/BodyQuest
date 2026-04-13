@@ -76,6 +76,7 @@ dependencies {
     implementation(libs.credentials.manager)
     implementation(libs.credentials.manager.play)
     implementation(libs.google.id.identity)
+    implementation(libs.play.services.wearable)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

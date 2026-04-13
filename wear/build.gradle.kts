@@ -11,7 +11,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.bodyquest.wear"
+        applicationId = "com.bodyquest.app"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
@@ -48,7 +48,11 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.wear.compose.material)
     implementation(libs.wear.compose.foundation)
+    implementation(libs.play.services.wearable)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.hilt.android)
+    implementation(libs.hilt.navigation.compose)
     ksp(libs.hilt.android.compiler)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
