@@ -48,7 +48,10 @@ data class WorkoutState(
     val targetDuration: Int = 0,                  // TIME_ONLY 세트 목표 시간(초)
     val targetMinutesInput: String = "0",         // 목표 분 입력
     val targetSecondsInput: String = "30",        // 목표 초 입력
-    val showGuide: Boolean = true
+    val showGuide: Boolean = true,
+    val isResting: Boolean = false,
+    val restTimerSeconds: Int = 0,       // 남은 휴식 시간
+    val restTimerTotal: Int = 60         // 휴식 총 시간 (기본 60초)
 )
 
 data class WorkoutCompleteState(
@@ -85,6 +88,7 @@ class WorkoutViewModel @Inject constructor(
     private var timerJob: Job? = null
     private var setTimerJob: Job? = null
     private var heartRateSimJob: Job? = null
+    private var restTimerJob: Job? = null
 
     fun loadQuest(questId: String) {
         viewModelScope.launch {
@@ -287,6 +291,8 @@ class WorkoutViewModel @Inject constructor(
 
             if (newCompleted >= rows.size) {
                 finishWorkout()
+            } else {
+                startRestTimer()
             }
         }
     }
@@ -379,7 +385,7 @@ class WorkoutViewModel @Inject constructor(
                 _state.value = s.copy(completedSets = newCompleted, setElapsedSeconds = 0)
                 finishWorkout()
             } else {
-                // 세트 완료 후 일시정지 → 유저가 쉬고 다음 세트 직접 시작
+                // 세트 완료 후 휴식 타이머 시작
                 timerJob?.cancel()
                 heartRateSimJob?.cancel()
                 _state.value = s.copy(
@@ -388,8 +394,28 @@ class WorkoutViewModel @Inject constructor(
                     setElapsedSeconds = 0,
                     isRunning = false
                 )
+                startRestTimer()
             }
         }
+    }
+
+    private fun startRestTimer() {
+        restTimerJob?.cancel()
+        val total = _state.value.restTimerTotal
+        _state.value = _state.value.copy(isResting = true, restTimerSeconds = total)
+        restTimerJob = viewModelScope.launch {
+            for (remaining in total - 1 downTo 0) {
+                delay(1000L)
+                _state.value = _state.value.copy(restTimerSeconds = remaining)
+            }
+            // 타이머 종료
+            _state.value = _state.value.copy(isResting = false, restTimerSeconds = 0)
+        }
+    }
+
+    fun skipRestTimer() {
+        restTimerJob?.cancel()
+        _state.value = _state.value.copy(isResting = false, restTimerSeconds = 0)
     }
 
     private fun startSetTimer() {

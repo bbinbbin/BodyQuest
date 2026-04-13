@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -36,6 +37,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -43,6 +45,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -91,6 +96,7 @@ fun WorkoutScreen(
 
     val job = try { Job.valueOf(quest.category) } catch (_: Exception) { Job.STRENGTH }
 
+    Box(modifier = Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -223,6 +229,7 @@ fun WorkoutScreen(
             )
 
             Spacer(modifier = Modifier.height(24.dp))
+
 
             if (!state.isRunning && state.setElapsedSeconds == 0) {
                 // ── 목표 시간 설정 카드 ──
@@ -790,6 +797,18 @@ fun WorkoutScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
     }
+
+    // 휴식 타이머 풀스크린 오버레이
+    if (state.isResting) {
+        RestTimerOverlay(
+            remaining = state.restTimerSeconds,
+            total = state.restTimerTotal,
+            completedSets = state.completedSets,
+            totalSets = state.totalSets,
+            onSkip = { viewModel.skipRestTimer() }
+        )
+    }
+    } // Box
 }
 
 @Composable
@@ -835,6 +854,110 @@ private fun StatChip(
                     text = label,
                     style = MaterialTheme.typography.labelSmall,
                     color = TextMuted
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RestTimerOverlay(
+    remaining: Int,
+    total: Int,
+    completedSets: Int,
+    totalSets: Int,
+    onSkip: () -> Unit
+) {
+    val progress = if (total > 0) remaining.toFloat() / total else 0f
+    val min = remaining / 60
+    val sec = remaining % 60
+    val arcColor = NeonPurple
+    val trackColor = NeonPurple.copy(alpha = 0.15f)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xF0050510)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "휴식 중",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = NeonPurple
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "세트 $completedSets / $totalSets 완료",
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextMuted
+            )
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // 원형 타이머
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(180.dp)) {
+                Canvas(modifier = Modifier.matchParentSize()) {
+                    val strokeWidth = 10.dp.toPx()
+                    val diameter = size.minDimension - strokeWidth
+                    val topLeft = androidx.compose.ui.geometry.Offset(
+                        (size.width - diameter) / 2f,
+                        (size.height - diameter) / 2f
+                    )
+                    val arcSize = androidx.compose.ui.geometry.Size(diameter, diameter)
+                    drawArc(
+                        color = trackColor,
+                        startAngle = -90f,
+                        sweepAngle = 360f,
+                        useCenter = false,
+                        topLeft = topLeft,
+                        size = arcSize,
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                    )
+                    drawArc(
+                        color = arcColor,
+                        startAngle = -90f,
+                        sweepAngle = 360f * progress,
+                        useCenter = false,
+                        topLeft = topLeft,
+                        size = arcSize,
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                    )
+                }
+                Text(
+                    text = "%d:%02d".format(min, sec),
+                    fontSize = 48.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "다음 세트를 준비하세요.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextSecondary
+            )
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            Button(
+                onClick = onSkip,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 40.dp)
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = NeonPurple)
+            ) {
+                Text(
+                    text = "건너뛰기",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
