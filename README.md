@@ -92,6 +92,8 @@ app/src/main/java/com/bodyquest/app/
 - WEIGHT_REPS/REPS_ONLY/MIXED: 세트 테이블 UI (무게/횟수 입력, 개별 체크)
 - TIME_ONLY STRENGTH: 세트별 목표 시간 설정 + 카운트업 타이머 (목표 달성 시 완료, 미달 시 무효)
 - ENDURANCE/BALANCE: 전체 타이머 UI
+- 세트 간 휴식 타이머: 60초 카운트다운 풀스크린 오버레이 + 건너뛰기
+- 운동 완료 요약: 총 세트/횟수/볼륨(kg) 조건부 표시
 - 직업별 스탯 배율 적용, BALANCE 양쪽 스탯 분배
 - 운동 GIF 가이드 46개 (Coil GIF 디코더)
 
