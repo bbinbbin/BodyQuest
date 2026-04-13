@@ -1,7 +1,7 @@
 
 # BodyQuest Handoff Document
 
-> 마지막 업데이트: 2026-04-13 (Phase 66: 운동 완료 화면 세트/횟수/볼륨 표시)
+> 마지막 업데이트: 2026-04-13 (Phase 67: Wear OS 모듈 기본 구조 + 폰 연결 감지)
 > 이 문서를 읽고 프로젝트 현재 상태를 파악한 뒤, 다음 작업을 이어서 진행하면 됩니다.
 
 ---
@@ -12,8 +12,8 @@
 실제 운동 데이터(InBody 등)만으로 스탯을 반영하며, 자기 입력 스탯은 없음.
 
 - **GitHub**: https://github.com/bbinbbin/BodyQuest
-- **패키지**: `com.bodyquest.app`
-- **minSdk**: 24 / **targetSdk**: 36 / **compileSdk**: 36
+- **패키지**: `com.bodyquest.app` (폰 + 워치 동일 applicationId)
+- **minSdk**: 24 (폰) / 26 (워치) / **targetSdk**: 36 (폰) / 34 (워치) / **compileSdk**: 36
 
 ---
 
@@ -35,6 +35,9 @@
 | Firebase Firestore | (BOM 관리) |
 | Credential Manager | 1.5.0 |
 | Google Identity | 1.1.1 |
+| Wear Compose | 1.4.0 |
+| Play Services Wearable | 19.0.0 |
+| Coroutines Play Services | 1.7.3 |
 | Gradle | 9.3.1 |
 
 - **DI**: Hilt (`@HiltAndroidApp`, `@AndroidEntryPoint`, `@HiltViewModel`)
@@ -44,6 +47,7 @@
 - **이미지 로딩**: Coil 2.6.0 (Compose용)
 - **테마**: 항상 다크 모드 (다이나믹 컬러 없음)
 - **보안**: network_security_config (HTTPS 강제), EncryptedSharedPreferences 준비 완료
+- **Wear OS**: 멀티 모듈 구조 (`:app` 폰 + `:wear` 워치), Data Layer API로 통신
 
 ---
 
@@ -164,6 +168,19 @@ app/src/main/java/com/bodyquest/app/
 └── util/
     ├── XpCalculator.kt
     └── ImageUtil.kt             # 이미지 압축(512x512 JPEG), 카메라 임시 URI 생성
+
+wear/src/main/java/com/bodyquest/wear/
+├── BodyQuestWearApp.kt          # @HiltAndroidApp Application
+├── MainActivity.kt              # @AndroidEntryPoint, WearHomeScreen 호출
+├── di/
+│   └── WearableModule.kt        # @Module: NodeClient, MessageClient 제공
+├── data/
+│   └── PhoneConnectionRepository.kt  # 폰 연결 감지 + 메시지 송신
+└── ui/
+    ├── WearHomeScreen.kt        # 연결 상태 표시 + 테스트 핑 버튼
+    ├── WearHomeViewModel.kt     # @HiltViewModel, 5초 주기 연결 모니터링
+    └── theme/
+        └── Theme.kt             # Wear Material 테마 (폰 앱 색상 재사용)
 ```
 
 ---
@@ -1352,6 +1369,56 @@ val restTimerTotal: Int = 60         // 휴식 총 시간 (기본 60초)
 
 ---
 
+### Phase 67: Wear OS 모듈 기본 구조 + 폰 연결 감지 ✅ (2026-04-13)
+
+#### 모듈 구조
+- **멀티 모듈 전환**: 단일 `:app` → `:app` (폰) + `:wear` (워치) 2모듈
+- **`settings.gradle.kts`**: `include(":wear")` 추가
+- **`wear/build.gradle.kts`**: `namespace = "com.bodyquest.wear"`, `applicationId = "com.bodyquest.app"` (Data Layer API 페어링용 동일 ID), `minSdk = 26`, `targetSdk = 34`
+
+#### 버전 카탈로그 추가 (`libs.versions.toml`)
+- `wearCompose = "1.4.0"` — Wear Compose Material + Foundation
+- `playServicesWearable = "19.0.0"` — Data Layer API (NodeClient, MessageClient)
+- `coroutinesPlayServices = "1.7.3"` — `Task.await()` 코루틴 변환
+
+#### Wear 소스 구조
+- **`BodyQuestWearApp.kt`**: `@HiltAndroidApp` Application
+- **`MainActivity.kt`**: `@AndroidEntryPoint`, `setContent { BodyQuestWearTheme { WearHomeScreen() } }`
+- **`WearableModule.kt`**: Hilt DI — `NodeClient`, `MessageClient` 제공
+- **`PhoneConnectionRepository.kt`**: `checkConnection()` (NodeClient.connectedNodes), `sendPingToPhone()` (MessageClient.sendMessage)
+- **`WearHomeViewModel.kt`**: `@HiltViewModel`, 5초 주기 연결 모니터링, `sendTestPing()`
+- **`WearHomeScreen.kt`**: 앱 로고 + "BodyQuest" 타이틀 + 연결 상태 (연결됨 초록/안됨 빨강) + 테스트 핑 버튼
+- **`Theme.kt`**: Wear Material `Colors` (폰 앱 Color.kt 색상 재사용 — NeonPurple, DarkBackground 등)
+
+#### 리소스
+- **`ic_app_logo.xml`**: 폰 앱의 adaptive-icon foreground 벡터 (방패+덤벨) 복사
+- **`mipmap-*`**: 폰 앱 런처 아이콘 복사
+- **`AndroidManifest.xml`**: `<uses-feature android:name="android.hardware.type.watch" />`
+
+#### Wear Compose 주요 차이점 (폰 Compose vs 워치 Compose)
+- Wear Material (`androidx.wear.compose.material`) ≠ Material3
+- `Colors` ≠ `darkColorScheme`, `title2`/`body2` ≠ `titleMedium`/`bodyMedium`
+- `ScalingLazyColumn` ≠ `LazyColumn` (원형 화면 스케일링)
+- `CompactChip` = Wear용 버튼
+
+#### 테스트 환경
+- Wear OS 에뮬레이터 (API 33/34, round) 및 실제 갤럭시 워치 모두 테스트 성공
+- 실제 워치 Wi-Fi 디버깅: 무선 디버깅 → `adb pair` 페어링 후 `adb connect`
+
+#### 다음 단계 (미완료)
+- [ ] WearableListenerService 추가 (워치에서 메시지 수신)
+- [ ] Phone 앱에 WearableModule DI 추가
+- [ ] 심박수/칼로리 센서 연동 (Health Services API) — 실제 워치에서만 테스트 가능
+
+**커밋**:
+- `0785f6c` build: Wear Compose 라이브러리 버전 카탈로그 추가
+- `4c4714f` build: Wear OS 모듈 기본 구조 추가
+- `74b671d` fix: Wear 홈 화면 이모지 → 앱 로고 아이콘으로 교체
+- `bcf2a26` build: play-services-wearable 추가 + Wear applicationId 통일
+- `c9e3de0` feat: Wear 폰 연결 감지 + 테스트 핑 UI 구현
+
+---
+
 ### Phase 43: 추천 퀘스트 하루 고정 + UI 수정 ✅ (2026-04-06)
 - **추천 퀘스트 하루 고정**: `LocalDate.now().toEpochDay()` 기반 시드로 `shuffled(dailyRandom)` — 같은 날 같은 추천
 - **스플래시 캐치프레이즈 마침표 제거**: "운동을 퀘스트로, 몸을 레전드로." → 마침표 제거
@@ -1683,6 +1750,11 @@ ui/test/
 - [x] WEIGHT_REPS kg 기본값 0 — 빈 입력 대신 0 표시, 0kg 허용 (맨몸 운동 대응)
 - [x] 세트 간 휴식 타이머 — 60초 카운트다운 풀스크린 오버레이, 건너뛰기 버튼, STRENGTH+TIME_ONLY 적용
 - [x] 운동 완료 화면 세트/횟수/볼륨 — totalReps/totalVolume 계산, WEIGHT_REPS 볼륨 조건부 표시
+- [x] Wear OS 모듈 기본 구조 — `:wear` 모듈, Wear Compose UI, Hilt DI
+- [x] Wear 폰 연결 감지 — NodeClient로 5초 주기 모니터링, 연결됨/안됨 표시
+- [x] Wear 테스트 핑 — MessageClient로 폰에 ping 전송 기능
+- [x] Wear 앱 로고 — 폰 앱 벡터 아이콘 재사용
+- [x] Data Layer API — play-services-wearable 19.0.0, 양쪽 applicationId 통일
 
 ---
 
@@ -1690,6 +1762,8 @@ ui/test/
 
 ### 높은 우선순위
 - [x] ~~**운동 GIF 전체 완성**~~ — 46/46 완료 (2026-04-08)
+- [ ] **Wear OS 통신 완성** — WearableListenerService(메시지 수신), Phone측 WearableModule DI
+- [ ] **Wear OS 심박수/칼로리 센서** — Health Services API로 실측 데이터 수집 → 폰 앱 전송
 - [ ] **인바디 데이터 입력** — 프로필에서 인바디 수치 기록 → 스탯 반영
 
 ### 중간 우선순위
@@ -1698,7 +1772,7 @@ ui/test/
 - [ ] **스킨 확률 테이블** — 현재 `ALL_SKINS.random()` 균일 확률. 희귀도별 가중 확률 도입 가능
 - [ ] **PvP 대전** — 스탯 기반 1:1 비교 대결
 - [ ] **알림/리마인더** — 운동 시간 알림
-- [ ] **운동 중 실제 센서 연동** — Google Fit / Health Connect API
+- [ ] **운동 중 실제 센서 연동** — Wear OS Health Services API (심박수/칼로리 → Data Layer API로 폰 전송)
 
 ### 낮은 우선순위
 - [ ] **소셜 기능** — 친구, 길드
@@ -1729,12 +1803,20 @@ ui/test/
 18. **결과 이미지 생성 방법** — Gemini AI에 단일 결과 이미지 2장(예: 헤어밴드_결과 + 흰티_결과)을 주고 합성 요청. 개별 스킨 PNG는 100% 불투명이라 alpha_composite으로 자동 합성 불가 — 반드시 Gemini 등 AI로 수동 생성 필요.
 19. **TIME_ONLY 세트 타이머 — 전역 타이머와 동시 실행**: `timerJob`(elapsedSeconds)과 `setTimerJob`(setElapsedSeconds)이 동시에 실행된다. 세트 완료/취소 후 전역 타이머(elapsedSeconds)는 계속 누적된다. 의도된 동작.
 20. **TIME_ONLY 목표 시간 초기값**: 기본값 0분 30초. 앱 재시작 시 항상 초기화 (WorkoutState 기본값). DB 저장 없음.
+21. **Wear OS applicationId 동일**: 폰(`com.bodyquest.app`)과 워치(`com.bodyquest.app`)가 같은 applicationId 사용. Data Layer API 페어링 필수 조건. `namespace`는 `com.bodyquest.wear`로 분리.
+22. **Wear 실기기 디버깅**: 갤럭시 워치는 "무선 디버깅" → `adb pair` 페어링 후 `adb connect` 필요. 단순 "Wi-Fi를 통한 디버깅"으로는 연결 안됨.
+23. **Wear 심박수 테스트**: 에뮬레이터에서 불가, 실제 워치에서만 Health Services API 테스트 가능.
 
 ---
 
 ## Git 커밋 히스토리
 
 ```
+c9e3de0 feat: Wear 폰 연결 감지 + 테스트 핑 UI 구현
+bcf2a26 build: play-services-wearable 추가 + Wear applicationId 통일
+74b671d fix: Wear 홈 화면 이모지 → 앱 로고 아이콘으로 교체
+4c4714f build: Wear OS 모듈 기본 구조 추가 — settings, 빌드 설정, 매니페스트, 리소스, 소스
+0785f6c build: Wear Compose 라이브러리 버전 카탈로그 추가
 5b92aad feat: TIME_ONLY 운동 세트별 타이머 UI — 목표 시간 설정 + 달성 후 완료
 de30913 feat: 운동 입력 방식(inputType) 기반 시스템 재설계 — DB v17
 8ff1830 docs: README.md 업데이트 — DB v16, HAT 슬롯, 아이디 저장, 보안 개선 반영
