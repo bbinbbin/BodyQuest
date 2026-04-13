@@ -7,19 +7,25 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
+import androidx.wear.compose.material.CompactChip
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import com.bodyquest.wear.R
 
 @Composable
-fun WearHomeScreen() {
+fun WearHomeScreen(viewModel: WearHomeViewModel = hiltViewModel()) {
+    val state by viewModel.state.collectAsState()
     val listState = rememberScalingLazyListState()
 
     ScalingLazyColumn(
@@ -50,12 +56,47 @@ fun WearHomeScreen() {
             Spacer(modifier = Modifier.height(4.dp))
         }
         item {
+            val statusText: String
+            val statusColor: Color
+            when {
+                state.isChecking -> {
+                    statusText = "연결 확인 중..."
+                    statusColor = MaterialTheme.colors.onSurfaceVariant
+                }
+                state.isPhoneConnected -> {
+                    statusText = "폰 연결됨"
+                    statusColor = Color(0xFF10B981)
+                }
+                else -> {
+                    statusText = "폰 연결 안됨"
+                    statusColor = MaterialTheme.colors.error
+                }
+            }
             Text(
-                text = "폰과 연결 대기 중",
+                text = statusText,
                 style = MaterialTheme.typography.body2,
-                color = MaterialTheme.colors.onSurfaceVariant,
+                color = statusColor,
                 textAlign = TextAlign.Center
             )
+        }
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+        item {
+            CompactChip(
+                onClick = { viewModel.sendTestPing() },
+                label = { Text("테스트 핑") }
+            )
+        }
+        if (state.lastPingSuccess != null) {
+            item {
+                Text(
+                    text = if (state.lastPingSuccess == true) "핑 성공!" else "핑 실패",
+                    style = MaterialTheme.typography.caption3,
+                    color = if (state.lastPingSuccess == true) Color(0xFF10B981) else MaterialTheme.colors.error,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }
