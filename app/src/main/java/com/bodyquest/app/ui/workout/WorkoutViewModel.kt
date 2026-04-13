@@ -67,7 +67,9 @@ data class WorkoutCompleteState(
     val statReward: Int = 0,       // 직업 효과 적용 후 최종값
     val leveledUp: Boolean = false,
     val newLevel: Int = 1,
-    val syncFailed: Boolean = false
+    val syncFailed: Boolean = false,
+    val totalReps: Int = 0,
+    val totalVolume: Double = 0.0
 )
 
 @HiltViewModel
@@ -526,10 +528,18 @@ class WorkoutViewModel @Inject constructor(
                         newLevel = newLevel
                     )
 
+                    // 세트 데이터 조회 → 총 reps/볼륨 계산
+                    val sets = workoutRepository.getSetsForWorkoutOnce(s.workoutId)
+                    val totalReps = sets.sumOf { it.reps }
+                    val totalVolume = sets.sumOf { it.weight * it.reps }
+                    _completeState.value = _completeState.value.copy(
+                        totalReps = totalReps,
+                        totalVolume = totalVolume
+                    )
+
                     // Push to cloud (실패해도 로컬은 이미 저장됨)
                     var cloudFailed = false
                     if (uid != null) {
-                        val sets = workoutRepository.getSetsForWorkoutOnce(s.workoutId)
                         val workoutPushed = syncManager.pushCompletedWorkout(uid, completedWorkout, sets)
                         val updatedUser = userRepository.getUserOnce(uid)
                         val userPushed = if (updatedUser != null) {
@@ -575,6 +585,10 @@ class WorkoutViewModel @Inject constructor(
             }
             val actualStatReward = (quest.statReward * statMultiplier).roundToInt()
 
+            val sets = workoutRepository.getSetsForWorkoutOnce(workoutId)
+            val totalReps = sets.sumOf { it.reps }
+            val totalVolume = sets.sumOf { it.weight * it.reps }
+
             _completeState.value = WorkoutCompleteState(
                 questName = quest.name,
                 questCategory = quest.category,
@@ -586,7 +600,9 @@ class WorkoutViewModel @Inject constructor(
                 statType = quest.statType,
                 baseStatReward = quest.statReward,
                 statReward = actualStatReward,
-                newLevel = user?.level ?: 1
+                newLevel = user?.level ?: 1,
+                totalReps = totalReps,
+                totalVolume = totalVolume
             )
         }
     }

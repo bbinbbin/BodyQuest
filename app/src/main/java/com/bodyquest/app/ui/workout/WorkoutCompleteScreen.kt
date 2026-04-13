@@ -16,7 +16,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -139,6 +142,40 @@ fun WorkoutCompleteScreen(
                         label = "kcal",
                         color = NeonGreen
                     )
+                }
+
+                // 세트/reps/볼륨 행
+                val showReps = state.totalReps > 0
+                val showVolume = state.totalVolume > 0.0
+                if (showReps || showVolume) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        SummaryItem(
+                            icon = Icons.Default.ViewList,
+                            value = "${state.totalSets}",
+                            label = "세트",
+                            color = NeonPurple
+                        )
+                        if (showReps) {
+                            SummaryItem(
+                                icon = Icons.Default.Repeat,
+                                value = "${state.totalReps}",
+                                label = "총 횟수",
+                                color = NeonPurple
+                            )
+                        }
+                        if (showVolume) {
+                            SummaryItem(
+                                icon = Icons.Default.FitnessCenter,
+                                value = "${state.totalVolume.toInt()}",
+                                label = "볼륨 kg",
+                                color = NeonPurple
+                            )
+                        }
+                    }
                 }
             }
         }
