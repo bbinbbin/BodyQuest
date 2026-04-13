@@ -24,4 +24,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "BodyQuest"
 include(":app")
+include(":wear")
  
