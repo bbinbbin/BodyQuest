@@ -24,7 +24,7 @@ import kotlin.math.roundToInt
 
 data class SetRowData(
     val setNumber: Int,
-    val weight: String = "",
+    val weight: String = "0",
     val reps: String = "",
     val durationSeconds: String = "",  // TIME_ONLY / MIXED 운동용
     val completed: Boolean = false
@@ -178,7 +178,7 @@ class WorkoutViewModel @Inject constructor(
         val lastRow = s.setRows.lastOrNull()
         val newRow = SetRowData(
             setNumber = s.setRows.size + 1,
-            weight = lastRow?.weight ?: "",
+            weight = lastRow?.weight ?: "0",
             reps = lastRow?.reps ?: "",
             durationSeconds = lastRow?.durationSeconds ?: ""
         )
@@ -228,7 +228,7 @@ class WorkoutViewModel @Inject constructor(
             ExerciseInputType.WEIGHT_REPS -> {
                 val w = row.weight.toDoubleOrNull()
                 val r = row.reps.toIntOrNull()
-                if (w == null || w <= 0.0 || r == null || r <= 0) {
+                if (w == null || w < 0.0 || r == null || r <= 0) {
                     _state.value = s.copy(setRowError = setIndex)
                     return
                 }
